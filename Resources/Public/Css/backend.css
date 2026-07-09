@@ -47,6 +47,8 @@
 .herobuilder-tab-ratio { font-size: .72rem; opacity: .7; }
 
 .herobuilder-actions { display: flex; gap: .35rem; white-space: nowrap; }
+/* The preview toggle switches a mode, not an add action — set it apart from Bild/Text/Button. */
+.herobuilder-actions .t3js-herobuilder-preview { margin-left: .75rem; }
 .t3js-herobuilder-preview.active {
     border: 2px solid var(--typo3-component-primary-color, #0b64c6);
     color: var(--typo3-component-primary-color, #0b64c6);
