@@ -1,0 +1,18 @@
+plugin.tx_herobuilder {
+    view {
+        templateRootPath = EXT:herobuilder/Resources/Private/Templates/
+        partialRootPath = EXT:herobuilder/Resources/Private/Partials/
+        layoutRootPath = EXT:herobuilder/Resources/Private/Layouts/
+    }
+    settings {
+        # Fixed stage aspect ratio per breakpoint (see plan). Format W:H.
+        stages {
+            xs.ratio = 9:16
+            sm.ratio = 3:4
+            md.ratio = 16:9
+            lg.ratio = 21:9
+            xl.ratio = 21:9
+            xxl.ratio = 21:9
+        }
+    }
+}

@@ -1,0 +1,345 @@
+/* ==========================================================================
+   Hero Builder — backend canvas editor (3-column layout)
+   Toolbar on top; left = layer panel, center = stage, right = properties tabs.
+   ========================================================================== */
+
+.herobuilder {
+    margin-top: .25rem;
+    border: 1px solid var(--typo3-component-border-color, #ccc);
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--typo3-component-bg, #fff);
+}
+
+/* ---- Toolbar ------------------------------------------------------------ */
+.herobuilder-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .5rem .75rem;
+    border-bottom: 1px solid var(--typo3-component-border-color, #e0e0e0);
+    background: var(--typo3-module-docheader-bg, #fafafa);
+}
+.herobuilder-title { font-weight: 700; font-size: 1rem; white-space: nowrap; }
+
+.herobuilder-tabs { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; }
+.herobuilder-tab {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .3rem;
+    padding: .2rem .6rem;
+    font-size: .8rem;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: var(--typo3-component-bg, #fff);
+    color: var(--typo3-component-color, #1a1a1a);
+    box-shadow: inset 0 0 0 1px var(--typo3-component-border-color, #ccc);
+    cursor: pointer;
+}
+.herobuilder-tab:hover { box-shadow: inset 0 0 0 1px var(--typo3-component-primary-color, #0b64c6); }
+.herobuilder-tab.active {
+    border-color: var(--typo3-component-primary-color, #0b64c6);
+    box-shadow: none;
+    color: var(--typo3-component-primary-color, #0b64c6);
+    font-weight: 600;
+}
+.herobuilder-tab-ratio { font-size: .72rem; opacity: .7; }
+
+.herobuilder-actions { display: flex; gap: .35rem; white-space: nowrap; }
+.t3js-herobuilder-preview.active {
+    border: 2px solid var(--typo3-component-primary-color, #0b64c6);
+    color: var(--typo3-component-primary-color, #0b64c6);
+    font-weight: 600;
+}
+
+/* ---- Grid -------------------------------------------------------------- */
+.herobuilder-grid {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr) 340px;
+    min-height: 60vh;
+}
+.herobuilder-sidebar {
+    overflow: auto;
+    max-height: 80vh;
+    padding: .5rem;
+}
+.herobuilder-sidebar-left { border-right: 1px solid var(--typo3-component-border-color, #e0e0e0); }
+.herobuilder-sidebar-right { border-left: 1px solid var(--typo3-component-border-color, #e0e0e0); padding: 0; }
+.herobuilder-sidebar-head {
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--typo3-text-color-secondary, #6c757d);
+    padding: .25rem .35rem .5rem;
+}
+
+/* ---- Layer list (left sidebar) ----------------------------------------- */
+.herobuilder-layerlist { display: flex; flex-direction: column; gap: .25rem; }
+.herobuilder-layerlist .hb-ll-empty { font-size: .8rem; color: var(--typo3-text-color-secondary, #6c757d); padding: .35rem; }
+.hb-ll-item {
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    width: 100%;
+    padding: .3rem .4rem;
+    font-size: .85rem;
+    border: 2px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+}
+.hb-ll-item:hover { background: var(--typo3-component-hover-bg, rgba(0, 0, 0, .04)); }
+.hb-ll-item.active {
+    border-color: var(--typo3-component-primary-color, #0b64c6);
+    background: rgba(11, 100, 198, .12);
+}
+.hb-ll-item.active .hb-ll-name { color: var(--typo3-component-primary-color, #0b64c6); font-weight: 600; }
+.hb-ll-item.hb-ll-hidden { opacity: .5; }
+.hb-ll-grip { cursor: grab; opacity: .4; font-size: .8rem; }
+.hb-ll-chip {
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15);
+}
+.hb-ll-sel {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+.hb-ll-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb-ll-btn {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    opacity: .65;
+    padding: 0;
+}
+.hb-ll-btn:hover { opacity: 1; }
+
+/* ---- Canvas (center) --------------------------------------------------- */
+.herobuilder-canvas {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: .5rem;
+    padding: 1rem;
+    min-width: 0;
+    overflow: auto;
+}
+.herobuilder-stage-wrap {
+    position: relative;
+    max-width: 100%;
+    max-height: 70vh;
+    margin: auto;
+    overflow: auto;
+    resize: vertical;
+}
+.herobuilder-stage-wrap.hb-pan-ready { cursor: grab; }
+.herobuilder-stage-wrap.hb-panning { cursor: grabbing; }
+.herobuilder-stage-wrap.hb-panning * { pointer-events: none; }
+.herobuilder-stage { width: 100%; min-height: 120px; }
+
+.herobuilder-zoom-badge {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    z-index: 10;
+    padding: .1rem .5rem;
+    font-size: .75rem;
+    font-variant-numeric: tabular-nums;
+    background: rgba(255, 255, 255, .9);
+    color: #1a1a1a;
+    border: 1px solid var(--typo3-component-border-color, #ccc);
+    border-radius: 999px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.herobuilder-layer { user-select: none; -webkit-user-drag: none; }
+.herobuilder-layer:hover { outline: 1px solid rgba(47, 128, 237, .8); }
+.herobuilder-layer-text { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); line-height: 1.1; }
+
+/* Moveable handles: dim until the box is hovered, so they don't hide layer content. */
+.moveable-control-box { z-index: 9999; }
+.moveable-control-box .moveable-line,
+.moveable-control-box .moveable-control { opacity: .5; transition: opacity .12s; }
+.moveable-control-box:hover .moveable-line,
+.moveable-control-box:hover .moveable-control { opacity: 1; }
+
+/* ---- Properties (right sidebar) ---------------------------------------- */
+.herobuilder-proptabs {
+    display: flex;
+    border-bottom: 1px solid var(--typo3-component-border-color, #e0e0e0);
+    position: sticky;
+    top: 0;
+    background: var(--typo3-component-bg, #fff);
+    z-index: 2;
+}
+.herobuilder-proptab {
+    flex: 1;
+    padding: .5rem .25rem;
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--typo3-text-color-secondary, #6c757d);
+    cursor: pointer;
+    font-size: .85rem;
+}
+.herobuilder-proptab.active {
+    color: var(--typo3-component-primary-color, #0b64c6);
+    border-bottom-color: var(--typo3-component-primary-color, #0b64c6);
+    font-weight: 600;
+}
+
+.herobuilder-panel { padding: .75rem; }
+.herobuilder-panel[hidden] { display: none; }
+.herobuilder-tabpane { display: none; flex-direction: column; gap: .75rem; }
+.herobuilder-tabpane.active { display: flex; }
+.herobuilder-panel-row { display: flex; flex-direction: column; gap: .2rem; }
+.herobuilder-panel-row > label { font-size: .75rem; font-weight: 600; color: var(--typo3-text-color-secondary, #6c757d); }
+.herobuilder-panel-row[hidden] { display: none; }
+
+/* Numeric geometry fields — 2×2(+rot) grid */
+.hb-geom { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+.hb-geom label { display: flex; align-items: center; gap: .3rem; font-size: .75rem; font-weight: 400; margin: 0; }
+.hb-geom input { width: 100%; }
+
+/* Alignment icon buttons */
+.hb-align-row { display: flex; gap: .35rem; }
+.hb-align { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 30px; padding: 0; }
+.hb-align svg { width: 16px; height: 16px; }
+
+/* Class chips (multi-select) */
+.hb-class-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.hb-class-chip {
+    padding: .15rem .55rem;
+    font-size: .78rem;
+    border: 1px solid var(--typo3-component-border-color, #ccc);
+    border-radius: 999px;
+    background: var(--typo3-component-bg, #fff);
+    color: inherit;
+    cursor: pointer;
+}
+.hb-class-chip:hover { border-color: var(--typo3-component-primary-color, #0b64c6); }
+.hb-class-chip.active {
+    background: var(--typo3-component-primary-color, #0b64c6);
+    border-color: var(--typo3-component-primary-color, #0b64c6);
+    color: #fff;
+}
+
+/* Link picker (TYPO3 link browser) */
+.hb-link { display: flex; flex-direction: column; gap: .3rem; }
+.hb-link-value {
+    display: block;
+    padding: .2rem .4rem;
+    font-size: .72rem;
+    background: var(--typo3-component-hover-bg, rgba(0, 0, 0, .05));
+    border-radius: 3px;
+    word-break: break-all;
+}
+.hb-link-btns { display: flex; gap: .35rem; }
+
+/* Darkening overlay slider */
+.hb-overlay-ctl { display: flex; align-items: center; gap: .5rem; }
+.hb-overlay-ctl .hb-overlay { flex: 1; }
+.hb-overlay-ctl .hb-overlay-val { min-width: 2.5rem; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Focus point picker */
+.hb-focus {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+    line-height: 0;
+    cursor: crosshair;
+    border: 1px solid var(--typo3-component-border-color, #ccc);
+    border-radius: 3px;
+    overflow: hidden;
+    touch-action: none;
+}
+.hb-focus-img { display: block; width: 100%; height: auto; }
+.hb-focus-dot {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: rgba(47, 128, 237, .9);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .5);
+    pointer-events: none;
+}
+
+/* ---- Live preview (mounts in the canvas column) ------------------------ */
+.herobuilder-preview {
+    width: 100%;
+    max-width: 100%;
+    overflow: auto;
+    border: 1px solid var(--typo3-component-border-color, #ccc);
+    border-radius: 4px;
+    background: repeating-conic-gradient(#eee 0% 25%, #fff 0% 50%) 50% / 20px 20px;
+    resize: vertical;
+}
+.herobuilder-preview-bar {
+    display: flex;
+    gap: .25rem;
+    padding: .25rem;
+    border-bottom: 1px solid var(--typo3-component-border-color, #ccc);
+    background: var(--typo3-component-bg, #fff);
+}
+.herobuilder-preview-frame { display: block; width: 100%; min-height: 320px; height: 420px; border: 0; }
+
+/* ---- Right-click context menu ------------------------------------------ */
+.herobuilder-ctxmenu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 220px;
+    padding: .25rem 0;
+    background: var(--typo3-component-bg, #fff);
+    color: var(--typo3-component-color, #1a1a1a);
+    border: 1px solid var(--typo3-component-border-color, #ccc);
+    border-radius: 6px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, .25);
+    font-size: .85rem;
+}
+.herobuilder-ctxmenu .hb-ctx-label {
+    padding: .15rem .75rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--typo3-text-color-secondary, #6c757d);
+}
+.herobuilder-ctxmenu .hb-ctx-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: .3rem .75rem;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+.herobuilder-ctxmenu .hb-ctx-item:hover { background: var(--typo3-component-primary-color, #0b64c6); color: #fff; }
+.herobuilder-ctxmenu .hb-ctx-item[data-act="delete"]:hover { background: var(--typo3-state-danger-color, #c83c3c); }
+.herobuilder-ctxmenu .hb-ctx-sep { height: 1px; margin: .25rem 0; background: var(--typo3-component-border-color, #e0e0e0); }

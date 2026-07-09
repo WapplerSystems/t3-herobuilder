@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.0">
+    <file source-language="en" datatype="plaintext" original="messages" date="2026-07-08T00:00:00Z" product-name="herobuilder">
+        <header/>
+        <body>
+            <trans-unit id="ctype.title"><source>Hero Builder</source></trans-unit>
+            <trans-unit id="ctype.description"><source>Compose a responsive hero from freely positioned image layers — different composition per breakpoint, multiple collages as a carousel.</source></trans-unit>
+            <trans-unit id="wizard.title"><source>Hero Builder</source></trans-unit>
+            <trans-unit id="wizard.description"><source>Drag &amp; drop image layers onto a stage and position them per breakpoint.</source></trans-unit>
+
+            <trans-unit id="tab.collages"><source>Collages (slides)</source></trans-unit>
+            <trans-unit id="tab.slider"><source>Slider</source></trans-unit>
+            <trans-unit id="tt_content.collages"><source>Collages (slides)</source></trans-unit>
+            <trans-unit id="tt_content.slider_autoplay"><source>Autoplay</source></trans-unit>
+            <trans-unit id="tt_content.slider_interval"><source>Interval (ms)</source></trans-unit>
+            <trans-unit id="tt_content.slider_loop"><source>Loop</source></trans-unit>
+            <trans-unit id="tt_content.slider_controls"><source>Show prev/next controls</source></trans-unit>
+            <trans-unit id="tt_content.slider_indicators"><source>Show indicators (dots)</source></trans-unit>
+            <trans-unit id="tt_content.slider_pause_hover"><source>Pause on hover</source></trans-unit>
+            <trans-unit id="tt_content.slider_effect"><source>Transition</source></trans-unit>
+            <trans-unit id="tt_content.slider_effect.slide"><source>Slide</source></trans-unit>
+            <trans-unit id="tt_content.slider_effect.fade"><source>Fade</source></trans-unit>
+
+            <trans-unit id="collage"><source>Collage</source></trans-unit>
+            <trans-unit id="collage.title"><source>Title (internal)</source></trans-unit>
+            <trans-unit id="collage.link"><source>Slide link (optional)</source></trans-unit>
+            <trans-unit id="collage.composition"><source>Composition</source></trans-unit>
+            <trans-unit id="collage.assets"><source>Image assets (pool)</source></trans-unit>
+
+            <trans-unit id="button.addImage"><source>Add image</source></trans-unit>
+            <trans-unit id="button.addText"><source>Add text</source></trans-unit>
+            <trans-unit id="button.addButton"><source>Add button</source></trans-unit>
+            <trans-unit id="panel.link"><source>Link</source></trans-unit>
+            <trans-unit id="link.choose"><source>Choose link</source></trans-unit>
+            <trans-unit id="link.remove"><source>Remove</source></trans-unit>
+            <trans-unit id="button.copyToAll"><source>Copy position to all breakpoints</source></trans-unit>
+            <trans-unit id="button.preview"><source>Live preview</source></trans-unit>
+            <trans-unit id="preview.replay"><source>Replay animation</source></trans-unit>
+
+            <trans-unit id="panel.text"><source>Text</source></trans-unit>
+            <trans-unit id="panel.classes"><source>Classes (multiple selection)</source></trans-unit>
+            <trans-unit id="panel.animation"><source>Animation</source></trans-unit>
+            <trans-unit id="panel.delay"><source>Delay (ms)</source></trans-unit>
+            <trans-unit id="panel.duration"><source>Duration (ms)</source></trans-unit>
+            <trans-unit id="panel.fit"><source>Fit (scaling)</source></trans-unit>
+            <trans-unit id="panel.visible"><source>Visible on this breakpoint</source></trans-unit>
+            <trans-unit id="panel.deleteLayer"><source>Delete layer</source></trans-unit>
+            <trans-unit id="panel.noClasses"><source>No classes configured (page TSconfig tx_herobuilder.layerClasses)</source></trans-unit>
+            <trans-unit id="panel.animNone"><source>— none —</source></trans-unit>
+
+            <trans-unit id="fit.fill"><source>Fill (distorted, fills box)</source></trans-unit>
+            <trans-unit id="fit.cover"><source>Cover (fills box, cropped)</source></trans-unit>
+            <trans-unit id="fit.contain"><source>Contain (fully visible)</source></trans-unit>
+
+            <trans-unit id="list.empty"><source>No elements on this stage</source></trans-unit>
+            <trans-unit id="list.hidden"><source>hidden</source></trans-unit>
+
+            <trans-unit id="prompt.fileUid"><source>sys_file uid:</source></trans-unit>
+
+            <trans-unit id="ctx.align"><source>Align</source></trans-unit>
+            <trans-unit id="ctx.alignLeft"><source>Left</source></trans-unit>
+            <trans-unit id="ctx.alignCenterH"><source>Center horizontally</source></trans-unit>
+            <trans-unit id="ctx.alignRight"><source>Right</source></trans-unit>
+            <trans-unit id="ctx.alignTop"><source>Top</source></trans-unit>
+            <trans-unit id="ctx.alignMiddle"><source>Center vertically</source></trans-unit>
+            <trans-unit id="ctx.alignBottom"><source>Bottom</source></trans-unit>
+            <trans-unit id="ctx.fillStage"><source>Fill stage (cover)</source></trans-unit>
+            <trans-unit id="ctx.fillStagePlain"><source>Fill stage</source></trans-unit>
+            <trans-unit id="ctx.copyToAll"><source>Copy position to all breakpoints</source></trans-unit>
+            <trans-unit id="ctx.toFront"><source>Bring to front</source></trans-unit>
+            <trans-unit id="ctx.toBack"><source>Send to back</source></trans-unit>
+
+            <trans-unit id="editor.title"><source>Composition</source></trans-unit>
+            <trans-unit id="list.title"><source>Layers</source></trans-unit>
+            <trans-unit id="panel.tabTransform"><source>Transform</source></trans-unit>
+            <trans-unit id="panel.tabStyle"><source>Style</source></trans-unit>
+            <trans-unit id="panel.tabAnimation"><source>Animation</source></trans-unit>
+            <trans-unit id="panel.align"><source>Align</source></trans-unit>
+            <trans-unit id="panel.alignV"><source>Center vertically</source></trans-unit>
+            <trans-unit id="panel.geometry"><source>Position / size (%)</source></trans-unit>
+            <trans-unit id="panel.focus"><source>Focus point (cover/contain)</source></trans-unit>
+            <trans-unit id="panel.overlay"><source>Darkening behind text (%)</source></trans-unit>
+            <trans-unit id="list.reorder"><source>Drag to reorder</source></trans-unit>
+            <trans-unit id="list.toggleVisible"><source>Toggle visibility</source></trans-unit>
+            <trans-unit id="list.toggleLock"><source>Lock / unlock</source></trans-unit>
+            <trans-unit id="list.duplicate"><source>Duplicate</source></trans-unit>
+
+            <trans-unit id="zoom.in"><source>Zoom in (Ctrl +)</source></trans-unit>
+            <trans-unit id="zoom.out"><source>Zoom out (Ctrl −)</source></trans-unit>
+            <trans-unit id="zoom.reset"><source>Reset zoom to 100% (Ctrl 0)</source></trans-unit>
+            <trans-unit id="zoom.fit"><source>Fit to width</source></trans-unit>
+        </body>
+    </file>
+</xliff>

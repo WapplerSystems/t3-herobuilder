@@ -1,0 +1,43 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+
+<f:asset.css identifier="herobuilder-aos" href="EXT:herobuilder/Resources/Public/Css/aos.css"/>
+<f:asset.css identifier="herobuilder-hero" href="EXT:herobuilder/Resources/Public/Css/hero.css"/>
+<f:asset.script identifier="herobuilder-aos" src="EXT:herobuilder/Resources/Public/JavaScript/Vendor/aos.js"/>
+<f:asset.script identifier="herobuilder-hero" src="EXT:herobuilder/Resources/Public/JavaScript/hero.js"/>
+
+<f:if condition="{collages}">
+    <f:variable name="cid">herobuilder-{data.uid}</f:variable>
+    <f:variable name="count" value="{collages -> f:count()}"/>
+
+    <div id="{cid}" class="carousel slide herobuilder-carousel<f:if condition="{data.slider_effect} == 'fade'"> carousel-fade</f:if>"<f:if condition="{data.slider_autoplay}"> data-bs-ride="carousel"</f:if> data-bs-interval="{data.slider_interval}" data-bs-wrap="{f:if(condition: data.slider_loop, then: 'true', else: 'false')}">
+
+        <f:if condition="{data.slider_indicators} && {count} > 1">
+            <div class="carousel-indicators">
+                <f:for each="{collages}" as="slide" iteration="it">
+                    <button type="button" data-bs-target="#{cid}" data-bs-slide-to="{it.index}" class="<f:if condition="{it.isFirst}">active</f:if>" aria-current="{f:if(condition: it.isFirst, then: 'true', else: 'false')}" aria-label="Slide {it.cycle}"></button>
+                </f:for>
+            </div>
+        </f:if>
+
+        <div class="carousel-inner">
+            <f:for each="{collages}" as="slide" iteration="it">
+                <div class="carousel-item<f:if condition="{it.isFirst}"> active</f:if>">
+                    <f:render partial="Slide" arguments="{slide: slide.collage}"/>
+                </div>
+            </f:for>
+        </div>
+
+        <f:if condition="{data.slider_controls} && {count} > 1">
+            <button class="carousel-control-prev" type="button" data-bs-target="#{cid}" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#{cid}" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </f:if>
+    </div>
+</f:if>
+
+</html>

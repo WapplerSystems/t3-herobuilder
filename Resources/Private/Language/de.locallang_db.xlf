@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.0">
+    <file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2026-07-09T00:00:00Z" product-name="herobuilder">
+        <header/>
+        <body>
+            <trans-unit id="ctype.title"><source>Hero Builder</source><target>Hero Builder</target></trans-unit>
+            <trans-unit id="ctype.description"><source>Compose a responsive hero from freely positioned image layers — different composition per breakpoint, multiple collages as a carousel.</source><target>Erstelle eine responsive Hero-Sektion aus frei positionierten Bild-Ebenen — je Breakpoint eine andere Komposition, mehrere Collagen als Karussell.</target></trans-unit>
+            <trans-unit id="wizard.title"><source>Hero Builder</source><target>Hero Builder</target></trans-unit>
+            <trans-unit id="wizard.description"><source>Drag &amp; drop image layers onto a stage and position them per breakpoint.</source><target>Bild-Ebenen per Drag &amp; Drop auf eine Bühne ziehen und je Breakpoint positionieren.</target></trans-unit>
+
+            <trans-unit id="tab.collages"><source>Collages (slides)</source><target>Collagen (Slides)</target></trans-unit>
+            <trans-unit id="tab.slider"><source>Slider</source><target>Slider</target></trans-unit>
+            <trans-unit id="tt_content.collages"><source>Collages (slides)</source><target>Collagen (Slides)</target></trans-unit>
+            <trans-unit id="tt_content.slider_autoplay"><source>Autoplay</source><target>Autoplay</target></trans-unit>
+            <trans-unit id="tt_content.slider_interval"><source>Interval (ms)</source><target>Intervall (ms)</target></trans-unit>
+            <trans-unit id="tt_content.slider_loop"><source>Loop</source><target>Endlosschleife</target></trans-unit>
+            <trans-unit id="tt_content.slider_controls"><source>Show prev/next controls</source><target>Vor/Zurück-Steuerung anzeigen</target></trans-unit>
+            <trans-unit id="tt_content.slider_indicators"><source>Show indicators (dots)</source><target>Indikatoren (Punkte) anzeigen</target></trans-unit>
+            <trans-unit id="tt_content.slider_pause_hover"><source>Pause on hover</source><target>Bei Mouseover pausieren</target></trans-unit>
+            <trans-unit id="tt_content.slider_effect"><source>Transition</source><target>Übergang</target></trans-unit>
+            <trans-unit id="tt_content.slider_effect.slide"><source>Slide</source><target>Schieben</target></trans-unit>
+            <trans-unit id="tt_content.slider_effect.fade"><source>Fade</source><target>Überblenden</target></trans-unit>
+
+            <trans-unit id="collage"><source>Collage</source><target>Collage</target></trans-unit>
+            <trans-unit id="collage.title"><source>Title (internal)</source><target>Titel (intern)</target></trans-unit>
+            <trans-unit id="collage.link"><source>Slide link (optional)</source><target>Slide-Link (optional)</target></trans-unit>
+            <trans-unit id="collage.composition"><source>Composition</source><target>Komposition</target></trans-unit>
+            <trans-unit id="collage.assets"><source>Image assets (pool)</source><target>Bild-Dateien (Pool)</target></trans-unit>
+
+            <trans-unit id="button.addImage"><source>Add image</source><target>Bild hinzufügen</target></trans-unit>
+            <trans-unit id="button.addText"><source>Add text</source><target>Text hinzufügen</target></trans-unit>
+            <trans-unit id="button.addButton"><source>Add button</source><target>Button hinzufügen</target></trans-unit>
+            <trans-unit id="panel.link"><source>Link</source><target>Link</target></trans-unit>
+            <trans-unit id="link.choose"><source>Choose link</source><target>Link wählen</target></trans-unit>
+            <trans-unit id="link.remove"><source>Remove</source><target>Entfernen</target></trans-unit>
+            <trans-unit id="button.copyToAll"><source>Copy position to all breakpoints</source><target>Position auf alle Breakpoints übertragen</target></trans-unit>
+            <trans-unit id="button.preview"><source>Live preview</source><target>Live-Vorschau</target></trans-unit>
+            <trans-unit id="preview.replay"><source>Replay animation</source><target>Animation erneut abspielen</target></trans-unit>
+
+            <trans-unit id="panel.text"><source>Text</source><target>Text</target></trans-unit>
+            <trans-unit id="panel.classes"><source>Classes (multiple selection)</source><target>Klassen (Mehrfachauswahl)</target></trans-unit>
+            <trans-unit id="panel.animation"><source>Animation</source><target>Animation</target></trans-unit>
+            <trans-unit id="panel.delay"><source>Delay (ms)</source><target>Verzögerung (ms)</target></trans-unit>
+            <trans-unit id="panel.duration"><source>Duration (ms)</source><target>Dauer (ms)</target></trans-unit>
+            <trans-unit id="panel.fit"><source>Fit (scaling)</source><target>Skalierung</target></trans-unit>
+            <trans-unit id="panel.visible"><source>Visible on this breakpoint</source><target>Auf diesem Breakpoint sichtbar</target></trans-unit>
+            <trans-unit id="panel.deleteLayer"><source>Delete layer</source><target>Ebene löschen</target></trans-unit>
+            <trans-unit id="panel.noClasses"><source>No classes configured (page TSconfig tx_herobuilder.layerClasses)</source><target>Keine Klassen konfiguriert (page TSconfig tx_herobuilder.layerClasses)</target></trans-unit>
+            <trans-unit id="panel.animNone"><source>— none —</source><target>— keine —</target></trans-unit>
+
+            <trans-unit id="fit.fill"><source>Fill (distorted, fills box)</source><target>Füllen (verzerrt, füllt Box)</target></trans-unit>
+            <trans-unit id="fit.cover"><source>Cover (fills box, cropped)</source><target>Cover (füllt Box, beschnitten)</target></trans-unit>
+            <trans-unit id="fit.contain"><source>Contain (fully visible)</source><target>Contain (ganz sichtbar)</target></trans-unit>
+
+            <trans-unit id="list.empty"><source>No elements on this stage</source><target>Keine Elemente auf dieser Bühne</target></trans-unit>
+            <trans-unit id="list.hidden"><source>hidden</source><target>ausgeblendet</target></trans-unit>
+
+            <trans-unit id="prompt.fileUid"><source>sys_file uid:</source><target>sys_file-UID:</target></trans-unit>
+
+            <trans-unit id="ctx.align"><source>Align</source><target>Ausrichten</target></trans-unit>
+            <trans-unit id="ctx.alignLeft"><source>Left</source><target>Links</target></trans-unit>
+            <trans-unit id="ctx.alignCenterH"><source>Center horizontally</source><target>Horizontal zentrieren</target></trans-unit>
+            <trans-unit id="ctx.alignRight"><source>Right</source><target>Rechts</target></trans-unit>
+            <trans-unit id="ctx.alignTop"><source>Top</source><target>Oben</target></trans-unit>
+            <trans-unit id="ctx.alignMiddle"><source>Center vertically</source><target>Vertikal zentrieren</target></trans-unit>
+            <trans-unit id="ctx.alignBottom"><source>Bottom</source><target>Unten</target></trans-unit>
+            <trans-unit id="ctx.fillStage"><source>Fill stage (cover)</source><target>Bühne ausfüllen (Cover)</target></trans-unit>
+            <trans-unit id="ctx.fillStagePlain"><source>Fill stage</source><target>Bühne ausfüllen</target></trans-unit>
+            <trans-unit id="ctx.copyToAll"><source>Copy position to all breakpoints</source><target>Position auf alle Breakpoints übertragen</target></trans-unit>
+            <trans-unit id="ctx.toFront"><source>Bring to front</source><target>In den Vordergrund</target></trans-unit>
+            <trans-unit id="ctx.toBack"><source>Send to back</source><target>In den Hintergrund</target></trans-unit>
+
+            <trans-unit id="editor.title"><source>Composition</source><target>Komposition</target></trans-unit>
+            <trans-unit id="list.title"><source>Layers</source><target>Ebenen</target></trans-unit>
+            <trans-unit id="panel.tabTransform"><source>Transform</source><target>Transform</target></trans-unit>
+            <trans-unit id="panel.tabStyle"><source>Style</source><target>Stil</target></trans-unit>
+            <trans-unit id="panel.tabAnimation"><source>Animation</source><target>Animation</target></trans-unit>
+            <trans-unit id="panel.align"><source>Align</source><target>Ausrichten</target></trans-unit>
+            <trans-unit id="panel.alignV"><source>Center vertically</source><target>Vertikal zentrieren</target></trans-unit>
+            <trans-unit id="panel.geometry"><source>Position / size (%)</source><target>Position / Größe (%)</target></trans-unit>
+            <trans-unit id="panel.focus"><source>Focus point (cover/contain)</source><target>Fokuspunkt (Cover/Contain)</target></trans-unit>
+            <trans-unit id="panel.overlay"><source>Darkening behind text (%)</source><target>Abdunkelung hinter Text (%)</target></trans-unit>
+            <trans-unit id="list.reorder"><source>Drag to reorder</source><target>Zum Umsortieren ziehen</target></trans-unit>
+            <trans-unit id="list.toggleVisible"><source>Toggle visibility</source><target>Sichtbarkeit umschalten</target></trans-unit>
+            <trans-unit id="list.toggleLock"><source>Lock / unlock</source><target>Sperren / entsperren</target></trans-unit>
+            <trans-unit id="list.duplicate"><source>Duplicate</source><target>Duplizieren</target></trans-unit>
+
+            <trans-unit id="zoom.in"><source>Zoom in (Ctrl +)</source><target>Vergrößern (Strg +)</target></trans-unit>
+            <trans-unit id="zoom.out"><source>Zoom out (Ctrl −)</source><target>Verkleinern (Strg −)</target></trans-unit>
+            <trans-unit id="zoom.reset"><source>Reset zoom to 100% (Ctrl 0)</source><target>Zoom auf 100% zurücksetzen (Strg 0)</target></trans-unit>
+            <trans-unit id="zoom.fit"><source>Fit to width</source><target>An Breite anpassen</target></trans-unit>
+        </body>
+    </file>
+</xliff>

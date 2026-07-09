@@ -1,0 +1,36 @@
+tt_content.herobuilder =< lib.contentElement
+tt_content.herobuilder {
+    templateName = Hero
+    templateRootPaths.10 = {$plugin.tx_herobuilder.view.templateRootPath}
+    partialRootPaths.10 = {$plugin.tx_herobuilder.view.partialRootPath}
+    layoutRootPaths.10 = {$plugin.tx_herobuilder.view.layoutRootPath}
+
+    dataProcessing {
+        # Load collages (slides) of this content element, ordered.
+        10 = TYPO3\CMS\Frontend\DataProcessing\DatabaseQueryProcessor
+        10 {
+            table = tx_herobuilder_collage
+            as = collages
+            pidInList.field = pid
+            where.data = field:uid
+            where.intval = 1
+            where.wrap = content_uid=|
+            orderBy = sorting
+            # Expand each collage's composition JSON into resolved layers.
+            dataProcessing {
+                10 = WapplerSystems\Herobuilder\DataProcessing\CompositionProcessor
+                10 {
+                    as = collage
+                    stages {
+                        xs.ratio = {$plugin.tx_herobuilder.settings.stages.xs.ratio}
+                        sm.ratio = {$plugin.tx_herobuilder.settings.stages.sm.ratio}
+                        md.ratio = {$plugin.tx_herobuilder.settings.stages.md.ratio}
+                        lg.ratio = {$plugin.tx_herobuilder.settings.stages.lg.ratio}
+                        xl.ratio = {$plugin.tx_herobuilder.settings.stages.xl.ratio}
+                        xxl.ratio = {$plugin.tx_herobuilder.settings.stages.xxl.ratio}
+                    }
+                }
+            }
+        }
+    }
+}

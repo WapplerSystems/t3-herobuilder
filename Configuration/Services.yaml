@@ -1,0 +1,21 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+    public: false
+
+  WapplerSystems\Herobuilder\:
+    resource: '../Classes/*'
+
+  WapplerSystems\Herobuilder\DataProcessing\CompositionProcessor:
+    public: true
+    shared: false
+
+  WapplerSystems\Herobuilder\Service\CompositeImageService:
+    public: true
+
+  WapplerSystems\Herobuilder\Backend\Preview\HeroBuilderPreviewRenderer:
+    public: true
+
+  WapplerSystems\Herobuilder\Backend\Controller\PreviewController:
+    public: true

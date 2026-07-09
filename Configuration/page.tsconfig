@@ -1,0 +1,55 @@
+# Hero Builder — predefined CSS classes selectable per layer (text & image).
+# Key = CSS class (as applied to the layer), value = editor label.
+# Single source of truth: read by the backend canvas (selection) AND the frontend
+# CompositionProcessor (whitelist validation). Override/extend per page as needed.
+tx_herobuilder.layerClasses {
+    display-1 = Display 1 (XXL)
+    display-3 = Display 3 (XL)
+    display-5 = Display 5 (L)
+    fs-1 = Schrift sehr groß
+    fs-3 = Schrift groß
+    fs-5 = Schrift klein
+    fw-bold = Fett
+    fw-semibold = Halbfett
+    fw-light = Leicht
+    fst-italic = Kursiv
+    text-uppercase = GROSSBUCHSTABEN
+    text-white = Weiß
+    text-dark = Dunkel
+    text-primary = Primärfarbe
+    text-bg-primary = Box: Primär
+    text-bg-dark = Box: Dunkel
+    text-start = Linksbündig
+    text-center = Zentriert
+    text-end = Rechtsbündig
+    lh-1 = Zeilenhöhe eng
+    btn = Button-Basis
+    btn-primary = Button: Primär
+    btn-secondary = Button: Sekundär
+    btn-light = Button: Hell
+    btn-outline-light = Button: Outline hell
+    btn-lg = Button: groß
+}
+
+# Stylesheets pulled into the backend live-preview iframe so it looks like the frontend
+# (Bootstrap/theme utility classes, fonts). The extension always adds its own hero.css/aos.css.
+# Absolute URLs are used as-is; EXT:/site-relative paths are resolved and skipped if missing.
+# Override per site in the site root's page TSconfig to match that site's compiled theme.
+tx_herobuilder.previewCss {
+    10 = /typo3temp/assets/css/doag/event-devland.css
+    20 = /typo3temp/assets/css/template/fonts.css
+}
+
+mod.wizards.newContentElement.wizardItems.common {
+    elements {
+        herobuilder {
+            iconIdentifier = content-herobuilder
+            title = LLL:EXT:herobuilder/Resources/Private/Language/locallang_db.xlf:wizard.title
+            description = LLL:EXT:herobuilder/Resources/Private/Language/locallang_db.xlf:wizard.description
+            tt_content_defValues {
+                CType = herobuilder
+            }
+        }
+    }
+    show := addToList(herobuilder)
+}

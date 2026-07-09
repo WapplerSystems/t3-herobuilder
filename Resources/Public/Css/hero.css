@@ -1,0 +1,41 @@
+.herobuilder-carousel .hb-stage {
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Positioning + geometry come from the per-slide scoped CSS. */
+.hb-layer {
+    position: absolute;
+}
+
+.hb-layer .hb-layer-img,
+.hb-layer.hb-layer-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+}
+
+/* Text layers: fill their geometry box, vertically centred; box-sizing keeps the
+   readability scrim padding inside the placed box. */
+.hb-layer-text {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Button layers fill their placed box; the label is centred and btn classes style it. */
+.hb-layer-button {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    text-decoration: none;
+}
+
+.herobuilder-carousel .carousel-item {
+    /* Ensure the slide fills the stage without extra whitespace. */
+    line-height: 0;
+}

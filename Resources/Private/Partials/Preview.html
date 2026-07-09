@@ -1,0 +1,12 @@
+<html xmlns:f="http://typo3.org/ns/TYPO3/CMS/Fluid/ViewHelpers" data-namespace-typo3-fluid="true">
+<f:comment>Live-preview stage markup WITHOUT an inline &lt;style&gt; block. The scoped composition
+CSS is delivered as a JSON data island and injected via a constructable stylesheet in
+preview-frame.js, so a strict backend CSP (no 'unsafe-inline') does not block it.</f:comment>
+<div class="herobuilder-slide {slide.scope}">
+    <div class="hb-stage">
+        <f:for each="{slide.layers}" as="layer">
+            <f:render partial="Layer" arguments="{layer: layer}"/>
+        </f:for>
+    </div>
+</div>
+</html>
