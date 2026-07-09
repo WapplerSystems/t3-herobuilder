@@ -85,6 +85,7 @@ class CanvasElement extends AbstractFormElement
             'pid' => (int)($this->data['databaseRow']['pid'] ?? ($this->data['effectivePid'] ?? 0)),
             'linkWizardUrl' => $linkWizardUrl,
             'linkProxyName' => $linkProxyName,
+            'templatePid' => (int)($this->data['pageTsConfig']['tx_herobuilder.']['templatePid'] ?? ($this->data['databaseRow']['pid'] ?? 0)),
             'value' => $itemValue,
             'moveableUrl' => PathUtility::getPublicResourceWebPath(
                 'EXT:herobuilder/Resources/Public/JavaScript/Vendor/moveable.min.js'
@@ -106,6 +107,9 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-add">' . htmlspecialchars($this->getLabel('button.addImage', 'Add image')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-add-text">' . htmlspecialchars($this->getLabel('button.addText', 'Add text')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-add-button">' . htmlspecialchars($this->getLabel('button.addButton', 'Add button')) . '</button>';
+        $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-templates">' . htmlspecialchars($this->getLabel('button.templates', 'Templates')) . '</button>';
+        $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-save-template">' . htmlspecialchars($this->getLabel('button.saveTemplate', 'Save as template')) . '</button>';
+        $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-export">' . htmlspecialchars($this->getLabel('button.export', 'Export image')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-preview">' . htmlspecialchars($this->getLabel('button.preview', 'Live preview')) . '</button>';
         $html[] = '</div>';
         $html[] = '</div>';
@@ -194,6 +198,9 @@ class CanvasElement extends AbstractFormElement
             'ctx.alignRight', 'list.reorder', 'list.toggleVisible', 'list.toggleLock',
             'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'preview.replay',
             'button.copyToAll', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
+            'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
+            'template.applyHint', 'template.empty', 'template.saveError',
+            'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
         ];
         $labels = [];
         foreach ($keys as $key) {

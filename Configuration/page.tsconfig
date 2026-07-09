@@ -1,3 +1,8 @@
+# Hero Builder — storage folder (sysfolder uid) where "Save as template" stores
+# tx_herobuilder_template records. Templates are global (listed regardless of pid).
+# Override per site if a site-specific template folder is preferred.
+tx_herobuilder.templatePid = 2600
+
 # Hero Builder — predefined CSS classes selectable per layer (text & image).
 # Key = CSS class (as applied to the layer), value = editor label.
 # Single source of truth: read by the backend canvas (selection) AND the frontend

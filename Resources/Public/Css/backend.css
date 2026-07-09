@@ -312,6 +312,63 @@
 }
 .herobuilder-preview-frame { display: block; width: 100%; min-height: 320px; height: 420px; border: 0; }
 
+/* ---- Templates gallery (modal) ----------------------------------------- */
+.herobuilder-tpl-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: .6rem;
+    padding: .25rem;
+}
+.herobuilder-tpl-gallery .hb-tpl-card {
+    display: flex;
+    flex-direction: column;
+    gap: .35rem;
+    padding: .3rem;
+    border: 2px solid var(--typo3-component-border-color, #ddd);
+    border-radius: 6px;
+    background: var(--typo3-component-bg, #fff);
+    cursor: pointer;
+    text-align: left;
+    transition: border-color .12s, box-shadow .12s;
+}
+.herobuilder-tpl-gallery .hb-tpl-card:hover { border-color: var(--typo3-component-primary-color, #0b64c6); }
+.herobuilder-tpl-gallery .hb-tpl-card.active {
+    border-color: var(--typo3-component-primary-color, #0b64c6);
+    box-shadow: 0 0 0 3px rgba(11, 100, 198, .2);
+}
+/* Preview thumbnail — a scaled-down live render clipped to a 21:9 box.
+   aspect-ratio drives the height from the (grid-determined) width, so the scaled
+   iframe always fits exactly. */
+.herobuilder-tpl-gallery .hb-tpl-thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 21 / 9;
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12);
+}
+.herobuilder-tpl-gallery .hb-tpl-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.herobuilder-tpl-gallery .hb-tpl-name { font-size: .78rem; font-weight: 600; line-height: 1.2; }
+.herobuilder-tpl-gallery .hb-tpl-empty { grid-column: 1 / -1; color: var(--typo3-text-color-secondary, #6c757d); }
+.herobuilder-tpl-gallery .hb-tpl-hint {
+    grid-column: 1 / -1;
+    margin: .5rem 0 0;
+    font-size: .8rem;
+    color: var(--typo3-text-color-secondary, #6c757d);
+}
+
+/* ---- Export format picker ---------------------------------------------- */
+.herobuilder-export-list { display: flex; flex-direction: column; gap: .4rem; }
+.herobuilder-export-list .hb-export-fmt { text-align: left; }
+
 /* ---- Right-click context menu ------------------------------------------ */
 .herobuilder-ctxmenu {
     position: fixed;

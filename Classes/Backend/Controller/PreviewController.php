@@ -47,8 +47,11 @@ final class PreviewController
         $view->assign('slide', $slide);
         $body = $view->render();
 
+        // Transparent mode (template thumbnails) lets the card's indicator color show through
+        // behind compositions that have no background image layer.
+        $bg = !empty($params['transparent']) ? 'transparent' : '#fff';
         // Base preview CSS + the scoped composition CSS — delivered as data, injected by JS.
-        $css = 'html,body{margin:0;padding:0;background:#fff;}'
+        $css = 'html,body{margin:0;padding:0;background:' . $bg . ';}'
             . '.herobuilder-carousel .hb-stage{width:100%;}'
             . (string)($slide['css'] ?? '');
 

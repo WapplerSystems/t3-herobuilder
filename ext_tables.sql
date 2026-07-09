@@ -23,3 +23,13 @@ CREATE TABLE tx_herobuilder_collage (
     composition text,
     assets int(11) unsigned DEFAULT '0' NOT NULL
 );
+
+#
+# Reusable composition templates (applied to a collage via the "Templates" gallery).
+# Standard control/enable columns are added automatically from TCA ctrl.
+#
+CREATE TABLE tx_herobuilder_template (
+    title varchar(255) DEFAULT '' NOT NULL,
+    color varchar(7) DEFAULT '' NOT NULL,
+    composition text
+);

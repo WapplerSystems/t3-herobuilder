@@ -35,6 +35,24 @@
             <trans-unit id="link.remove"><source>Remove</source></trans-unit>
             <trans-unit id="button.copyToAll"><source>Copy position to all breakpoints</source></trans-unit>
             <trans-unit id="button.preview"><source>Live preview</source></trans-unit>
+            <trans-unit id="button.templates"><source>Templates</source></trans-unit>
+            <trans-unit id="button.saveTemplate"><source>Save as template</source></trans-unit>
+            <trans-unit id="button.export"><source>Export image</source></trans-unit>
+            <trans-unit id="export.title"><source>Export social / OG image</source></trans-unit>
+            <trans-unit id="export.hint"><source>Choose a format to render and download.</source></trans-unit>
+            <trans-unit id="export.rendering"><source>Rendering image…</source></trans-unit>
+            <trans-unit id="export.error"><source>Export failed</source></trans-unit>
+
+            <trans-unit id="template"><source>Hero template</source></trans-unit>
+            <trans-unit id="template.title"><source>Title</source></trans-unit>
+            <trans-unit id="template.color"><source>Indicator color</source></trans-unit>
+            <trans-unit id="template.apply"><source>Template applied</source></trans-unit>
+            <trans-unit id="template.applyBtn"><source>Apply template</source></trans-unit>
+            <trans-unit id="template.savePrompt"><source>Template name</source></trans-unit>
+            <trans-unit id="template.saved"><source>Template saved</source></trans-unit>
+            <trans-unit id="template.saveError"><source>Could not save template</source></trans-unit>
+            <trans-unit id="template.applyHint"><source>Selecting a template replaces the current collage's layers.</source></trans-unit>
+            <trans-unit id="template.empty"><source>No templates yet — save one from a composition.</source></trans-unit>
             <trans-unit id="preview.replay"><source>Replay animation</source></trans-unit>
 
             <trans-unit id="panel.text"><source>Text</source></trans-unit>

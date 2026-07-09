@@ -1,5 +1,6 @@
 import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 import Modal from "@typo3/backend/modal.js";
+import Notification from "@typo3/backend/notification.js";
 
 const AOS_EFFECTS = [
   "", "fade-up", "fade-down", "fade-left", "fade-right",
@@ -10,6 +11,29 @@ const AOS_EFFECTS = [
 // keep the aspect ratio — cover for full-bleed backgrounds, contain for logos/text.
 // Labels are resolved via i18n (this.t("fit.<value>")) at render time.
 const FIT_MODES = ["fill", "cover", "contain"];
+
+// Styles for the templates gallery, injected into the modal (which lives in the TOP
+// document, where the field's backend.css is not present).
+const GALLERY_CSS = `
+.herobuilder-tpl-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.6rem;padding:.25rem;}
+.herobuilder-tpl-gallery .hb-tpl-card{display:flex;flex-direction:column;gap:.35rem;padding:.3rem;border:2px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;text-align:left;}
+.herobuilder-tpl-gallery .hb-tpl-card:hover{border-color:#0b64c6;}
+.herobuilder-tpl-gallery .hb-tpl-card.active{border-color:#0b64c6;box-shadow:0 0 0 3px rgba(11,100,198,.25);}
+.herobuilder-tpl-gallery .hb-tpl-thumb{position:relative;display:block;width:100%;aspect-ratio:21/9;overflow:hidden;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);}
+.herobuilder-tpl-gallery .hb-tpl-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;}
+.herobuilder-tpl-gallery .hb-tpl-name{font-size:.78rem;font-weight:600;line-height:1.2;}
+.herobuilder-tpl-gallery .hb-tpl-empty{grid-column:1/-1;color:#6c757d;}
+.herobuilder-tpl-gallery .hb-tpl-hint{grid-column:1/-1;margin:.5rem 0 0;font-size:.8rem;color:#6c757d;}
+`;
+
+// Social / OG export formats (keys must match CompositeImageService::FORMATS).
+const EXPORT_FORMATS = [
+  { key: "og", label: "Open Graph · 1200×630" },
+  { key: "wide", label: "16:9 · 1200×675" },
+  { key: "square", label: "Instagram 1:1 · 1080×1080" },
+  { key: "portrait", label: "Instagram 4:5 · 1080×1350" },
+  { key: "story", label: "Story 9:16 · 1080×1920" },
+];
 
 // Inline SVG icons (currentColor, 16px) for the layer list and alignment buttons.
 const S = '<svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">';
@@ -54,6 +78,10 @@ export default class HerobuilderCanvas {
     this._spaceDown = false;
     this.linkWizardUrl = init.linkWizardUrl || null;
     this.linkProxy = init.linkProxyName ? this.root.querySelector('[data-formengine-input-name="' + init.linkProxyName + '"]') : null;
+    this.templatePid = init.templatePid || 0;
+    this.templateListUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_template_list || null;
+    this.templateSaveUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_template_save || null;
+    this.exportUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_export || null;
     this.moveableUrl = init.moveableUrl || null;
     this.name = init.name || "";
     this.activeBp = this.breakpoints.includes("lg") ? "lg" : this.breakpoints[0];
@@ -143,6 +171,9 @@ export default class HerobuilderCanvas {
     this.root.querySelector(".t3js-herobuilder-add-text")?.addEventListener("click", () => this.addTextLayer());
     this.root.querySelector(".t3js-herobuilder-add-button")?.addEventListener("click", () => this.addButtonLayer());
     this.root.querySelector(".t3js-herobuilder-copy")?.addEventListener("click", () => this.copyToAll());
+    this.root.querySelector(".t3js-herobuilder-templates")?.addEventListener("click", () => this.openTemplates());
+    this.root.querySelector(".t3js-herobuilder-save-template")?.addEventListener("click", () => this.saveTemplate());
+    this.root.querySelector(".t3js-herobuilder-export")?.addEventListener("click", () => this.openExport());
     this.root.querySelector(".t3js-herobuilder-preview")?.addEventListener("click", () => this.togglePreview());
     // The TYPO3 Link Browser writes the selected link into the proxy input (change event).
     if (this.linkProxy) {
@@ -949,6 +980,226 @@ export default class HerobuilderCanvas {
     }
   }
 
+  // ---- Templates ---------------------------------------------------------
+
+  async openTemplates() {
+    if (!this.templateListUrl) {
+      return;
+    }
+    let templates = [];
+    try {
+      const res = await new AjaxRequest(this.templateListUrl).get();
+      templates = (await res.resolve()).templates || [];
+    } catch (e) {
+      Notification.error("Hero Builder", this.t("template.empty", "No templates available"));
+      return;
+    }
+
+    const wrap = document.createElement("div");
+    wrap.className = "herobuilder-tpl-gallery";
+    // The TYPO3 modal renders in the TOP document, where the field's backend.css is not
+    // loaded — ship the gallery styles with the content so the grid/thumbs render correctly.
+    const style = document.createElement("style");
+    style.textContent = GALLERY_CSS;
+    wrap.appendChild(style);
+    if (!templates.length) {
+      const p = document.createElement("p");
+      p.className = "hb-tpl-empty";
+      p.textContent = this.t("template.empty", "No templates yet");
+      wrap.appendChild(p);
+    }
+
+    let modal;
+    let selected = null;
+    const cards = [];
+    const apply = () => {
+      if (selected) {
+        this.applyTemplate(selected.composition);
+        modal.hideModal();
+      }
+    };
+    templates.forEach((tpl) => {
+      const card = document.createElement("div");
+      card.className = "hb-tpl-card";
+      card.setAttribute("role", "button");
+      card.tabIndex = 0;
+      const thumb = document.createElement("span");
+      thumb.className = "hb-tpl-thumb";
+      thumb.style.background = tpl.color || "#dddddd";
+      if (tpl.thumbUrl) {
+        const img = document.createElement("img");
+        img.className = "hb-tpl-img";
+        img.src = tpl.thumbUrl;
+        img.alt = "";
+        img.loading = "lazy";
+        thumb.appendChild(img);
+      }
+      const name = document.createElement("span");
+      name.className = "hb-tpl-name";
+      name.textContent = tpl.title || "";
+      card.append(thumb, name);
+      card._tpl = tpl;
+      card.addEventListener("click", () => {
+        selected = tpl;
+        cards.forEach((c) => c.classList.toggle("active", c === card));
+        const btn = modal && modal.querySelector(".modal-footer .btn-primary");
+        if (btn) {
+          btn.disabled = false;
+        }
+      });
+      card.addEventListener("dblclick", () => {
+        selected = tpl;
+        apply();
+      });
+      wrap.appendChild(card);
+      cards.push(card);
+    });
+    const hint = document.createElement("p");
+    hint.className = "hb-tpl-hint";
+    hint.textContent = this.t("template.applyHint", "Applying replaces the current collage's layers.");
+    wrap.appendChild(hint);
+
+    modal = Modal.advanced({
+      title: this.t("button.templates", "Templates"),
+      type: Modal.types.default,
+      content: wrap,
+      size: Modal.sizes.large,
+      buttons: [
+        { text: this.t("template.applyBtn", "Apply template"), btnClass: "btn-primary", trigger: apply },
+      ],
+    });
+    modal.addEventListener("typo3-modal-shown", () => {
+      const btn = modal.querySelector(".modal-footer .btn-primary");
+      if (btn) {
+        btn.disabled = true;
+      }
+    });
+  }
+
+  openExport() {
+    if (!this.exportUrl) {
+      return;
+    }
+    const box = document.createElement("div");
+    box.className = "herobuilder-export-list";
+    const hint = document.createElement("p");
+    hint.className = "hb-tpl-hint";
+    hint.textContent = this.t("export.hint", "Choose a format to render and download.");
+    box.appendChild(hint);
+    let modal;
+    EXPORT_FORMATS.forEach((f) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn btn-default hb-export-fmt";
+      b.textContent = f.label;
+      b.addEventListener("click", () => {
+        this.generateExport(f.key);
+        modal.hideModal();
+      });
+      box.appendChild(b);
+    });
+    modal = Modal.advanced({
+      title: this.t("export.title", "Export image"),
+      type: Modal.types.default,
+      content: box,
+      size: Modal.sizes.small,
+    });
+  }
+
+  async generateExport(format) {
+    if (!this.exportUrl) {
+      return;
+    }
+    Notification.info("Hero Builder", this.t("export.rendering", "Rendering…"));
+    try {
+      const res = await new AjaxRequest(this.exportUrl).post({
+        composition: this.input.value || "{}",
+        format: format,
+      });
+      const data = await res.resolve();
+      if (data && data.success && data.url) {
+        const a = document.createElement("a");
+        a.href = data.url;
+        a.download = data.filename || "hero.png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } else {
+        Notification.error("Hero Builder", this.t("export.error", "Export failed"));
+      }
+    } catch (e) {
+      Notification.error("Hero Builder", this.t("export.error", "Export failed"));
+    }
+  }
+
+  applyTemplate(composition) {
+    let parsed;
+    try {
+      parsed = JSON.parse(composition || "{}");
+    } catch (e) {
+      return;
+    }
+    this.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
+    this.deselect();
+    this.render();
+    this.save();
+    Notification.success("Hero Builder", this.t("template.apply", "Template applied"));
+  }
+
+  saveTemplate() {
+    if (!this.templateSaveUrl) {
+      return;
+    }
+    const box = document.createElement("div");
+    const label = document.createElement("label");
+    label.className = "form-label";
+    label.textContent = this.t("template.savePrompt", "Template name");
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "form-control";
+    box.append(label, input);
+    let modal;
+    modal = Modal.advanced({
+      title: this.t("button.saveTemplate", "Save as template"),
+      type: Modal.types.default,
+      content: box,
+      size: Modal.sizes.small,
+      buttons: [
+        {
+          text: this.t("button.saveTemplate", "Save"),
+          btnClass: "btn-primary",
+          trigger: () => {
+            this.doSaveTemplate(input.value);
+            modal.hideModal();
+          },
+        },
+      ],
+    });
+    modal.addEventListener("typo3-modal-shown", () => input.focus());
+  }
+
+  async doSaveTemplate(title) {
+    title = (title || "").trim();
+    if (!title) {
+      return;
+    }
+    try {
+      const res = await new AjaxRequest(this.templateSaveUrl).post({
+        title: title,
+        composition: this.input.value || "{}",
+        pid: String(this.templatePid),
+      });
+      const data = await res.resolve();
+      if (data && data.success) {
+        Notification.success("Hero Builder", this.t("template.saved", "Template saved"));
+      } else {
+        Notification.error("Hero Builder", this.t("template.saveError", "Could not save template"));
+      }
+    } catch (e) {
+      Notification.error("Hero Builder", this.t("template.saveError", "Could not save template"));
+    }
+  }
+
   layerChip(layer) {
     const info = layer.type === "text" ? null : this.fileInfo[layer.fileUid];
     if (info && info.url) {
@@ -958,9 +1209,10 @@ export default class HerobuilderCanvas {
   }
 
   layerLabel(layer) {
-    if (layer.type === "text") {
+    if (layer.type === "text" || layer.type === "button") {
       const t = (layer.text || "").trim();
-      return t ? (t.length > 30 ? t.slice(0, 30) + "…" : t) : "Text";
+      const fallback = layer.type === "button" ? "Button" : "Text";
+      return t ? (t.length > 30 ? t.slice(0, 30) + "…" : t) : fallback;
     }
     const info = this.fileInfo[layer.fileUid];
     return (info && info.name) || "#" + layer.fileUid;

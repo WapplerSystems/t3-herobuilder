@@ -35,6 +35,24 @@
             <trans-unit id="link.remove"><source>Remove</source><target>Entfernen</target></trans-unit>
             <trans-unit id="button.copyToAll"><source>Copy position to all breakpoints</source><target>Position auf alle Breakpoints übertragen</target></trans-unit>
             <trans-unit id="button.preview"><source>Live preview</source><target>Live-Vorschau</target></trans-unit>
+            <trans-unit id="button.templates"><source>Templates</source><target>Vorlagen</target></trans-unit>
+            <trans-unit id="button.saveTemplate"><source>Save as template</source><target>Als Vorlage speichern</target></trans-unit>
+            <trans-unit id="button.export"><source>Export image</source><target>Bild exportieren</target></trans-unit>
+            <trans-unit id="export.title"><source>Export social / OG image</source><target>Social-/OG-Grafik exportieren</target></trans-unit>
+            <trans-unit id="export.hint"><source>Choose a format to render and download.</source><target>Format wählen zum Rendern &amp; Herunterladen.</target></trans-unit>
+            <trans-unit id="export.rendering"><source>Rendering image…</source><target>Grafik wird gerendert…</target></trans-unit>
+            <trans-unit id="export.error"><source>Export failed</source><target>Export fehlgeschlagen</target></trans-unit>
+
+            <trans-unit id="template"><source>Hero template</source><target>Hero-Vorlage</target></trans-unit>
+            <trans-unit id="template.title"><source>Title</source><target>Titel</target></trans-unit>
+            <trans-unit id="template.color"><source>Indicator color</source><target>Indikatorfarbe</target></trans-unit>
+            <trans-unit id="template.apply"><source>Template applied</source><target>Vorlage übernommen</target></trans-unit>
+            <trans-unit id="template.applyBtn"><source>Apply template</source><target>Vorlage übernehmen</target></trans-unit>
+            <trans-unit id="template.savePrompt"><source>Template name</source><target>Vorlagen-Name</target></trans-unit>
+            <trans-unit id="template.saved"><source>Template saved</source><target>Vorlage gespeichert</target></trans-unit>
+            <trans-unit id="template.saveError"><source>Could not save template</source><target>Vorlage konnte nicht gespeichert werden</target></trans-unit>
+            <trans-unit id="template.applyHint"><source>Selecting a template replaces the current collage's layers.</source><target>Auswahl übernimmt die Layer-Struktur in die aktuelle Collage.</target></trans-unit>
+            <trans-unit id="template.empty"><source>No templates yet — save one from a composition.</source><target>Noch keine Vorlagen — speichere eine aus einer Komposition.</target></trans-unit>
             <trans-unit id="preview.replay"><source>Replay animation</source><target>Animation erneut abspielen</target></trans-unit>
 
             <trans-unit id="panel.text"><source>Text</source><target>Text</target></trans-unit>
