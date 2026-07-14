@@ -17,9 +17,6 @@
         "typo3/cms-frontend": "^12.4",
         "typo3/cms-fluid-styled-content": "^12.4"
     },
-    "suggest": {
-        "wapplersystems/ws_t3bootstrap": "Reuses its responsive breakpoint definitions and ws:picture ViewHelper."
-    },
     "autoload": {
         "psr-4": {
             "WapplerSystems\\Herobuilder\\": "Classes/"
