@@ -11,14 +11,11 @@
         }
     ],
     "require": {
-        "php": ">=8.1",
-        "typo3/cms-core": "^12.4",
-        "typo3/cms-backend": "^12.4",
-        "typo3/cms-frontend": "^12.4",
-        "typo3/cms-fluid-styled-content": "^12.4"
-    },
-    "suggest": {
-        "wapplersystems/ws_t3bootstrap": "Reuses its responsive breakpoint definitions and ws:picture ViewHelper."
+        "php": ">=8.3",
+        "typo3/cms-core": "^14.3",
+        "typo3/cms-backend": "^14.3",
+        "typo3/cms-frontend": "^14.3",
+        "typo3/cms-fluid-styled-content": "^14.3"
     },
     "autoload": {
         "psr-4": {
