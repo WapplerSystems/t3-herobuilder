@@ -8,10 +8,10 @@ $EM_CONF['herobuilder'] = [
     'author_email' => 'typo3@wappler.systems',
     'author_company' => 'WapplerSystems',
     'state' => 'beta',
-    'version' => '12.0.0',
+    'version' => '14.0.0',
     'constraints' => [
         'depends' => [
-            'typo3' => '12.4.0-12.4.99',
+            'typo3' => '14.3.0-14.3.99',
             'fluid_styled_content' => '',
         ],
         'conflicts' => [],
