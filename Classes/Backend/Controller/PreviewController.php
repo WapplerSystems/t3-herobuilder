@@ -10,7 +10,8 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Http\HtmlResponse;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
-use TYPO3\CMS\Fluid\View\StandaloneView;
+use TYPO3\CMS\Core\View\ViewFactoryData;
+use TYPO3\CMS\Core\View\ViewFactoryInterface;
 use WapplerSystems\Herobuilder\DataProcessing\CompositionProcessor;
 
 /**
@@ -24,6 +25,7 @@ final class PreviewController
 {
     public function __construct(
         private readonly CompositionProcessor $processor,
+        private readonly ViewFactoryInterface $viewFactory,
     ) {}
 
     public function render(ServerRequestInterface $request): ResponseInterface
@@ -39,11 +41,13 @@ final class PreviewController
             'composition' => $composition,
         ]);
 
-        $view = GeneralUtility::makeInstance(StandaloneView::class);
-        $view->setPartialRootPaths(['EXT:herobuilder/Resources/Private/Partials/']);
-        $view->setLayoutRootPaths(['EXT:herobuilder/Resources/Private/Layouts/']);
         // Preview.html renders the stage WITHOUT an inline <style> (CSP-safe).
-        $view->setTemplatePathAndFilename('EXT:herobuilder/Resources/Private/Partials/Preview.html');
+        $view = $this->viewFactory->create(new ViewFactoryData(
+            partialRootPaths: ['EXT:herobuilder/Resources/Private/Partials/'],
+            layoutRootPaths: ['EXT:herobuilder/Resources/Private/Layouts/'],
+            templatePathAndFilename: 'EXT:herobuilder/Resources/Private/Partials/Preview.html',
+            request: $request,
+        ));
         $view->assign('slide', $slide);
         $body = $view->render();
 

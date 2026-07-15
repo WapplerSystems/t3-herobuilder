@@ -6,6 +6,7 @@ namespace WapplerSystems\Herobuilder\Backend\Form\Element;
 
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Core\Crypto\HashService;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -22,6 +23,10 @@ use WapplerSystems\Herobuilder\Domain\Composition;
  */
 class CanvasElement extends AbstractFormElement
 {
+    public function __construct(
+        private readonly HashService $hashService,
+    ) {}
+
     public function render(): array
     {
         $resultArray = $this->initializeResultArray();
@@ -47,7 +52,7 @@ class CanvasElement extends AbstractFormElement
                 'field' => 'composition',
                 'formName' => 'editform',
                 'itemName' => $linkProxyName,
-                'hmac' => GeneralUtility::hmac('editform' . $linkProxyName, 'wizard_js'),
+                'hmac' => $this->hashService->hmac('editform' . $linkProxyName, 'wizard_js'),
             ],
         ]);
 

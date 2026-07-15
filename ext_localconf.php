@@ -14,10 +14,8 @@ $GLOBALS['TYPO3_CONF_VARS']['SYS']['formEngine']['nodeRegistry'][1720100001] = [
     'class' => CanvasElement::class,
 ];
 
-// New content element wizard entry.
-ExtensionManagementUtility::addPageTSConfig(
-    '@import "EXT:herobuilder/Configuration/page.tsconfig"'
-);
+// New content element wizard entry: page TSconfig is auto-loaded from
+// EXT:herobuilder/Configuration/page.tsconfig (TYPO3 v12+), no registration needed.
 
 // Load the content element rendering TypoScript globally (prototype convenience).
 ExtensionManagementUtility::addTypoScriptConstants(

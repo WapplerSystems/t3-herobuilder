@@ -16,6 +16,9 @@ return [
         'enablecolumns' => ['disabled' => 'hidden'],
         'typeicon_classes' => ['default' => 'content-herobuilder'],
         'searchFields' => 'title',
+        // Allow "Save as template" to store templates on any page doktype
+        // (replaces the removed ExtensionManagementUtility::allowTableOnStandardPages()).
+        'security' => ['ignorePageTypeRestriction' => true],
     ],
     'columns' => [
         'hidden' => [
