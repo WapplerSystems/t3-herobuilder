@@ -1692,9 +1692,42 @@ export default class HerobuilderCanvas {
 
   applyCrop(layer, fractions) {
     layer.crop = this.cleanCrop(fractions);
+    this.adjustBoxToCrop(layer);
     this.save();
     this.render();
     this.select(layer);
+  }
+
+  // Numeric width/height ratio of a breakpoint's stage (e.g. "21:9" → 2.333).
+  stageRatio(bp) {
+    const r = String((this.stages[bp] && this.stages[bp].ratio) || "16:9").split(":").map(Number);
+    return r[0] > 0 && r[1] > 0 ? r[0] / r[1] : 16 / 9;
+  }
+
+  /**
+   * After a crop the visible content has a new aspect ratio. Update each defined placement's
+   * height (keeping its width) so the layer box matches the cropped image — otherwise the image
+   * would be stretched inside the old box (most visibly with fit "fill").
+   */
+  adjustBoxToCrop(layer) {
+    if (!layer.crop) {
+      return;
+    }
+    const info = this.fileInfo[layer.fileUid];
+    if (!info) {
+      return;
+    }
+    const cropAspect = (layer.crop.width * (info.width || 1)) / (layer.crop.height * (info.height || 1));
+    if (!isFinite(cropAspect) || cropAspect <= 0) {
+      return;
+    }
+    Object.keys(layer.placements || {}).forEach((bp) => {
+      const p = layer.placements[bp];
+      if (p && p.w) {
+        // box aspect = (w/h) * stageRatio  →  h = w * stageRatio / cropAspect
+        p.h = round((p.w * this.stageRatio(bp)) / cropAspect);
+      }
+    });
   }
 
   async openCrop() {
@@ -1852,6 +1885,7 @@ export default class HerobuilderCanvas {
       return;
     }
     layer.crop = this.cleanCrop(box);
+    this.adjustBoxToCrop(layer);
     this.save();
     this.render();
     this.select(layer);
