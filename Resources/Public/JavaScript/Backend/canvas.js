@@ -578,6 +578,9 @@ export default class HerobuilderCanvas {
     el.style.transform = "rotate(" + (p.rot || 0) + "deg)";
     el.style.zIndex = String(p.z || 1);
     el.style.cursor = layer.locked ? "default" : "move";
+    // A locked layer must not intercept pointer events — the click falls through to the
+    // layer beneath it (Figma/Photoshop behaviour). It stays selectable via the layer list.
+    el.style.pointerEvents = layer.locked ? "none" : "auto";
     if (info && info.url) {
       el.src = info.url;
       el.alt = layer.alt || info.alt || "";
