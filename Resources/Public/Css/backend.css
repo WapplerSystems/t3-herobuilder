@@ -54,6 +54,23 @@
     color: var(--typo3-component-primary-color, #0b64c6);
     font-weight: 600;
 }
+/* Undo/redo are one group — set them apart from the insert actions. */
+.herobuilder-actions .t3js-herobuilder-redo { margin-right: .75rem; }
+
+/* Crash-recovery draft banner (localStorage), shown above the toolbar on reopen. */
+.herobuilder-draft-banner {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: .5rem;
+    padding: .5rem .75rem;
+    border: 1px solid var(--typo3-state-warning-border-color, #e8a33d);
+    border-radius: 4px;
+    background: var(--typo3-state-warning-bg, #fdf6ec);
+    color: var(--typo3-state-warning-color, #8a5a00);
+    font-size: .9rem;
+}
+.herobuilder-draft-text { flex: 1 1 auto; }
 
 /* ---- Grid -------------------------------------------------------------- */
 .herobuilder-grid {

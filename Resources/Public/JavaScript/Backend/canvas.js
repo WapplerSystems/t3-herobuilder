@@ -105,10 +105,17 @@ export default class HerobuilderCanvas {
     }
     this.layers = Array.isArray(value.layers) ? value.layers : [];
 
+    // Raw JSON as persisted in the record (DB), used to decide whether a localStorage
+    // draft is newer/unsaved and therefore worth offering for recovery.
+    this._serverValue = (typeof init.value === "string" && init.value !== "")
+      ? init.value
+      : (this.input.value || "");
+
     // Undo/redo history (JSON snapshots of the serialized layers).
     this._history = [];
     this._histIndex = -1;
     this._restoring = false;
+    this._draftTimer = null;
 
     this.stageEl.tabIndex = 0; // focusable so keyboard shortcuts scope to the editor
 
@@ -131,6 +138,10 @@ export default class HerobuilderCanvas {
     // Seed the history with the initial state.
     this._history = [JSON.stringify({ layers: this.cleanLayers() })];
     this._histIndex = 0;
+    this.updateHistoryButtons();
+    // No save() runs during load, so the localStorage draft is still intact here —
+    // offer it before anything can overwrite it.
+    this.maybeOfferDraft();
   }
 
   /**
@@ -167,6 +178,8 @@ export default class HerobuilderCanvas {
     this.root.querySelectorAll(".t3js-herobuilder-tab").forEach((btn) => {
       btn.addEventListener("click", () => this.setBreakpoint(btn.dataset.breakpoint));
     });
+    this.root.querySelector(".t3js-herobuilder-undo")?.addEventListener("click", () => this.undo());
+    this.root.querySelector(".t3js-herobuilder-redo")?.addEventListener("click", () => this.redo());
     this.root.querySelector(".t3js-herobuilder-add")?.addEventListener("click", () => this.addImage());
     this.root.querySelector(".t3js-herobuilder-add-text")?.addEventListener("click", () => this.addTextLayer());
     this.root.querySelector(".t3js-herobuilder-add-button")?.addEventListener("click", () => this.addButtonLayer());
@@ -1665,6 +1678,7 @@ export default class HerobuilderCanvas {
     this.input.value = JSON.stringify({ layers: this.cleanLayers() });
     this.input.dispatchEvent(new Event("change", { bubbles: true }));
     this.schedulePreviewRefresh();
+    this.scheduleDraftSave();
   }
 
   save() {
@@ -1689,6 +1703,7 @@ export default class HerobuilderCanvas {
       this._history.shift();
       this._histIndex--;
     }
+    this.updateHistoryButtons();
   }
 
   undo() {
@@ -1696,6 +1711,7 @@ export default class HerobuilderCanvas {
       this._histIndex--;
       this.restore(this._history[this._histIndex]);
     }
+    this.updateHistoryButtons();
   }
 
   redo() {
@@ -1703,6 +1719,151 @@ export default class HerobuilderCanvas {
       this._histIndex++;
       this.restore(this._history[this._histIndex]);
     }
+    this.updateHistoryButtons();
+  }
+
+  // Enable/disable the toolbar buttons to reflect where we are in the history stack.
+  updateHistoryButtons() {
+    const undoBtn = this.root.querySelector(".t3js-herobuilder-undo");
+    const redoBtn = this.root.querySelector(".t3js-herobuilder-redo");
+    if (undoBtn) {
+      undoBtn.disabled = this._histIndex <= 0;
+    }
+    if (redoBtn) {
+      redoBtn.disabled = this._histIndex >= this._history.length - 1;
+    }
+  }
+
+  // ---- Crash-recovery draft (localStorage) -------------------------------
+  //
+  // A lot of editing happens before the TYPO3 form is saved to the DB. Until then
+  // both the hidden input and the undo history live only in this browser tab, so a
+  // reload/crash/navigation would lose everything. We mirror the *latest* composition
+  // per collage into localStorage and offer to restore it on reopen when it is newer
+  // than the persisted record. This is a single-snapshot draft, NOT the undo stack.
+
+  draftKey() {
+    return this.name ? "herobuilder:draft:" + this.name : null;
+  }
+
+  // Normalise for comparison so key-order differences don't cause false "unsaved" hits.
+  normalizeJson(str) {
+    try {
+      return JSON.stringify(JSON.parse(str || "{}"));
+    } catch (e) {
+      return String(str || "");
+    }
+  }
+
+  scheduleDraftSave() {
+    const key = this.draftKey();
+    if (!key) {
+      return;
+    }
+    clearTimeout(this._draftTimer);
+    this._draftTimer = setTimeout(() => this.saveDraft(), 400);
+  }
+
+  saveDraft() {
+    const key = this.draftKey();
+    if (!key) {
+      return;
+    }
+    try {
+      localStorage.setItem(key, JSON.stringify({ ts: Date.now(), json: this.input.value }));
+    } catch (e) {
+      /* storage full or unavailable (private mode) — draft protection is best-effort */
+    }
+  }
+
+  clearDraft() {
+    const key = this.draftKey();
+    if (!key) {
+      return;
+    }
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  maybeOfferDraft() {
+    const key = this.draftKey();
+    if (!key) {
+      return;
+    }
+    let raw;
+    try {
+      raw = localStorage.getItem(key);
+    } catch (e) {
+      return;
+    }
+    if (!raw) {
+      return;
+    }
+    let draft;
+    try {
+      draft = JSON.parse(raw);
+    } catch (e) {
+      this.clearDraft();
+      return;
+    }
+    if (!draft || typeof draft.json !== "string") {
+      this.clearDraft();
+      return;
+    }
+    // Draft already matches what is in the DB → it was persisted, drop it silently.
+    if (this.normalizeJson(draft.json) === this.normalizeJson(this._serverValue)) {
+      this.clearDraft();
+      return;
+    }
+    this.showDraftBanner(draft);
+  }
+
+  showDraftBanner(draft) {
+    this.root.querySelector(".herobuilder-draft-banner")?.remove();
+
+    const bar = document.createElement("div");
+    bar.className = "herobuilder-draft-banner";
+
+    const when = (() => {
+      try {
+        return new Date(draft.ts).toLocaleString();
+      } catch (e) {
+        return "";
+      }
+    })();
+
+    const msg = document.createElement("span");
+    msg.className = "herobuilder-draft-text";
+    msg.textContent = this.t("draft.available", "Unsaved changes from {0} were found.").replace("{0}", when);
+
+    const restore = document.createElement("button");
+    restore.type = "button";
+    restore.className = "btn btn-sm btn-primary";
+    restore.textContent = this.t("draft.restore", "Restore");
+    restore.addEventListener("click", () => {
+      this.restore(draft.json);
+      // The restored state is a new editable point — make it undoable.
+      this.pushHistory();
+      bar.remove();
+      // Keep the draft: the restored content is still unsaved to the DB.
+    });
+
+    const discard = document.createElement("button");
+    discard.type = "button";
+    discard.className = "btn btn-sm btn-default";
+    discard.textContent = this.t("draft.discard", "Discard");
+    discard.addEventListener("click", () => {
+      this.clearDraft();
+      bar.remove();
+    });
+
+    bar.appendChild(msg);
+    bar.appendChild(restore);
+    bar.appendChild(discard);
+    this.root.insertBefore(bar, this.root.firstChild);
   }
 
   restore(snap) {

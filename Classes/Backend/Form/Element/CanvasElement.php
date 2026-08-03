@@ -112,6 +112,9 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<div class="herobuilder-title">' . htmlspecialchars($this->getLabel('editor.title', 'Composition')) . '</div>';
         $html[] = '<div class="herobuilder-tabs">' . implode('', $tabs) . '</div>';
         $html[] = '<div class="herobuilder-actions">';
+        // Undo / redo drive the in-memory history stack in canvas.js (disabled state is toggled there).
+        $html[] = $this->iconButton('t3js-herobuilder-undo', 'actions-undo', 'button.undo', 'Undo');
+        $html[] = $this->iconButton('t3js-herobuilder-redo', 'actions-redo', 'button.redo', 'Redo');
         $html[] = $this->iconButton('t3js-herobuilder-add', 'actions-image', 'button.addImage', 'Add image');
         $html[] = $this->iconButton('t3js-herobuilder-add-text', 'content-text', 'button.addText', 'Add text');
         $html[] = $this->iconButton('t3js-herobuilder-add-button', 'actions-link', 'button.addButton', 'Add button');
@@ -222,6 +225,7 @@ class CanvasElement extends AbstractFormElement
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
             'template.applyHint', 'template.empty', 'template.saveError',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
+            'draft.available', 'draft.restore', 'draft.discard',
         ];
         $labels = [];
         foreach ($keys as $key) {
