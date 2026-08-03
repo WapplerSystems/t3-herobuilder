@@ -22,8 +22,9 @@ final class HeroBuilderPreviewRenderer extends StandardContentPreviewRenderer
 {
     public function renderPageModulePreviewContent(GridColumnItem $item): string
     {
-        $record = $item->getRecord();
-        $collages = $this->fetchCollages((int)$record['uid']);
+        // TYPO3 v14: GridColumnItem::getRecord() returns a RecordInterface object,
+        // not an array — use getUid() instead of array access.
+        $collages = $this->fetchCollages($item->getRecord()->getUid());
 
         if ($collages === []) {
             return '<div class="herobuilder-be-preview"><em>Hero Builder — no collages yet.</em></div>';
