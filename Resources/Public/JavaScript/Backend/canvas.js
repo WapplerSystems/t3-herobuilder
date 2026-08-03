@@ -610,17 +610,53 @@ export default class HerobuilderCanvas {
       img.style.transform = sx !== 1 || sy !== 1 ? "scale(" + sx + "," + sy + ")" : "";
       const crop = layer.crop;
       if (crop) {
-        // Show only the crop region, scaled to fill the layer box (overflow-hidden wrapper +
-        // enlarged, offset image). The authoritative, byte-saving crop happens on the frontend.
-        el.style.overflow = "hidden";
-        if (!p.h) {
-          el.style.aspectRatio = (crop.width * (info.width || 1)) + " / " + (crop.height * (info.height || 1));
-        }
+        // Show only the crop region. The image is enlarged + offset so the region maps 1:1 to
+        // its container, which is sized to the cropped aspect ratio and fitted into the layer
+        // box per object-fit — so the preview matches the frontend and is never distorted.
+        const iw = info.width || 1;
+        const ih = info.height || 1;
+        const cropAspect = (crop.width * iw) / (crop.height * ih);
         img.style.position = "absolute";
         img.style.width = 100 / crop.width + "%";
         img.style.height = 100 / crop.height + "%";
         img.style.left = -(crop.x / crop.width) * 100 + "%";
         img.style.top = -(crop.y / crop.height) * 100 + "%";
+        el.style.overflow = "hidden";
+
+        const stageW = this.stageEl.clientWidth || 0;
+        const stageH = this.stageEl.clientHeight || 0;
+        const boxW = (p.w ?? 40) / 100 * stageW;
+        const boxH = p.h ? p.h / 100 * stageH : 0;
+        if (!p.h || boxW <= 0 || boxH <= 0) {
+          // No fixed height: the box follows the cropped aspect ratio, so the region fills it.
+          el.style.aspectRatio = crop.width * iw + " / " + crop.height * ih;
+          el.appendChild(img);
+        } else {
+          // Fixed box: fit the cropped region into it honouring the layer's object-fit.
+          const boxAspect = boxW / boxH;
+          const fit = layer.fit || "fill";
+          let cvW;
+          let cvH;
+          if (fit === "fill") {
+            cvW = boxW;
+            cvH = boxH;
+          } else if (fit === "cover") {
+            [cvW, cvH] = boxAspect > cropAspect ? [boxW, boxW / cropAspect] : [boxH * cropAspect, boxH];
+          } else {
+            [cvW, cvH] = boxAspect > cropAspect ? [boxH * cropAspect, boxH] : [boxW, boxW / cropAspect];
+          }
+          el.style.display = "flex";
+          el.style.alignItems = "center";
+          el.style.justifyContent = "center";
+          const cv = document.createElement("div");
+          cv.style.position = "relative";
+          cv.style.overflow = "hidden";
+          cv.style.flex = "0 0 auto";
+          cv.style.width = cvW + "px";
+          cv.style.height = cvH + "px";
+          cv.appendChild(img);
+          el.appendChild(cv);
+        }
       } else {
         img.style.width = "100%";
         img.style.objectFit = layer.fit || "fill";
@@ -628,8 +664,8 @@ export default class HerobuilderCanvas {
         // With an explicit height the image fills the box (object-fit governs); without one the
         // box follows the image's natural aspect ratio (height auto).
         img.style.height = p.h ? "100%" : "auto";
+        el.appendChild(img);
       }
-      el.appendChild(img);
       el._img = img;
     } else if (isText) {
       // Text layer: show the text; apply the chosen classes so backend Bootstrap gives a
@@ -750,6 +786,12 @@ export default class HerobuilderCanvas {
     }
     this.updateGeomFields(p);
     this.save();
+    // A cropped layer's preview fits the crop region into the box (object-fit), which depends
+    // on the box aspect — re-render so it updates after a resize.
+    if (layer.crop && p.h) {
+      this.render();
+      this.select(layer);
+    }
   }
 
   readRotation(el) {
@@ -1357,6 +1399,7 @@ export default class HerobuilderCanvas {
       '<button type="button" class="hb-flip-h btn btn-sm btn-default" title="' + escapeAttr(this.t("panel.flipH", "Flip horizontally")) + '">' + ICON.flipH + "</button>" +
       '<button type="button" class="hb-flip-v btn btn-sm btn-default" title="' + escapeAttr(this.t("panel.flipV", "Flip vertically")) + '">' + ICON.flipV + "</button>" +
       '<button type="button" class="hb-crop btn btn-sm btn-default">' + ICON.crop + " " + escapeHtml(this.t("panel.crop", "Crop")) + "</button>" +
+      '<button type="button" class="hb-autotrim btn btn-sm btn-default">' + escapeHtml(this.t("panel.autoTrim", "Auto-trim")) + "</button>" +
       '<button type="button" class="hb-crop-reset btn btn-sm btn-default" hidden>' + escapeHtml(this.t("panel.cropReset", "Reset crop")) + "</button>" +
       "</div></div>" +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.align", "Align")) + "</label>" +
@@ -1429,6 +1472,7 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-flip-h").addEventListener("click", () => this.toggleFlip("flipH"));
     panel.querySelector(".hb-flip-v").addEventListener("click", () => this.toggleFlip("flipV"));
     panel.querySelector(".hb-crop").addEventListener("click", () => this.openCrop());
+    panel.querySelector(".hb-autotrim").addEventListener("click", () => this.autoTrimSelected());
     panel.querySelector(".hb-crop-reset").addEventListener("click", () => this.resetCrop());
     panel.querySelector(".hb-anim-replay").addEventListener("click", () => this.replayPreview());
     panel.querySelector(".hb-link-choose").addEventListener("click", () => this.openLinkBrowser());
@@ -1736,6 +1780,22 @@ export default class HerobuilderCanvas {
           trigger: () => { setRect({ x: 0, y: 0, width: 1, height: 1 }); if (mv) { mv.updateRect(); } updateDims(); },
         },
         {
+          text: this.t("panel.autoTrim", "Auto-trim"),
+          btnClass: "btn-default",
+          trigger: async () => {
+            const box = await this.computeTrimBox(info.url);
+            if (box && !box.full) {
+              setRect(box);
+              if (mv) { mv.updateRect(); }
+              updateDims();
+            } else if (box && box.full) {
+              Notification.info("Hero Builder", this.t("trim.already", "Nothing to trim — no empty margins found"));
+            } else {
+              Notification.warning("Hero Builder", this.t("trim.none", "Could not detect content to trim"));
+            }
+          },
+        },
+        {
           text: this.t("crop.apply", "Apply"),
           btnClass: "btn-primary",
           trigger: () => { this.applyCrop(layer, fractions()); modal.hideModal(); },
@@ -1769,6 +1829,105 @@ export default class HerobuilderCanvas {
         });
     });
     modal.addEventListener("typo3-modal-hide", () => { if (mv) { mv.destroy(); mv = null; } });
+  }
+
+  // One-click: detect the content bounds (transparent margins, or a uniform border colour)
+  // and set the crop to them.
+  async autoTrimSelected() {
+    const layer = this.selected;
+    if (!layer || layer.type === "text" || layer.type === "button") {
+      return;
+    }
+    const info = this.fileInfo[layer.fileUid];
+    if (!info || !info.url) {
+      return;
+    }
+    const box = await this.computeTrimBox(info.url);
+    if (!box) {
+      Notification.warning("Hero Builder", this.t("trim.none", "Could not detect content to trim"));
+      return;
+    }
+    if (box.full) {
+      Notification.info("Hero Builder", this.t("trim.already", "Nothing to trim — no empty margins found"));
+      return;
+    }
+    layer.crop = this.cleanCrop(box);
+    this.save();
+    this.render();
+    this.select(layer);
+  }
+
+  /**
+   * Scan the image pixels for the content bounding box. Uses alpha when the image has any
+   * transparency, otherwise trims a uniform border colour (sampled from the top-left corner).
+   * Returns crop fractions {x,y,width,height}, {full:true} when nothing to trim, or null.
+   */
+  async computeTrimBox(url) {
+    const img = await new Promise((resolve) => {
+      const i = new Image();
+      i.onload = () => resolve(i);
+      i.onerror = () => resolve(null);
+      i.src = url; // same-origin (fileadmin) — canvas stays readable
+    });
+    if (!img || !img.naturalWidth || !img.naturalHeight) {
+      return null;
+    }
+    // Downscale for a fast scan — the result is fractions, so precision is preserved.
+    const scale = Math.min(1, 1000 / Math.max(img.naturalWidth, img.naturalHeight));
+    const cw = Math.max(1, Math.round(img.naturalWidth * scale));
+    const ch = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = cw;
+    canvas.height = ch;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0, cw, ch);
+    let data;
+    try {
+      data = ctx.getImageData(0, 0, cw, ch).data;
+    } catch (e) {
+      return null; // tainted canvas — bail out gracefully
+    }
+
+    let hasAlpha = false;
+    for (let i = 3; i < data.length; i += 4) {
+      if (data[i] < 250) { hasAlpha = true; break; }
+    }
+    const bg = [data[0], data[1], data[2]];
+    const threshold = 14;
+    const isContent = (idx) => {
+      if (hasAlpha) {
+        return data[idx + 3] > 16;
+      }
+      return Math.abs(data[idx] - bg[0]) > threshold
+        || Math.abs(data[idx + 1] - bg[1]) > threshold
+        || Math.abs(data[idx + 2] - bg[2]) > threshold;
+    };
+
+    let minX = cw;
+    let minY = ch;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < ch; y++) {
+      for (let x = 0; x < cw; x++) {
+        if (isContent((y * cw + x) * 4)) {
+          if (x < minX) { minX = x; }
+          if (x > maxX) { maxX = x; }
+          if (y < minY) { minY = y; }
+          if (y > maxY) { maxY = y; }
+        }
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      return null; // blank image
+    }
+    const bx = minX / cw;
+    const by = minY / ch;
+    const bw = (maxX - minX + 1) / cw;
+    const bh = (maxY - minY + 1) / ch;
+    if (bx <= 0.005 && by <= 0.005 && bw >= 0.995 && bh >= 0.995) {
+      return { full: true };
+    }
+    return { x: bx, y: by, width: bw, height: bh };
   }
 
   bindFocusPicker(box) {

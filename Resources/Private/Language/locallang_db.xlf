@@ -43,6 +43,9 @@
             <trans-unit id="panel.flipV"><source>Flip vertically</source></trans-unit>
             <trans-unit id="panel.crop"><source>Crop</source></trans-unit>
             <trans-unit id="panel.cropReset"><source>Reset crop</source></trans-unit>
+            <trans-unit id="panel.autoTrim"><source>Auto-trim</source></trans-unit>
+            <trans-unit id="trim.none"><source>Could not detect content to trim</source></trans-unit>
+            <trans-unit id="trim.already"><source>Nothing to trim — no empty margins found</source></trans-unit>
             <trans-unit id="crop.hint"><source>Drag/resize the frame to keep only the visible part — the cropped image is rendered smaller on the website.</source></trans-unit>
             <trans-unit id="crop.cancel"><source>Cancel</source></trans-unit>
             <trans-unit id="crop.reset"><source>Reset</source></trans-unit>

@@ -43,6 +43,9 @@
             <trans-unit id="panel.flipV"><source>Flip vertically</source><target>Vertikal spiegeln</target></trans-unit>
             <trans-unit id="panel.crop"><source>Crop</source><target>Zuschneiden</target></trans-unit>
             <trans-unit id="panel.cropReset"><source>Reset crop</source><target>Zuschnitt zurücksetzen</target></trans-unit>
+            <trans-unit id="panel.autoTrim"><source>Auto-trim</source><target>Auto-Trim</target></trans-unit>
+            <trans-unit id="trim.none"><source>Could not detect content to trim</source><target>Kein zuschneidbarer Inhalt erkannt</target></trans-unit>
+            <trans-unit id="trim.already"><source>Nothing to trim — no empty margins found</source><target>Nichts zu trimmen — keine leeren Ränder gefunden</target></trans-unit>
             <trans-unit id="crop.hint"><source>Drag/resize the frame to keep only the visible part — the cropped image is rendered smaller on the website.</source><target>Rahmen ziehen/skalieren, um nur den sichtbaren Teil zu behalten — das zugeschnittene Bild wird auf der Website kleiner ausgeliefert.</target></trans-unit>
             <trans-unit id="crop.cancel"><source>Cancel</source><target>Abbrechen</target></trans-unit>
             <trans-unit id="crop.reset"><source>Reset</source><target>Zurücksetzen</target></trans-unit>

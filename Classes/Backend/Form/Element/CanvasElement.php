@@ -229,6 +229,7 @@ class CanvasElement extends AbstractFormElement
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
             'draft.available', 'draft.restore', 'draft.discard',
             'panel.imageEdit', 'panel.flipH', 'panel.flipV', 'panel.crop', 'panel.cropReset',
+            'panel.autoTrim', 'trim.none', 'trim.already',
             'crop.hint', 'crop.cancel', 'crop.reset', 'crop.apply',
         ];
         $labels = [];
