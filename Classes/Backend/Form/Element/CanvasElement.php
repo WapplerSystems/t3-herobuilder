@@ -107,10 +107,9 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<div class="herobuilder" id="' . htmlspecialchars($fieldId) . '"';
         $html[] = ' data-herobuilder="' . htmlspecialchars(json_encode($initData, JSON_HEX_QUOT | JSON_HEX_APOS | JSON_THROW_ON_ERROR)) . '">';
 
-        // ---- Toolbar: title | breakpoint pills | actions --------------------
+        // ---- Toolbar: title | actions --------------------------------------
         $html[] = '<div class="herobuilder-toolbar">';
         $html[] = '<div class="herobuilder-title">' . htmlspecialchars($this->getLabel('editor.title', 'Composition')) . '</div>';
-        $html[] = '<div class="herobuilder-tabs">' . implode('', $tabs) . '</div>';
         $html[] = '<div class="herobuilder-actions">';
         // Undo / redo drive the in-memory history stack in canvas.js (disabled state is toggled there).
         $html[] = $this->iconButton('t3js-herobuilder-undo', 'actions-undo', 'button.undo', 'Undo');
@@ -124,6 +123,9 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-preview">' . htmlspecialchars($this->getLabel('button.preview', 'Live preview')) . '</button>';
         $html[] = '</div>';
         $html[] = '</div>';
+
+        // ---- Breakpoint bar (its own row below the toolbar) -----------------
+        $html[] = '<div class="herobuilder-breakpoints"><div class="herobuilder-tabs">' . implode('', $tabs) . '</div></div>';
 
         // ---- 3-column grid --------------------------------------------------
         $html[] = '<div class="herobuilder-grid">';
