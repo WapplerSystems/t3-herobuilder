@@ -95,6 +95,31 @@
     grid-template-columns: 230px minmax(0, 1fr) 340px;
     min-height: 60vh;
 }
+/* Collapsible sidebars: fold either panel to a thin strip so the canvas gets the space. */
+.herobuilder-grid.hb-left-collapsed { grid-template-columns: 34px minmax(0, 1fr) 340px; }
+.herobuilder-grid.hb-right-collapsed { grid-template-columns: 230px minmax(0, 1fr) 34px; }
+.herobuilder-grid.hb-left-collapsed.hb-right-collapsed { grid-template-columns: 34px minmax(0, 1fr) 34px; }
+.hb-left-collapsed .herobuilder-sidebar-left,
+.hb-right-collapsed .herobuilder-sidebar-right { padding: .35rem 0; overflow: hidden; }
+.hb-left-collapsed .herobuilder-sidebar-left > :not(.herobuilder-sidebar-toggle),
+.hb-right-collapsed .herobuilder-sidebar-right > :not(.herobuilder-sidebar-toggle) { display: none; }
+.herobuilder-sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    margin: 0 0 .4rem auto;
+    border: 1px solid var(--typo3-component-border-color, #ccc);
+    border-radius: 4px;
+    background: var(--typo3-component-bg, #fff);
+    color: inherit;
+    cursor: pointer;
+}
+.herobuilder-sidebar-right .herobuilder-sidebar-toggle { margin: .25rem auto .4rem .25rem; }
+.hb-left-collapsed .herobuilder-sidebar-toggle,
+.hb-right-collapsed .herobuilder-sidebar-toggle { margin: 0 auto; }
 .herobuilder-sidebar {
     overflow: auto;
     max-height: 80vh;

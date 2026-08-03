@@ -61,6 +61,8 @@ const ICON = {
   flipH: S + '<path d="M8 1.5v13"/><path d="M6 5 3 8l3 3z"/><path d="M10 5l3 3-3 3z"/></svg>',
   flipV: S + '<path d="M1.5 8h13"/><path d="M5 6 8 3l3 3z"/><path d="M5 10l3 3 3-3z"/></svg>',
   crop: S + '<path d="M4.5 1v10.5H15"/><path d="M1 4.5h10.5V15"/></svg>',
+  chevronLeft: S + '<path d="M10 3 5 8l5 5"/></svg>',
+  chevronRight: S + '<path d="M6 3l5 5-5 5"/></svg>',
 };
 
 /**
@@ -140,6 +142,7 @@ export default class HerobuilderCanvas {
     this.buildPanel();
     this.bindToolbar();
     this.bindProps();
+    this.buildSidebarToggles();
     this.bindStageNav();
     this.bindKeyboard();
     this.listenForAssetInserts();
@@ -1322,6 +1325,15 @@ export default class HerobuilderCanvas {
     return (info && info.name) || "#" + layer.fileUid;
   }
 
+  // Full, untruncated name for the layer-list tooltip (the visible label is clipped by CSS).
+  layerFullName(layer) {
+    if (layer.type === "text" || layer.type === "button") {
+      return (layer.text || "").trim() || (layer.type === "button" ? "Button" : "Text");
+    }
+    const info = this.fileInfo[layer.fileUid];
+    return (info && info.name) || "#" + layer.fileUid;
+  }
+
   renderLayerList() {
     if (!this.layerList) {
       return;
@@ -1349,7 +1361,8 @@ export default class HerobuilderCanvas {
           '"><span class="hb-ll-grip" title="' +
           escapeAttr(this.t("list.reorder", "Reorder")) +
           '">⠿</span>' +
-          '<button type="button" class="hb-ll-sel" data-act="select">' +
+          '<button type="button" class="hb-ll-sel" data-act="select" title="' +
+          escapeAttr(this.layerFullName(layer)) + '">' +
           this.layerChip(layer) +
           '<span class="hb-ll-name">' + escapeHtml(this.layerLabel(layer)) + "</span></button>" +
           '<button type="button" class="hb-ll-btn hb-ll-vis" data-act="vis" title="' +
@@ -1483,6 +1496,38 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-link-clear").addEventListener("click", () => this.setLink(""));
     panel.querySelector(".hb-delete").addEventListener("click", () => this.deleteSelected());
     // .t3js-herobuilder-copy is wired in bindToolbar().
+  }
+
+  // Collapsible left/right sidebars — the editor is cramped, so let editors reclaim the
+  // canvas width by folding either panel to a thin strip with an expand toggle.
+  buildSidebarToggles() {
+    const grid = this.root.querySelector(".herobuilder-grid");
+    if (!grid) {
+      return;
+    }
+    const make = (sidebarSel, cls, side) => {
+      const sb = this.root.querySelector(sidebarSel);
+      if (!sb) {
+        return;
+      }
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "herobuilder-sidebar-toggle";
+      const sync = () => {
+        const collapsed = grid.classList.contains(cls);
+        const pointRight = collapsed ? side === "left" : side === "right";
+        btn.innerHTML = pointRight ? ICON.chevronRight : ICON.chevronLeft;
+        btn.title = collapsed ? this.t("sidebar.expand", "Expand") : this.t("sidebar.collapse", "Collapse");
+      };
+      btn.addEventListener("click", () => {
+        grid.classList.toggle(cls);
+        sync();
+      });
+      sb.insertBefore(btn, sb.firstChild);
+      sync();
+    };
+    make(".herobuilder-sidebar-left", "hb-left-collapsed", "left");
+    make(".herobuilder-sidebar-right", "hb-right-collapsed", "right");
   }
 
   bindProps() {

@@ -231,6 +231,7 @@ class CanvasElement extends AbstractFormElement
             'panel.imageEdit', 'panel.flipH', 'panel.flipV', 'panel.crop', 'panel.cropReset',
             'panel.autoTrim', 'trim.none', 'trim.already',
             'crop.hint', 'crop.cancel', 'crop.reset', 'crop.apply',
+            'sidebar.collapse', 'sidebar.expand',
         ];
         $labels = [];
         foreach ($keys as $key) {

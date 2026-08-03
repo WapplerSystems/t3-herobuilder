@@ -50,6 +50,8 @@
             <trans-unit id="crop.cancel"><source>Cancel</source></trans-unit>
             <trans-unit id="crop.reset"><source>Reset</source></trans-unit>
             <trans-unit id="crop.apply"><source>Apply</source></trans-unit>
+            <trans-unit id="sidebar.collapse"><source>Collapse panel</source></trans-unit>
+            <trans-unit id="sidebar.expand"><source>Expand panel</source></trans-unit>
             <trans-unit id="button.copyToAll"><source>Copy position to all breakpoints</source></trans-unit>
             <trans-unit id="button.preview"><source>Live preview</source></trans-unit>
             <trans-unit id="button.templates"><source>Templates</source></trans-unit>
