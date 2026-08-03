@@ -7,6 +7,8 @@ namespace WapplerSystems\Herobuilder\Backend\Form\Element;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Crypto\HashService;
+use TYPO3\CMS\Core\Imaging\IconFactory;
+use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
@@ -25,6 +27,7 @@ class CanvasElement extends AbstractFormElement
 {
     public function __construct(
         private readonly HashService $hashService,
+        private readonly IconFactory $iconFactory,
     ) {}
 
     public function render(): array
@@ -109,9 +112,9 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<div class="herobuilder-title">' . htmlspecialchars($this->getLabel('editor.title', 'Composition')) . '</div>';
         $html[] = '<div class="herobuilder-tabs">' . implode('', $tabs) . '</div>';
         $html[] = '<div class="herobuilder-actions">';
-        $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-add">' . htmlspecialchars($this->getLabel('button.addImage', 'Add image')) . '</button>';
-        $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-add-text">' . htmlspecialchars($this->getLabel('button.addText', 'Add text')) . '</button>';
-        $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-add-button">' . htmlspecialchars($this->getLabel('button.addButton', 'Add button')) . '</button>';
+        $html[] = $this->iconButton('t3js-herobuilder-add', 'actions-image', 'button.addImage', 'Add image');
+        $html[] = $this->iconButton('t3js-herobuilder-add-text', 'content-text', 'button.addText', 'Add text');
+        $html[] = $this->iconButton('t3js-herobuilder-add-button', 'actions-link', 'button.addButton', 'Add button');
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-templates">' . htmlspecialchars($this->getLabel('button.templates', 'Templates')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-save-template">' . htmlspecialchars($this->getLabel('button.saveTemplate', 'Save as template')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-export">' . htmlspecialchars($this->getLabel('button.export', 'Export image')) . '</button>';
@@ -175,6 +178,19 @@ class CanvasElement extends AbstractFormElement
         $resultArray['stylesheetFiles'][] = 'EXT:herobuilder/Resources/Public/Css/backend.css';
 
         return $resultArray;
+    }
+
+    /**
+     * A toolbar button prefixed with a core TYPO3 icon (rendered inline by the IconFactory).
+     */
+    private function iconButton(string $cssClass, string $iconIdentifier, string $labelKey, string $default): string
+    {
+        return sprintf(
+            '<button type="button" class="btn btn-sm btn-default %s">%s <span>%s</span></button>',
+            htmlspecialchars($cssClass),
+            $this->iconFactory->getIcon($iconIdentifier, IconSize::SMALL)->render(),
+            htmlspecialchars($this->getLabel($labelKey, $default))
+        );
     }
 
     private function getLabel(string $key, string $default): string
