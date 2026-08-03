@@ -1403,10 +1403,10 @@ export default class HerobuilderCanvas {
       '<div class="herobuilder-tabpane active" data-tab="transform">' +
       '<div class="herobuilder-panel-row hb-row-geom"><label>' + escapeHtml(this.t("panel.geometry", "Position / size (%)")) + "</label>" +
       '<div class="hb-geom">' +
-      '<label>X<input type="number" class="hb-geom-x form-control form-control-sm" step="0.5"></label>' +
-      '<label>Y<input type="number" class="hb-geom-y form-control form-control-sm" step="0.5"></label>' +
-      '<label>W<input type="number" class="hb-geom-w form-control form-control-sm" step="0.5"></label>' +
-      '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.5"></label>' +
+      '<label>X<input type="number" class="hb-geom-x form-control form-control-sm" step="0.01"></label>' +
+      '<label>Y<input type="number" class="hb-geom-y form-control form-control-sm" step="0.01"></label>' +
+      '<label>W<input type="number" class="hb-geom-w form-control form-control-sm" step="0.01"></label>' +
+      '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.01"></label>' +
       '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="1"></label>' +
       "</div></div>" +
       '<div class="herobuilder-panel-row hb-row-imgedit"><label>' + escapeHtml(this.t("panel.imageEdit", "Image")) + "</label>" +
