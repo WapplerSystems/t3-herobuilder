@@ -80,6 +80,15 @@
 }
 .herobuilder-draft-text { flex: 1 1 auto; }
 
+/* Flip / crop controls in the layer panel (Transform tab). */
+.hb-imgedit { display: flex; flex-wrap: wrap; gap: .35rem; }
+.hb-imgedit svg { vertical-align: middle; }
+.hb-imgedit .btn.active {
+    border-color: var(--typo3-component-primary-color, #0b64c6);
+    color: var(--typo3-component-primary-color, #0b64c6);
+    font-weight: 600;
+}
+
 /* ---- Grid -------------------------------------------------------------- */
 .herobuilder-grid {
     display: grid;

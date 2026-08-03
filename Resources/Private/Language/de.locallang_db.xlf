@@ -38,6 +38,15 @@
             <trans-unit id="panel.link"><source>Link</source><target>Link</target></trans-unit>
             <trans-unit id="link.choose"><source>Choose link</source><target>Link wählen</target></trans-unit>
             <trans-unit id="link.remove"><source>Remove</source><target>Entfernen</target></trans-unit>
+            <trans-unit id="panel.imageEdit"><source>Image</source><target>Bild</target></trans-unit>
+            <trans-unit id="panel.flipH"><source>Flip horizontally</source><target>Horizontal spiegeln</target></trans-unit>
+            <trans-unit id="panel.flipV"><source>Flip vertically</source><target>Vertikal spiegeln</target></trans-unit>
+            <trans-unit id="panel.crop"><source>Crop</source><target>Zuschneiden</target></trans-unit>
+            <trans-unit id="panel.cropReset"><source>Reset crop</source><target>Zuschnitt zurücksetzen</target></trans-unit>
+            <trans-unit id="crop.hint"><source>Drag/resize the frame to keep only the visible part — the cropped image is rendered smaller on the website.</source><target>Rahmen ziehen/skalieren, um nur den sichtbaren Teil zu behalten — das zugeschnittene Bild wird auf der Website kleiner ausgeliefert.</target></trans-unit>
+            <trans-unit id="crop.cancel"><source>Cancel</source><target>Abbrechen</target></trans-unit>
+            <trans-unit id="crop.reset"><source>Reset</source><target>Zurücksetzen</target></trans-unit>
+            <trans-unit id="crop.apply"><source>Apply</source><target>Übernehmen</target></trans-unit>
             <trans-unit id="button.copyToAll"><source>Copy position to all breakpoints</source><target>Position auf alle Breakpoints übertragen</target></trans-unit>
             <trans-unit id="button.preview"><source>Live preview</source><target>Live-Vorschau</target></trans-unit>
             <trans-unit id="button.templates"><source>Templates</source><target>Vorlagen</target></trans-unit>

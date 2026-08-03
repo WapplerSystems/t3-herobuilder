@@ -26,6 +26,16 @@ const GALLERY_CSS = `
 .herobuilder-tpl-gallery .hb-tpl-hint{grid-column:1/-1;margin:.5rem 0 0;font-size:.8rem;color:#6c757d;}
 `;
 
+// Crop editor styles, injected into the TYPO3 modal (top document, no field backend.css).
+const CROP_CSS = `
+.herobuilder-crop .hb-crop-hint{margin:0 0 .6rem;font-size:.85rem;color:#6c757d;}
+.herobuilder-crop .hb-crop-stage{position:relative;display:flex;justify-content:center;align-items:center;padding:14px;border-radius:4px;background:#0b0f14 repeating-conic-gradient(#1b2733 0 25%,transparent 0 50%) 50%/24px 24px;}
+.herobuilder-crop .hb-crop-frame{position:relative;max-width:100%;box-shadow:0 0 0 1px rgba(255,255,255,.3);}
+.herobuilder-crop .hb-crop-frame img{display:block;width:100%;height:100%;user-select:none;-webkit-user-drag:none;}
+.herobuilder-crop .hb-crop-rect{position:absolute;box-sizing:border-box;border:1px solid #fff;box-shadow:0 0 0 9999px rgba(0,0,0,.45);cursor:move;}
+.herobuilder-crop .hb-crop-dims{margin:.55rem 0 0;font-size:.8rem;color:#6c757d;text-align:center;}
+`;
+
 // Social / OG export formats (keys must match CompositeImageService::FORMATS).
 const EXPORT_FORMATS = [
   { key: "og", label: "Open Graph · 1200×630" },
@@ -46,6 +56,9 @@ const ICON = {
   alignCenterH: S + '<path d="M8 2v12"/><rect x="4" y="4" width="8" height="3" rx="1"/><rect x="5.5" y="9" width="5" height="3" rx="1"/></svg>',
   alignRight: S + '<path d="M14 2v12"/><rect x="4" y="4" width="8" height="3" rx="1"/><rect x="7" y="9" width="5" height="3" rx="1"/></svg>',
   alignV: S + '<path d="M2 8h12"/><rect x="4" y="4" width="3" height="8" rx="1"/><rect x="9" y="5.5" width="3" height="5" rx="1"/></svg>',
+  flipH: S + '<path d="M8 1.5v13"/><path d="M6 5 3 8l3 3z"/><path d="M10 5l3 3-3 3z"/></svg>',
+  flipV: S + '<path d="M1.5 8h13"/><path d="M5 6 8 3l3 3z"/><path d="M5 10l3 3 3-3z"/></svg>',
+  crop: S + '<path d="M4.5 1v10.5H15"/><path d="M1 4.5h10.5V15"/></svg>',
 };
 
 /**
@@ -566,7 +579,10 @@ export default class HerobuilderCanvas {
   createLayerEl(layer, p) {
     const isText = layer.type === "text" || layer.type === "button";
     const info = isText ? null : this.fileInfo[layer.fileUid];
-    const el = document.createElement(info && info.url ? "img" : "div");
+    // Image layers use a wrapper div (the Moveable/geometry target) with an inner <img>, so
+    // flip (scale) and crop (overflow + offset) can be applied to the image without inverting
+    // Moveable's handles or the layer box. Text/button/placeholder layers are the div itself.
+    const el = document.createElement("div");
     el.className = "herobuilder-layer";
     el.style.position = "absolute";
     el.style.left = (p.x ?? 30) + "%";
@@ -582,11 +598,39 @@ export default class HerobuilderCanvas {
     // layer beneath it (Figma/Photoshop behaviour). It stays selectable via the layer list.
     el.style.pointerEvents = layer.locked ? "none" : "auto";
     if (info && info.url) {
-      el.src = info.url;
-      el.alt = layer.alt || info.alt || "";
-      el.draggable = false;
-      el.style.objectFit = layer.fit || "fill";
-      el.style.objectPosition = (layer.focusX ?? 50) + "% " + (layer.focusY ?? 50) + "%";
+      const img = document.createElement("img");
+      img.className = "hb-layer-img-inner";
+      img.src = info.url;
+      img.alt = layer.alt || info.alt || "";
+      img.draggable = false;
+      img.style.display = "block";
+      // Flip is a pure CSS transform on the image (no reprocessing).
+      const sx = layer.flipH ? -1 : 1;
+      const sy = layer.flipV ? -1 : 1;
+      img.style.transform = sx !== 1 || sy !== 1 ? "scale(" + sx + "," + sy + ")" : "";
+      const crop = layer.crop;
+      if (crop) {
+        // Show only the crop region, scaled to fill the layer box (overflow-hidden wrapper +
+        // enlarged, offset image). The authoritative, byte-saving crop happens on the frontend.
+        el.style.overflow = "hidden";
+        if (!p.h) {
+          el.style.aspectRatio = (crop.width * (info.width || 1)) + " / " + (crop.height * (info.height || 1));
+        }
+        img.style.position = "absolute";
+        img.style.width = 100 / crop.width + "%";
+        img.style.height = 100 / crop.height + "%";
+        img.style.left = -(crop.x / crop.width) * 100 + "%";
+        img.style.top = -(crop.y / crop.height) * 100 + "%";
+      } else {
+        img.style.width = "100%";
+        img.style.objectFit = layer.fit || "fill";
+        img.style.objectPosition = (layer.focusX ?? 50) + "% " + (layer.focusY ?? 50) + "%";
+        // With an explicit height the image fills the box (object-fit governs); without one the
+        // box follows the image's natural aspect ratio (height auto).
+        img.style.height = p.h ? "100%" : "auto";
+      }
+      el.appendChild(img);
+      el._img = img;
     } else if (isText) {
       // Text layer: show the text; apply the chosen classes so backend Bootstrap gives a
       // close-to-frontend preview (unknown/FE-only classes are simply inert here).
@@ -1308,6 +1352,13 @@ export default class HerobuilderCanvas {
       '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.5"></label>' +
       '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="1"></label>' +
       "</div></div>" +
+      '<div class="herobuilder-panel-row hb-row-imgedit"><label>' + escapeHtml(this.t("panel.imageEdit", "Image")) + "</label>" +
+      '<div class="hb-imgedit">' +
+      '<button type="button" class="hb-flip-h btn btn-sm btn-default" title="' + escapeAttr(this.t("panel.flipH", "Flip horizontally")) + '">' + ICON.flipH + "</button>" +
+      '<button type="button" class="hb-flip-v btn btn-sm btn-default" title="' + escapeAttr(this.t("panel.flipV", "Flip vertically")) + '">' + ICON.flipV + "</button>" +
+      '<button type="button" class="hb-crop btn btn-sm btn-default">' + ICON.crop + " " + escapeHtml(this.t("panel.crop", "Crop")) + "</button>" +
+      '<button type="button" class="hb-crop-reset btn btn-sm btn-default" hidden>' + escapeHtml(this.t("panel.cropReset", "Reset crop")) + "</button>" +
+      "</div></div>" +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.align", "Align")) + "</label>" +
       '<div class="hb-align-row">' +
       alignBtn("left", ICON.alignLeft, this.t("ctx.alignLeft", "Left")) +
@@ -1375,6 +1426,10 @@ export default class HerobuilderCanvas {
       panel.querySelector(sel).addEventListener("input", (e) => this.setGeom(field, e.target.value));
     });
     panel.querySelectorAll(".hb-align").forEach((b) => b.addEventListener("click", () => this.align(b.dataset.align)));
+    panel.querySelector(".hb-flip-h").addEventListener("click", () => this.toggleFlip("flipH"));
+    panel.querySelector(".hb-flip-v").addEventListener("click", () => this.toggleFlip("flipV"));
+    panel.querySelector(".hb-crop").addEventListener("click", () => this.openCrop());
+    panel.querySelector(".hb-crop-reset").addEventListener("click", () => this.resetCrop());
     panel.querySelector(".hb-anim-replay").addEventListener("click", () => this.replayPreview());
     panel.querySelector(".hb-link-choose").addEventListener("click", () => this.openLinkBrowser());
     panel.querySelector(".hb-link-clear").addEventListener("click", () => this.setLink(""));
@@ -1437,6 +1492,18 @@ export default class HerobuilderCanvas {
       this.updateFocusDot();
     } else {
       focusRow.hidden = true;
+    }
+
+    // Image-edit row (flip / crop) — only for image layers with a resolvable file.
+    const imgEditRow = this.panel.querySelector(".hb-row-imgedit");
+    if (info && info.url) {
+      imgEditRow.hidden = false;
+      this.panel.querySelector(".hb-flip-h").classList.toggle("active", !!this.selected.flipH);
+      this.panel.querySelector(".hb-flip-v").classList.toggle("active", !!this.selected.flipV);
+      this.panel.querySelector(".hb-crop").classList.toggle("active", !!this.selected.crop);
+      this.panel.querySelector(".hb-crop-reset").hidden = !this.selected.crop;
+    } else {
+      imgEditRow.hidden = true;
     }
   }
 
@@ -1556,6 +1623,154 @@ export default class HerobuilderCanvas {
     this.select(this.selected);
   }
 
+  // ---- Flip / crop -------------------------------------------------------
+
+  toggleFlip(field) {
+    const l = this.selected;
+    if (!l || l.type === "text" || l.type === "button") {
+      return;
+    }
+    l[field] = !l[field];
+    this.save();
+    this.render();
+    this.select(l);
+  }
+
+  resetCrop() {
+    if (!this.selected) {
+      return;
+    }
+    this.selected.crop = null;
+    this.save();
+    this.render();
+    this.select(this.selected);
+  }
+
+  applyCrop(layer, fractions) {
+    layer.crop = this.cleanCrop(fractions);
+    this.save();
+    this.render();
+    this.select(layer);
+  }
+
+  async openCrop() {
+    const layer = this.selected;
+    if (!layer || layer.type === "text" || layer.type === "button") {
+      return;
+    }
+    const info = this.fileInfo[layer.fileUid];
+    if (!info || !info.url) {
+      return;
+    }
+    await this.ensureMoveable();
+
+    const natW = info.width || 1;
+    const natH = info.height || 1;
+
+    const wrap = document.createElement("div");
+    wrap.className = "herobuilder-crop";
+    const style = document.createElement("style");
+    style.textContent = CROP_CSS;
+    wrap.appendChild(style);
+
+    const hint = document.createElement("p");
+    hint.className = "hb-crop-hint";
+    hint.textContent = this.t("crop.hint", "Drag/resize the frame to keep only the visible part — the cropped image is rendered smaller on the website.");
+    wrap.appendChild(hint);
+
+    const stage = document.createElement("div");
+    stage.className = "hb-crop-stage";
+    const frame = document.createElement("div");
+    frame.className = "hb-crop-frame";
+    // Frame follows the image's natural aspect so crop fractions map 1:1 to pixels.
+    frame.style.width = Math.min(720, natW) + "px";
+    frame.style.aspectRatio = natW + " / " + natH;
+    const img = document.createElement("img");
+    img.src = info.url;
+    img.alt = "";
+    frame.appendChild(img);
+    const rect = document.createElement("div");
+    rect.className = "hb-crop-rect";
+    frame.appendChild(rect);
+    stage.appendChild(frame);
+    wrap.appendChild(stage);
+
+    const dims = document.createElement("p");
+    dims.className = "hb-crop-dims";
+    wrap.appendChild(dims);
+
+    const setRect = (c) => {
+      const fw = frame.clientWidth || 1;
+      const fh = frame.clientHeight || 1;
+      rect.style.left = c.x * fw + "px";
+      rect.style.top = c.y * fh + "px";
+      rect.style.width = c.width * fw + "px";
+      rect.style.height = c.height * fh + "px";
+    };
+    const fractions = () => {
+      const fw = frame.clientWidth || 1;
+      const fh = frame.clientHeight || 1;
+      return {
+        x: rect.offsetLeft / fw,
+        y: rect.offsetTop / fh,
+        width: rect.offsetWidth / fw,
+        height: rect.offsetHeight / fh,
+      };
+    };
+    const updateDims = () => {
+      const c = this.cleanCrop(fractions()) || { width: 1, height: 1 };
+      dims.textContent = Math.round(c.width * natW) + " × " + Math.round(c.height * natH) + " px";
+    };
+
+    let mv = null;
+    let modal = Modal.advanced({
+      title: this.t("panel.crop", "Crop"),
+      type: Modal.types.default,
+      content: wrap,
+      size: Modal.sizes.large,
+      buttons: [
+        { text: this.t("crop.cancel", "Cancel"), btnClass: "btn-default", trigger: () => modal.hideModal() },
+        {
+          text: this.t("crop.reset", "Reset"),
+          btnClass: "btn-default",
+          trigger: () => { setRect({ x: 0, y: 0, width: 1, height: 1 }); if (mv) { mv.updateRect(); } updateDims(); },
+        },
+        {
+          text: this.t("crop.apply", "Apply"),
+          btnClass: "btn-primary",
+          trigger: () => { this.applyCrop(layer, fractions()); modal.hideModal(); },
+        },
+      ],
+    });
+
+    modal.addEventListener("typo3-modal-shown", () => {
+      setRect(layer.crop || { x: 0, y: 0, width: 1, height: 1 });
+      updateDims();
+      mv = new window.Moveable(stage, {
+        target: rect,
+        draggable: true,
+        resizable: true,
+        origin: false,
+        keepRatio: false,
+      });
+      const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+      mv
+        .on("drag", ({ target, left, top }) => {
+          target.style.left = clamp(left, 0, frame.clientWidth - target.offsetWidth) + "px";
+          target.style.top = clamp(top, 0, frame.clientHeight - target.offsetHeight) + "px";
+          updateDims();
+        })
+        .on("resize", ({ target, width, height, drag }) => {
+          target.style.width = Math.min(width, frame.clientWidth) + "px";
+          target.style.height = Math.min(height, frame.clientHeight) + "px";
+          target.style.left = clamp(drag.left, 0, frame.clientWidth - target.offsetWidth) + "px";
+          target.style.top = clamp(drag.top, 0, frame.clientHeight - target.offsetHeight) + "px";
+          updateDims();
+        });
+    });
+    modal.addEventListener("typo3-modal-hide", () => { if (mv) { mv.destroy(); mv = null; } });
+  }
+
   bindFocusPicker(box) {
     if (!box) {
       return;
@@ -1590,8 +1805,9 @@ export default class HerobuilderCanvas {
     }
     this.selected.focusX = round(x);
     this.selected.focusY = round(y);
-    if (this.selected._el && this.selected.type !== "text") {
-      this.selected._el.style.objectPosition = this.selected.focusX + "% " + this.selected.focusY + "%";
+    const img = this.selected._el && this.selected._el._img;
+    if (img && this.selected.type !== "text") {
+      img.style.objectPosition = this.selected.focusX + "% " + this.selected.focusY + "%";
     }
     this.updateFocusDot();
     this.save();
@@ -1668,9 +1884,29 @@ export default class HerobuilderCanvas {
       focusY: l.focusY ?? 50,
       overlay: l.overlay ?? 0,
       locked: !!l.locked,
+      flipH: !!l.flipH,
+      flipV: !!l.flipV,
+      crop: this.cleanCrop(l.crop),
       anim: l.anim || {},
       placements: l.placements || {},
     };
+  }
+
+  // Crop area as fractions (0..1) of the source image, or null when the whole image is used.
+  cleanCrop(crop) {
+    if (!crop || typeof crop !== "object") {
+      return null;
+    }
+    const clamp01 = (v) => Math.max(0, Math.min(1, parseFloat(v) || 0));
+    const x = clamp01(crop.x);
+    const y = clamp01(crop.y);
+    const width = Math.max(0.01, Math.min(1 - x, clamp01(crop.width)));
+    const height = Math.max(0.01, Math.min(1 - y, clamp01(crop.height)));
+    // A full-frame crop is the same as no crop — normalise it away.
+    if (x === 0 && y === 0 && width >= 0.999 && height >= 0.999) {
+      return null;
+    }
+    return { x, y, width, height };
   }
 
   cleanLayers() {

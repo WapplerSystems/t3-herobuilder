@@ -16,12 +16,12 @@
         <f:if condition="{layer.link}">
             <f:then>
                 <f:link.typolink parameter="{layer.link}" class="hb-layer {layer.cssClass} {layer.userClass}" additionalAttributes="{data-aos: '{layer.anim.effect}', data-aos-delay: '{layer.anim.delay}', data-aos-duration: '{layer.anim.duration}'}">
-                    <f:image image="{layer.file}" alt="{layer.alt}" maxWidth="1600" class="hb-layer-img"/>
+                    <f:image image="{layer.file}" alt="{layer.alt}" maxWidth="1600" crop="{layer.crop}" class="hb-layer-img"/>
                 </f:link.typolink>
             </f:then>
             <f:else>
                 <div class="hb-layer {layer.cssClass} {layer.userClass}" data-aos="{layer.anim.effect}" data-aos-delay="{layer.anim.delay}" data-aos-duration="{layer.anim.duration}">
-                    <f:image image="{layer.file}" alt="{layer.alt}" maxWidth="1600" class="hb-layer-img"/>
+                    <f:image image="{layer.file}" alt="{layer.alt}" maxWidth="1600" crop="{layer.crop}" class="hb-layer-img"/>
                 </div>
             </f:else>
         </f:if>

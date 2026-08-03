@@ -228,6 +228,8 @@ class CanvasElement extends AbstractFormElement
             'template.applyHint', 'template.empty', 'template.saveError',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
             'draft.available', 'draft.restore', 'draft.discard',
+            'panel.imageEdit', 'panel.flipH', 'panel.flipV', 'panel.crop', 'panel.cropReset',
+            'crop.hint', 'crop.cancel', 'crop.reset', 'crop.apply',
         ];
         $labels = [];
         foreach ($keys as $key) {

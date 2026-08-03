@@ -66,6 +66,7 @@ final readonly class CompositionProcessor implements DataProcessorInterface
             }
             $cssClass = $scope . '-l' . $index;
             $css .= $this->layerCss('.' . $cssClass, (array)($layer['placements'] ?? []));
+            $crop = '';
             if (!$isText) {
                 $imgDecl = '';
                 $fit = $this->normalizeFit($layer['fit'] ?? null);
@@ -80,9 +81,17 @@ final readonly class CompositionProcessor implements DataProcessorInterface
                         $imgDecl .= 'object-position:' . $this->pct($fx) . ' ' . $this->pct($fy) . ';';
                     }
                 }
+                // Flip is a pure display transform (no reprocessing, no extra bytes).
+                $flipH = !empty($layer['flipH']);
+                $flipV = !empty($layer['flipV']);
+                if ($flipH || $flipV) {
+                    $imgDecl .= 'transform:scale(' . ($flipH ? '-1' : '1') . ',' . ($flipV ? '-1' : '1') . ');';
+                }
                 if ($imgDecl !== '') {
                     $css .= '.' . $cssClass . ' .hb-layer-img{' . $imgDecl . '}';
                 }
+                // Crop → CropVariants JSON for f:image, which renders a physically smaller derivative.
+                $crop = $this->cropString($layer['crop'] ?? null);
             } else {
                 // Darkening scrim behind text for readability over busy backgrounds.
                 $overlay = $this->clampPercent($layer['overlay'] ?? 0);
@@ -100,6 +109,7 @@ final readonly class CompositionProcessor implements DataProcessorInterface
                 'file' => $file,
                 'alt' => $isText ? '' : (string)($layer['alt'] ?? ($file?->getProperty('alternative') ?? '')),
                 'link' => (string)($layer['link'] ?? ''),
+                'crop' => $crop,
                 'anim' => $layer['anim'] ?? [],
             ];
         }
@@ -226,6 +236,41 @@ final readonly class CompositionProcessor implements DataProcessorInterface
     private function clampPercent(mixed $value): float
     {
         return max(0.0, min(100.0, (float)$value));
+    }
+
+    private function clamp01(mixed $value): float
+    {
+        return max(0.0, min(1.0, (float)$value));
+    }
+
+    /**
+     * Build a CropVariants JSON (fractions 0..1) that f:image consumes to render a physically
+     * cropped — and therefore smaller — image derivative. Empty string = no crop (full image).
+     */
+    private function cropString(mixed $crop): string
+    {
+        if (!is_array($crop)) {
+            return '';
+        }
+        $x = $this->clamp01($crop['x'] ?? 0);
+        $y = $this->clamp01($crop['y'] ?? 0);
+        $w = $this->clamp01($crop['width'] ?? 1);
+        $h = $this->clamp01($crop['height'] ?? 1);
+        // A missing/degenerate or full-frame crop is the same as no crop.
+        if ($w <= 0.0 || $h <= 0.0 || ($x === 0.0 && $y === 0.0 && $w >= 1.0 && $h >= 1.0)) {
+            return '';
+        }
+        try {
+            return json_encode([
+                'default' => [
+                    'cropArea' => ['x' => $x, 'y' => $y, 'width' => $w, 'height' => $h],
+                    'selectedRatio' => 'NaN',
+                    'focusArea' => null,
+                ],
+            ], JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            return '';
+        }
     }
 
     private function pct(float $value): string
