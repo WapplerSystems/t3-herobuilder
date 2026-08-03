@@ -28,6 +28,7 @@ tt_content.herobuilder {
                         lg.ratio = {$plugin.tx_herobuilder.settings.stages.lg.ratio}
                         xl.ratio = {$plugin.tx_herobuilder.settings.stages.xl.ratio}
                         xxl.ratio = {$plugin.tx_herobuilder.settings.stages.xxl.ratio}
+                        xxxl.ratio = {$plugin.tx_herobuilder.settings.stages.xxxl.ratio}
                     }
                 }
             }

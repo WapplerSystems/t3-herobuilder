@@ -409,9 +409,12 @@ export default class HerobuilderCanvas {
 
   ensurePlacement(layer) {
     if (!layer.placements[this.activeBp]) {
-      const any = Object.values(layer.placements)[0];
-      layer.placements[this.activeBp] = any
-        ? { ...any }
+      // Clone from the primary (lg, else first defined) placement so a new breakpoint override
+      // starts from the inherited layout the editor is already showing.
+      const primaryBp = layer.placements.lg ? "lg" : Object.keys(layer.placements)[0];
+      const src = primaryBp ? layer.placements[primaryBp] : null;
+      layer.placements[this.activeBp] = src
+        ? { ...src }
         : { x: 20, y: 20, w: 40, h: 25, rot: 0, z: 1, visible: true };
     }
     return layer.placements[this.activeBp];
@@ -550,7 +553,14 @@ export default class HerobuilderCanvas {
 
   placementFor(layer) {
     layer.placements = layer.placements || {};
-    return layer.placements[this.activeBp] || null;
+    if (layer.placements[this.activeBp]) {
+      return layer.placements[this.activeBp];
+    }
+    // Mirror the frontend cascade: a breakpoint without its own placement inherits the primary
+    // (lg, else the first defined) one for display, so switching tabs is WYSIWYG. Returned
+    // read-only — writers go through ensurePlacement(), which clones before editing.
+    const primaryBp = layer.placements.lg ? "lg" : Object.keys(layer.placements)[0];
+    return primaryBp ? layer.placements[primaryBp] : null;
   }
 
   render() {
@@ -773,7 +783,7 @@ export default class HerobuilderCanvas {
     const el = layer._el;
     const sw = this.stageEl.clientWidth || 1;
     const sh = this.stageEl.clientHeight || 1;
-    const p = this.placementFor(layer) || {};
+    const p = this.ensurePlacement(layer);
     p.x = round((el.offsetLeft / sw) * 100);
     p.y = round((el.offsetTop / sh) * 100);
     p.w = round((el.offsetWidth / sw) * 100);
@@ -2080,9 +2090,8 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    const p = this.placementFor(this.selected) || {};
+    const p = this.ensurePlacement(this.selected);
     p.visible = visible;
-    this.selected.placements[this.activeBp] = p;
     this.save();
     this.render();
     if (visible) {
@@ -2094,9 +2103,8 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    const p = this.placementFor(this.selected) || {};
+    const p = this.ensurePlacement(this.selected);
     p.z = Math.max(1, (p.z || 1) + dir);
-    this.selected.placements[this.activeBp] = p;
     this.save();
     this.render();
     this.select(this.selected);

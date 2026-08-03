@@ -50,7 +50,15 @@ final readonly class CompositionProcessor implements DataProcessorInterface
     {
         $uid = (int)($row['uid'] ?? 0);
         $composition = Composition::fromJson((string)($row['composition'] ?? ''));
-        $stages = Composition::stageConfig(is_array($stagesOverride) ? $stagesOverride : []);
+        // Page TSconfig (tx_herobuilder.stages.<bp>.ratio) wins over the TypoScript-setup default,
+        // so a site can flatten the hero and the backend editor (which reads the same TSconfig)
+        // stays in sync.
+        $pid = (int)($row['pid'] ?? 0);
+        $tsConfigStages = $pid > 0
+            ? Composition::parseTsConfigStages((array)(BackendUtility::getPagesTSconfig($pid)['tx_herobuilder.']['stages.'] ?? []))
+            : [];
+        $override = array_replace_recursive(is_array($stagesOverride) ? $stagesOverride : [], $tsConfigStages);
+        $stages = Composition::stageConfig($override);
         $scope = 'hb-' . $uid;
 
         $layers = [];

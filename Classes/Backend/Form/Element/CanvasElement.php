@@ -40,7 +40,10 @@ class CanvasElement extends AbstractFormElement
         $itemValue = (string)($parameterArray['itemFormElValue'] ?? '');
         $fieldId = StringUtility::getUniqueId('herobuilder-');
 
-        $stages = Composition::stageConfig($config['parameters']['stages'] ?? []);
+        // Stage aspect ratios come from page TSconfig (tx_herobuilder.stages.<bp>.ratio) so the
+        // editor matches the frontend per site — e.g. a flatter hero for a given site.
+        $tsStages = $this->data['pageTsConfig']['tx_herobuilder.']['stages.'] ?? [];
+        $stages = Composition::stageConfig(Composition::parseTsConfigStages((array)$tsStages));
         $classes = $this->layerClasses();
 
         // TYPO3 Link Browser wiring: a proxy input the browser writes into (change event),

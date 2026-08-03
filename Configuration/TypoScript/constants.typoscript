@@ -13,6 +13,7 @@ plugin.tx_herobuilder {
             lg.ratio = 21:9
             xl.ratio = 21:9
             xxl.ratio = 21:9
+            xxxl.ratio = 21:9
         }
     }
 }

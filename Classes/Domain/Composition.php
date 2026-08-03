@@ -18,10 +18,14 @@ namespace WapplerSystems\Herobuilder\Domain;
  */
 final readonly class Composition
 {
-    /** Breakpoint keys, ordered small → large (aligned with ws_t3bootstrap). */
-    public const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl'];
+    /** Breakpoint keys, ordered small → large (aligned with ws_t3bootstrap + a wide-viewport tier). */
+    public const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'xxxl'];
 
-    /** Non-overlapping media queries per breakpoint (mirrors ws_t3bootstrap). */
+    /**
+     * Media queries per breakpoint (mirror ws_t3bootstrap). xxl stays open-ended (≥1400) so xxxl
+     * inherits it when undefined; xxxl (≥1920) is emitted after xxl and therefore wins for wide
+     * viewports — the hero/carousel is full-viewport width, well beyond the 1400px xxl reference.
+     */
     public const BREAKPOINT_MEDIA = [
         'xs' => '(max-width: 575.98px)',
         'sm' => '(min-width: 576px) and (max-width: 767.98px)',
@@ -29,6 +33,7 @@ final readonly class Composition
         'lg' => '(min-width: 992px) and (max-width: 1199.98px)',
         'xl' => '(min-width: 1200px) and (max-width: 1399.98px)',
         'xxl' => '(min-width: 1400px)',
+        'xxxl' => '(min-width: 1920px)',
     ];
 
     /** Default stage aspect ratios per breakpoint (overridable via TypoScript settings.stages). */
@@ -39,6 +44,7 @@ final readonly class Composition
         'lg' => '21:9',
         'xl' => '21:9',
         'xxl' => '21:9',
+        'xxxl' => '21:9',
     ];
 
     /**
@@ -54,6 +60,7 @@ final readonly class Composition
         'lg' => 992,
         'xl' => 1200,
         'xxl' => 1400,
+        'xxxl' => 1920,
     ];
 
     /** @param array<int, array<string, mixed>> $layers */
@@ -92,6 +99,31 @@ final readonly class Composition
      * @param array<string, mixed> $override TypoScript settings.stages (e.g. ['lg' => ['ratio' => '21:9']])
      * @return array<string, array{ratio: string, ratioCss: string, width: int}>
      */
+    /**
+     * Normalise page-TSconfig `tx_herobuilder.stages` (keys carry the TSconfig trailing dot,
+     * e.g. ['lg.' => ['ratio' => '2500:480']]) into the override shape stageConfig() expects.
+     *
+     * @param array<string, mixed> $tsStages
+     * @return array<string, array{ratio?: string, width?: int}>
+     */
+    public static function parseTsConfigStages(array $tsStages): array
+    {
+        $out = [];
+        foreach ($tsStages as $key => $val) {
+            if (!is_array($val)) {
+                continue;
+            }
+            $bp = rtrim((string)$key, '.');
+            if (isset($val['ratio']) && (string)$val['ratio'] !== '') {
+                $out[$bp]['ratio'] = (string)$val['ratio'];
+            }
+            if (isset($val['width']) && (string)$val['width'] !== '') {
+                $out[$bp]['width'] = (int)$val['width'];
+            }
+        }
+        return $out;
+    }
+
     public static function stageConfig(array $override): array
     {
         $stages = [];
