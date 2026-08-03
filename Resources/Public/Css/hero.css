@@ -1,6 +1,17 @@
 .herobuilder-carousel .hb-stage {
     width: 100%;
     overflow: hidden;
+    /* Own stacking context so the layers' z-indexes stay contained and can't paint over
+       the Bootstrap carousel controls/indicators (which live in the carousel context). */
+    position: relative;
+    z-index: 0;
+}
+
+/* Keep the carousel controls and indicators above the slide layers. */
+.herobuilder-carousel .carousel-control-prev,
+.herobuilder-carousel .carousel-control-next,
+.herobuilder-carousel .carousel-indicators {
+    z-index: 5;
 }
 
 /* Positioning + geometry come from the per-slide scoped CSS. */
