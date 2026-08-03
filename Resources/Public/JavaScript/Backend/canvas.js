@@ -56,6 +56,8 @@ const ICON = {
   alignCenterH: S + '<path d="M8 2v12"/><rect x="4" y="4" width="8" height="3" rx="1"/><rect x="5.5" y="9" width="5" height="3" rx="1"/></svg>',
   alignRight: S + '<path d="M14 2v12"/><rect x="4" y="4" width="8" height="3" rx="1"/><rect x="7" y="9" width="5" height="3" rx="1"/></svg>',
   alignV: S + '<path d="M2 8h12"/><rect x="4" y="4" width="3" height="8" rx="1"/><rect x="9" y="5.5" width="3" height="5" rx="1"/></svg>',
+  alignTop: S + '<path d="M2 2h12"/><rect x="4" y="4" width="3" height="8" rx="1"/><rect x="9" y="4" width="3" height="5" rx="1"/></svg>',
+  alignBottom: S + '<path d="M2 14h12"/><rect x="4" y="4" width="3" height="8" rx="1"/><rect x="9" y="7" width="3" height="5" rx="1"/></svg>',
   flipH: S + '<path d="M8 1.5v13"/><path d="M6 5 3 8l3 3z"/><path d="M10 5l3 3-3 3z"/></svg>',
   flipV: S + '<path d="M1.5 8h13"/><path d="M5 6 8 3l3 3z"/><path d="M5 10l3 3 3-3z"/></svg>',
   crop: S + '<path d="M4.5 1v10.5H15"/><path d="M1 4.5h10.5V15"/></svg>',
@@ -1407,7 +1409,9 @@ export default class HerobuilderCanvas {
       alignBtn("left", ICON.alignLeft, this.t("ctx.alignLeft", "Left")) +
       alignBtn("centerH", ICON.alignCenterH, this.t("ctx.alignCenterH", "Center horizontally")) +
       alignBtn("right", ICON.alignRight, this.t("ctx.alignRight", "Right")) +
+      alignBtn("top", ICON.alignTop, this.t("ctx.alignTop", "Top")) +
       alignBtn("middle", ICON.alignV, this.t("panel.alignV", "Center vertically")) +
+      alignBtn("bottom", ICON.alignBottom, this.t("ctx.alignBottom", "Bottom")) +
       "</div></div>" +
       '<div class="herobuilder-panel-row"><button type="button" class="t3js-herobuilder-copy btn btn-sm btn-default hb-copyall">' +
       escapeHtml(this.t("button.copyToAll", "Copy position to all breakpoints")) + "</button></div>" +
