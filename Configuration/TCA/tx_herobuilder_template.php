@@ -15,7 +15,6 @@ return [
         'default_sortby' => 'title ASC',
         'enablecolumns' => ['disabled' => 'hidden'],
         'typeicon_classes' => ['default' => 'content-herobuilder'],
-        'searchFields' => 'title',
         // Allow "Save as template" to store templates on any page doktype
         // (replaces the removed ExtensionManagementUtility::allowTableOnStandardPages()).
         'security' => ['ignorePageTypeRestriction' => true],
@@ -29,7 +28,7 @@ return [
         'title' => [
             'exclude' => 0,
             'label' => $ll . 'template.title',
-            'config' => ['type' => 'input', 'size' => 40, 'eval' => 'trim,required'],
+            'config' => ['type' => 'input', 'size' => 40, 'eval' => 'trim', 'required' => true],
         ],
         'color' => [
             'exclude' => 0,

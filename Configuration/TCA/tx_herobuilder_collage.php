@@ -13,6 +13,7 @@ return [
         'tstamp' => 'tstamp',
         'crdate' => 'crdate',
         'delete' => 'deleted',
+        'versioningWS' => true,
         'hideTable' => true,
         'default_sortby' => 'sorting ASC',
         'enablecolumns' => [
