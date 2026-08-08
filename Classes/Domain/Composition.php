@@ -63,6 +63,15 @@ final readonly class Composition
         'xxxl' => 1920,
     ];
 
+    /**
+     * Smallest height (CSS px) a stage may be rendered at in the backend editor. Ultra-wide
+     * ratios (e.g. 2500:480) would otherwise leave a sliver of well under 200px to work in.
+     * The stage is scaled UP to reach it — the aspect ratio, and with it the WYSIWYG match to
+     * the frontend, is never touched; the editor just starts at a zoom above 100%.
+     * Frontend rendering is unaffected.
+     */
+    public const MIN_STAGE_HEIGHT = 300;
+
     /** @param array<int, array<string, mixed>> $layers */
     public function __construct(
         public array $layers = [],

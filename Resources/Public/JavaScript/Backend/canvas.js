@@ -12,6 +12,13 @@ const AOS_EFFECTS = [
 // Labels are resolved via i18n (this.t("fit.<value>")) at render time.
 const FIT_MODES = ["fill", "cover", "contain"];
 
+// Duration of the breakpoint morph (stage box + layer geometry). Must stay in sync with the
+// `--hb-bp-anim` transition in backend.css — the reconciling render() runs once it is over.
+const BP_ANIM_MS = 480;
+
+// Offered in the zoom picker; steps below a breakpoint's minimum zoom are dropped from the list.
+const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+
 // Styles for the templates gallery, injected into the modal (which lives in the TOP
 // document, where the field's backend.css is not present).
 const GALLERY_CSS = `
@@ -91,6 +98,9 @@ export default class HerobuilderCanvas {
     this.pid = init.pid || 0;
     this.previewUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_preview || null;
     this.previewOpen = false;
+    // Floor for the rendered stage height (Composition::MIN_STAGE_HEIGHT). Enforced as a zoom
+    // minimum, so a flat ratio never leaves a sliver to work in — see minZoomValue().
+    this.minStageHeight = parseInt(init.minStageHeight, 10) || 0;
     this.zoom = 1;
     this._spaceDown = false;
     this.linkWizardUrl = init.linkWizardUrl || null;
@@ -101,7 +111,16 @@ export default class HerobuilderCanvas {
     this.exportUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_export || null;
     this.moveableUrl = init.moveableUrl || null;
     this.name = init.name || "";
-    this.activeBp = this.breakpoints.includes("lg") ? "lg" : this.breakpoints[0];
+    // PHP pre-renders the stage + pressed button for this breakpoint, so honour its choice —
+    // otherwise the very first render would already have to jump to another stage size.
+    this.activeBp = this.breakpoints.includes(init.activeBp)
+      ? init.activeBp
+      : (this.breakpoints.includes("lg") ? "lg" : this.breakpoints[0]);
+    // Open at the breakpoint's base view (100%, or scaled up to clear minStageHeight).
+    this.zoom = this.baseZoomValue();
+    // Loaded <img> nodes are reused across re-renders (keyed by layer id) so rebuilding the
+    // stage — e.g. the reconciling render after a breakpoint morph — never flashes.
+    this._imgCache = new Map();
 
     this.stageEl = this.root.querySelector(".t3js-herobuilder-stage");
     this.input = this.root.querySelector(".t3js-herobuilder-input");
@@ -136,7 +155,7 @@ export default class HerobuilderCanvas {
 
     this.stageEl.tabIndex = 0; // focusable so keyboard shortcuts scope to the editor
 
-    this.buildZoomBadge();
+    this.buildZoomControl();
     this.buildLayerList();
     this.buildPreview();
     this.buildPanel();
@@ -193,7 +212,7 @@ export default class HerobuilderCanvas {
   }
 
   bindToolbar() {
-    this.root.querySelectorAll(".t3js-herobuilder-tab").forEach((btn) => {
+    this.root.querySelectorAll(".t3js-herobuilder-bp").forEach((btn) => {
       btn.addEventListener("click", () => this.setBreakpoint(btn.dataset.breakpoint));
     });
     this.root.querySelector(".t3js-herobuilder-undo")?.addEventListener("click", () => this.undo());
@@ -275,19 +294,78 @@ export default class HerobuilderCanvas {
     }
   }
 
+  /**
+   * Switch to another breakpoint. Instead of swapping a tab pane, the stage box and every layer
+   * *travel* to the geometry stored for that breakpoint: the transitions make the difference
+   * between the breakpoints readable (what moves, what grows, what disappears).
+   */
   setBreakpoint(bp) {
-    if (!this.breakpoints.includes(bp)) {
+    if (!this.breakpoints.includes(bp) || bp === this.activeBp) {
       return;
     }
+    // An untouched zoom re-bases to the new breakpoint (so xs shows its 390px device width
+    // again after lg was scaled up to reach the height floor); a zoom the editor set by hand
+    // is kept, only lifted if the new breakpoint's floor demands it.
+    const atBase = Math.abs(this.zoom - this.baseZoomValue()) < 0.01;
     this.activeBp = bp;
+    this.zoom = atBase ? this.baseZoomValue() : Math.max(this.zoom, this.minZoomValue());
     this.deselect();
-    this.render();
+    this.highlightActiveBp();
     this.updatePreviewWidth();
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      this.render();
+      return;
+    }
+    this.morphToBreakpoint();
   }
 
-  highlightActiveTab() {
-    this.root.querySelectorAll(".t3js-herobuilder-tab").forEach((b) => {
-      b.classList.toggle("active", b.dataset.breakpoint === this.activeBp);
+  /**
+   * Animate the current DOM towards the active breakpoint, then hand back to render().
+   *
+   * Layers already on the stage keep their element and only get new inline geometry, so the CSS
+   * transition interpolates the move/resize. Layers that only exist in one of the two
+   * breakpoints fade in/out. The reconciling render() afterwards rebuilds the stage the normal
+   * way (crop boxes depend on the stage's px size) — at that point nothing moves any more.
+   */
+  morphToBreakpoint() {
+    window.clearTimeout(this._bpTimer);
+    this.root.classList.add("hb-bp-anim");
+    this.applyStageSize();
+
+    this.layers.forEach((layer) => {
+      const p = this.placementFor(layer);
+      const visible = !!p && p.visible !== false;
+      const el = layer._el && layer._el.isConnected ? layer._el : null;
+      if (el) {
+        if (visible) {
+          this.applyGeomToEl(el, p);
+          el.style.opacity = "1";
+        } else {
+          el.style.opacity = "0";
+        }
+      } else if (visible) {
+        // Only placed in the new breakpoint — mount it at its target box and fade it in.
+        const fresh = this.createLayerEl(layer, p);
+        fresh.style.opacity = "0";
+        this.stageEl.appendChild(fresh);
+        layer._el = fresh;
+        window.requestAnimationFrame(() => {
+          fresh.style.opacity = "1";
+        });
+      }
+    });
+
+    this._bpTimer = window.setTimeout(() => {
+      this.root.classList.remove("hb-bp-anim");
+      this.render();
+    }, BP_ANIM_MS + 40);
+  }
+
+  highlightActiveBp() {
+    this.root.querySelectorAll(".t3js-herobuilder-bp").forEach((b) => {
+      const active = b.dataset.breakpoint === this.activeBp;
+      b.classList.toggle("active", active);
+      b.setAttribute("aria-pressed", active ? "true" : "false");
     });
   }
 
@@ -305,16 +383,79 @@ export default class HerobuilderCanvas {
 
   // ---- Zoom & pan --------------------------------------------------------
 
-  buildZoomBadge() {
-    // The zoom level lives as a badge inside the stage (bottom-right); click toggles
-    // fit-to-width ↔ 100%. Ctrl+wheel and Ctrl +/-/0 still change zoom.
-    this.zoomBadge = this.root.querySelector(".herobuilder-zoom-badge");
-    if (this.zoomBadge) {
-      this.zoomBadge.title = this.t("zoom.fit", "Fit to width") + " / " + this.t("zoom.reset", "100%");
-      this.zoomBadge.addEventListener("click", () => {
-        this.setZoom(Math.abs(this.zoom - 1) < 0.01 ? this.fitZoomValue() : 1);
-      });
+  /**
+   * Zoom picker above the top-right corner of the stage. Ctrl+wheel and Ctrl +/-/0 keep working
+   * and are mirrored back into the select by applyStageSize().
+   */
+  buildZoomControl() {
+    this.zoomSelect = this.root.querySelector(".t3js-herobuilder-zoom");
+    if (!this.zoomSelect) {
+      return;
     }
+    this.zoomSelect.title = this.t("zoom.label", "Zoom");
+    this.zoomSelect.addEventListener("change", () => {
+      const value = this.zoomSelect.value;
+      if (value === "fit") {
+        this.fitZoom();
+      } else {
+        this.setZoom(parseFloat(value));
+      }
+    });
+    this.updateZoomControl();
+  }
+
+  /**
+   * Keep the picker in sync: the step list depends on the breakpoint (steps below its minimum
+   * zoom would only be clamped away), the selection on the zoom actually in effect.
+   */
+  updateZoomControl() {
+    const select = this.zoomSelect;
+    if (!select) {
+      return;
+    }
+    const pct = (z) => Math.round(z * 100) + "%";
+    const min = this.minZoomValue();
+    const base = this.baseZoomValue();
+    const signature = min.toFixed(3) + "|" + base.toFixed(3);
+    if (select.dataset.signature !== signature) {
+      select.dataset.signature = signature;
+      select.textContent = "";
+      const add = (value, label) => {
+        const option = document.createElement("option");
+        option.value = value;
+        option.textContent = label;
+        select.appendChild(option);
+        return option;
+      };
+      add("fit", this.t("zoom.fit", "Fit to width"));
+      // On a stage scaled up to clear the height floor the base view is no round step — offer
+      // it by name, it is the smallest zoom this breakpoint allows.
+      if (base > 1.001) {
+        add(base.toFixed(4), pct(base) + " · " + this.t("zoom.min", "min"));
+      }
+      ZOOM_STEPS.filter((step) => step >= min - 0.001).forEach((step) => add(step.toFixed(4), pct(step)));
+    }
+
+    // Zoom values reached by wheel/keyboard rarely hit a step — carry them in one extra entry.
+    const match = [...select.options].find(
+      (option) => option.value !== "fit" && Math.abs(parseFloat(option.value) - this.zoom) < 0.005
+    );
+    let custom = select.querySelector("option[data-custom]");
+    if (match) {
+      if (custom) {
+        custom.remove();
+      }
+      select.value = match.value;
+      return;
+    }
+    if (!custom) {
+      custom = document.createElement("option");
+      custom.dataset.custom = "1";
+      select.insertBefore(custom, select.options[1] || null);
+    }
+    custom.value = this.zoom.toFixed(4);
+    custom.textContent = pct(this.zoom);
+    select.value = custom.value;
   }
 
   scaledStageWidth() {
@@ -322,16 +463,44 @@ export default class HerobuilderCanvas {
     return w ? w * this.zoom : 0;
   }
 
+  /**
+   * Smallest zoom the active breakpoint may be shown at: the factor that lifts its natural
+   * height (width ÷ ratio) to minStageHeight. Above 1 for flat ratios (the stage then opens
+   * scaled up and is panned horizontally), below 1 for the tall phone stages.
+   */
+  minZoomValue() {
+    const w = this.stageWidth(this.activeBp);
+    const ratio = this.stageRatio(this.activeBp);
+    if (!this.minStageHeight || !w || ratio <= 0) {
+      return 0.1;
+    }
+    return Math.max(0.1, this.minStageHeight / (w / ratio));
+  }
+
+  /** The zoom a breakpoint opens at: 100%, or the floor when the stage would be flatter. */
+  baseZoomValue() {
+    return Math.max(1, this.minZoomValue());
+  }
+
   applyStageSize() {
     const w = this.scaledStageWidth();
+    const ratio = this.stageRatio(this.activeBp);
     this.stageEl.style.width = w ? w + "px" : "100%";
-    if (this.zoomBadge) {
-      this.zoomBadge.textContent = Math.round(this.zoom * 100) + "%";
+    // An explicit height (rather than aspect-ratio) is what makes the stage box animate when
+    // switching breakpoints; without a configured width there is nothing to derive it from, so
+    // fall back to the ratio and let the fluid box keep its shape.
+    if (w && ratio > 0) {
+      this.stageEl.style.aspectRatio = "auto";
+      this.stageEl.style.height = Math.round(w / ratio) + "px";
+    } else {
+      this.stageEl.style.height = "";
+      this.stageEl.style.aspectRatio = this.stageRatioCss(this.activeBp);
     }
+    this.updateZoomControl();
   }
 
   setZoom(z) {
-    this.zoom = Math.min(6, Math.max(0.1, z));
+    this.zoom = Math.min(6, Math.max(this.minZoomValue(), z));
     this.applyStageSize();
     if (this.moveable) {
       this.moveable.updateRect();
@@ -345,7 +514,14 @@ export default class HerobuilderCanvas {
   fitZoomValue() {
     const wrap = this.root.querySelector(".herobuilder-stage-wrap");
     const w = this.stageWidth(this.activeBp);
-    return wrap && w ? (wrap.clientWidth - 8) / w : 1;
+    if (!wrap || !w) {
+      return 1;
+    }
+    // clientWidth includes the scroll box's padding — subtract it (plus the stage border), or
+    // fitting would still leave a horizontal scrollbar.
+    const cs = window.getComputedStyle(wrap);
+    const inner = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 4;
+    return Math.max(0.1, inner / w);
   }
 
   fitZoom() {
@@ -564,13 +740,22 @@ export default class HerobuilderCanvas {
   }
 
   render() {
-    this.highlightActiveTab();
-    this.stageEl.style.aspectRatio = this.stageRatioCss(this.activeBp);
+    this.highlightActiveBp();
     // Render the stage at the breakpoint's real device width × zoom. Because layers are
     // %-based, zooming just resizes the stage box — geometry (offset/clientWidth → %) and
     // Moveable stay correct without any CSS transform.
     this.applyStageSize();
     this.stageEl.querySelectorAll(".herobuilder-layer").forEach((el) => el.remove());
+
+    // Drop cached <img> nodes of layers that are gone (deleted, template applied, undo).
+    if (this._imgCache.size > this.layers.length) {
+      const alive = new Set(this.layers.map((l) => l.id));
+      this._imgCache.forEach((img, id) => {
+        if (!alive.has(id)) {
+          this._imgCache.delete(id);
+        }
+      });
+    }
 
     const ordered = [...this.layers].sort((a, b) => {
       const za = (this.placementFor(a) || {}).z || 0;
@@ -613,11 +798,18 @@ export default class HerobuilderCanvas {
     // layer beneath it (Figma/Photoshop behaviour). It stays selectable via the layer list.
     el.style.pointerEvents = layer.locked ? "none" : "auto";
     if (info && info.url) {
-      const img = document.createElement("img");
-      img.className = "hb-layer-img-inner";
-      img.src = info.url;
+      // Reuse the already decoded <img> of this layer (moved into the new box by appendChild)
+      // so a re-render is flicker-free; all its styles are re-applied from scratch below.
+      let img = this._imgCache.get(layer.id);
+      if (!img || img.getAttribute("src") !== info.url) {
+        img = document.createElement("img");
+        img.className = "hb-layer-img-inner";
+        img.src = info.url;
+        img.draggable = false;
+        this._imgCache.set(layer.id, img);
+      }
+      img.style.cssText = "";
       img.alt = layer.alt || info.alt || "";
-      img.draggable = false;
       img.style.display = "block";
       // Flip is a pure CSS transform on the image (no reprocessing).
       const sx = layer.flipH ? -1 : 1;

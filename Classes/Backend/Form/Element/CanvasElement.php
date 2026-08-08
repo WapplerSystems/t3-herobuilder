@@ -25,6 +25,29 @@ use WapplerSystems\Herobuilder\Domain\Composition;
  */
 class CanvasElement extends AbstractFormElement
 {
+    /**
+     * Device glyphs for the breakpoint buttons (16px, currentColor) — the phone/tablet/screen
+     * shape makes the target device readable at a glance, label + width only confirm it.
+     */
+    private const DEVICE_ICONS = [
+        'phone' => '<rect x="4.5" y="1.5" width="7" height="13" rx="1.5"/><path d="M7 12.6h2"/>',
+        'tablet' => '<rect x="3" y="1.5" width="10" height="13" rx="1.5"/><path d="M7 12.6h2"/>',
+        'laptop' => '<rect x="2.5" y="2.5" width="11" height="8" rx="1"/><path d="M1 12.8h14"/>',
+        'desktop' => '<rect x="1.5" y="2.5" width="13" height="8.5" rx="1"/><path d="M6 13.5h4M8 11v2.5"/>',
+        'wide' => '<rect x="0.8" y="3.5" width="14.4" height="7.5" rx="1"/><path d="M5.5 13.5h5"/>',
+    ];
+
+    /** Which glyph represents which breakpoint. */
+    private const BREAKPOINT_DEVICES = [
+        'xs' => 'phone',
+        'sm' => 'phone',
+        'md' => 'tablet',
+        'lg' => 'laptop',
+        'xl' => 'desktop',
+        'xxl' => 'desktop',
+        'xxxl' => 'wide',
+    ];
+
     public function __construct(
         private readonly HashService $hashService,
         private readonly IconFactory $iconFactory,
@@ -70,25 +93,40 @@ class CanvasElement extends AbstractFormElement
             false
         );
 
-        $tabs = [];
-        $stageStyles = [];
-        foreach (Composition::BREAKPOINTS as $i => $bp) {
-            $active = $i === 0 ? ' active' : '';
-            $tabs[] = sprintf(
-                '<button type="button" class="herobuilder-tab t3js-herobuilder-tab%s" data-breakpoint="%s" title="%dpx">%s <span class="herobuilder-tab-ratio">%s</span></button>',
-                $active,
+        // The editor opens on the primary breakpoint (the one layers inherit from) — same
+        // choice canvas.js makes, so the markup below already matches the first render.
+        $activeBp = in_array('lg', Composition::BREAKPOINTS, true)
+            ? 'lg'
+            : Composition::BREAKPOINTS[0];
+
+        // Breakpoint switcher: plain toggle buttons, NOT tabs — canvas.js animates the stage
+        // and every layer over to the geometry stored for the picked breakpoint.
+        $bpButtons = [];
+        foreach (Composition::BREAKPOINTS as $bp) {
+            $active = $bp === $activeBp;
+            $bpButtons[] = sprintf(
+                '<button type="button" class="btn btn-sm btn-default herobuilder-bp t3js-herobuilder-bp%s"'
+                . ' data-breakpoint="%s" aria-pressed="%s" title="%s · %dpx · %s">'
+                . '%s<span class="herobuilder-bp-label">%s</span><span class="herobuilder-bp-meta">%d</span>'
+                . '</button>',
+                $active ? ' active' : '',
                 htmlspecialchars($bp),
-                (int)$stages[$bp]['width'],
+                $active ? 'true' : 'false',
                 htmlspecialchars(strtoupper($bp)),
-                htmlspecialchars($stages[$bp]['ratio'])
+                (int)$stages[$bp]['width'],
+                htmlspecialchars($stages[$bp]['ratio']),
+                $this->deviceIcon($bp),
+                htmlspecialchars(strtoupper($bp)),
+                (int)$stages[$bp]['width']
             );
-            $stageStyles[$bp] = $stages[$bp]['ratioCss'];
         }
 
         $initData = [
             'fieldId' => $fieldId,
             'name' => $itemName,
             'breakpoints' => Composition::BREAKPOINTS,
+            'activeBp' => $activeBp,
+            'minStageHeight' => Composition::MIN_STAGE_HEIGHT,
             'stages' => $stages,
             'classes' => $classes,
             'labels' => $this->jsLabels(),
@@ -128,7 +166,11 @@ class CanvasElement extends AbstractFormElement
         $html[] = '</div>';
 
         // ---- Breakpoint bar (its own row below the toolbar) -----------------
-        $html[] = '<div class="herobuilder-breakpoints"><div class="herobuilder-tabs">' . implode('', $tabs) . '</div></div>';
+        $html[] = '<div class="herobuilder-breakpoints">';
+        $html[] = '<div class="herobuilder-bpbar" role="group" aria-label="'
+            . htmlspecialchars($this->getLabel('breakpoints.label', 'Breakpoint')) . '">'
+            . implode('', $bpButtons) . '</div>';
+        $html[] = '</div>';
 
         // ---- 3-column grid --------------------------------------------------
         $html[] = '<div class="herobuilder-grid">';
@@ -139,14 +181,19 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<div class="herobuilder-layerlist"></div>';
         $html[] = '</div>';
 
-        // Center: canvas with stage + zoom badge (preview iframe mounts here via JS)
-        $firstBp = Composition::BREAKPOINTS[0];
+        // Center: canvas with stage + zoom badge (preview iframe mounts here via JS).
+        // Width AND height are explicit px rather than aspect-ratio, because canvas.js
+        // transitions both when morphing the stage to another breakpoint.
+        [$stageW, $stageH] = $this->stageBox($stages[$activeBp]);
         $html[] = '<div class="herobuilder-canvas">';
+        // Zoom picker, floating over the top-right of the stage area (options filled by JS,
+        // because the available steps depend on the breakpoint's minimum zoom).
+        $html[] = '<div class="herobuilder-zoom"><select class="form-select form-select-sm t3js-herobuilder-zoom" aria-label="'
+            . htmlspecialchars($this->getLabel('zoom.label', 'Zoom')) . '"></select></div>';
         $html[] = '<div class="herobuilder-stage-wrap">';
-        $html[] = '<div class="herobuilder-stage t3js-herobuilder-stage" style="position:relative;width:' . (int)$stages[$firstBp]['width'] . 'px;aspect-ratio:' . htmlspecialchars($stageStyles[$firstBp]) . ';background:#0b0f14 repeating-conic-gradient(#1b2733 0% 25%,transparent 0% 50%) 50% / 24px 24px;overflow:hidden;border:1px solid var(--typo3-component-border-color,#ccc);border-radius:4px;"></div>';
-        $html[] = '<div class="herobuilder-zoom-badge">100%</div>';
-        $html[] = '</div>';
-        $html[] = '</div>';
+        $html[] = '<div class="herobuilder-stage t3js-herobuilder-stage" style="position:relative;width:' . $stageW . 'px;height:' . $stageH . 'px;background:#0b0f14 repeating-conic-gradient(#1b2733 0% 25%,transparent 0% 50%) 50% / 24px 24px;overflow:hidden;border:1px solid var(--typo3-component-border-color,#ccc);border-radius:4px;"></div>';
+        $html[] = '</div>'; // .herobuilder-stage-wrap
+        $html[] = '</div>'; // .herobuilder-canvas
 
         // Right sidebar: property tabs + panel body (populated by JS)
         $html[] = '<div class="herobuilder-sidebar herobuilder-sidebar-right">';
@@ -201,6 +248,44 @@ class CanvasElement extends AbstractFormElement
         );
     }
 
+    /**
+     * Inline device glyph for a breakpoint button (falls back to the desktop shape for
+     * breakpoints without an explicit mapping).
+     */
+    private function deviceIcon(string $bp): string
+    {
+        $device = self::BREAKPOINT_DEVICES[$bp] ?? 'desktop';
+        return '<svg class="herobuilder-bp-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"'
+            . ' fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">'
+            . self::DEVICE_ICONS[$device]
+            . '</svg>';
+    }
+
+    /**
+     * Rendered stage box [width, height] in px for a stage config, so the initial markup already
+     * carries the exact box canvas.js animates between (no jump on the first render).
+     *
+     * Height follows from width ÷ ratio; a box flatter than Composition::MIN_STAGE_HEIGHT is
+     * scaled up as a whole (ratio preserved) — same floor canvas.js applies as a zoom minimum.
+     *
+     * @param array{ratio: string, ratioCss: string, width: int} $stage
+     * @return array{0: int, 1: int}
+     */
+    private function stageBox(array $stage): array
+    {
+        $parts = array_map('floatval', explode(':', $stage['ratio']));
+        $w = (float)$stage['width'];
+        if (($parts[0] ?? 0) <= 0 || ($parts[1] ?? 0) <= 0 || $w <= 0) {
+            return [(int)$w, 0];
+        }
+        $h = $w * $parts[1] / $parts[0];
+        if ($h < Composition::MIN_STAGE_HEIGHT) {
+            $w *= Composition::MIN_STAGE_HEIGHT / $h;
+            $h = Composition::MIN_STAGE_HEIGHT;
+        }
+        return [(int)round($w), (int)round($h)];
+    }
+
     private function getLabel(string $key, string $default): string
     {
         $label = $this->getLanguageService()->sL(
@@ -225,7 +310,8 @@ class CanvasElement extends AbstractFormElement
             'ctx.copyToAll', 'ctx.toFront', 'ctx.toBack',
             'panel.geometry', 'panel.focus', 'panel.overlay', 'panel.align', 'panel.alignV', 'ctx.alignLeft', 'ctx.alignCenterH',
             'ctx.alignRight', 'list.reorder', 'list.toggleVisible', 'list.toggleLock',
-            'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'preview.replay',
+            'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'zoom.label',
+            'zoom.min', 'preview.replay',
             'button.copyToAll', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
             'template.applyHint', 'template.empty', 'template.saveError',

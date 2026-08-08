@@ -108,6 +108,7 @@
             <trans-unit id="ctx.toBack"><source>Send to back</source></trans-unit>
 
             <trans-unit id="editor.title"><source>Composition</source></trans-unit>
+            <trans-unit id="breakpoints.label"><source>Breakpoint</source></trans-unit>
             <trans-unit id="list.title"><source>Layers</source></trans-unit>
             <trans-unit id="panel.tabTransform"><source>Transform</source></trans-unit>
             <trans-unit id="panel.tabStyle"><source>Style</source></trans-unit>
@@ -126,6 +127,8 @@
             <trans-unit id="zoom.out"><source>Zoom out (Ctrl −)</source></trans-unit>
             <trans-unit id="zoom.reset"><source>Reset zoom to 100% (Ctrl 0)</source></trans-unit>
             <trans-unit id="zoom.fit"><source>Fit to width</source></trans-unit>
+            <trans-unit id="zoom.label"><source>Zoom</source></trans-unit>
+            <trans-unit id="zoom.min"><source>min</source></trans-unit>
         </body>
     </file>
 </xliff>

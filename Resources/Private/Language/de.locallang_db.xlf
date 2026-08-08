@@ -108,6 +108,7 @@
             <trans-unit id="ctx.toBack"><source>Send to back</source><target>In den Hintergrund</target></trans-unit>
 
             <trans-unit id="editor.title"><source>Composition</source><target>Komposition</target></trans-unit>
+            <trans-unit id="breakpoints.label"><source>Breakpoint</source><target>Breakpoint</target></trans-unit>
             <trans-unit id="list.title"><source>Layers</source><target>Ebenen</target></trans-unit>
             <trans-unit id="panel.tabTransform"><source>Transform</source><target>Transform</target></trans-unit>
             <trans-unit id="panel.tabStyle"><source>Style</source><target>Stil</target></trans-unit>
@@ -126,6 +127,8 @@
             <trans-unit id="zoom.out"><source>Zoom out (Ctrl −)</source><target>Verkleinern (Strg −)</target></trans-unit>
             <trans-unit id="zoom.reset"><source>Reset zoom to 100% (Ctrl 0)</source><target>Zoom auf 100% zurücksetzen (Strg 0)</target></trans-unit>
             <trans-unit id="zoom.fit"><source>Fit to width</source><target>An Breite anpassen</target></trans-unit>
+            <trans-unit id="zoom.label"><source>Zoom</source><target>Zoom</target></trans-unit>
+            <trans-unit id="zoom.min"><source>min</source><target>min.</target></trans-unit>
         </body>
     </file>
 </xliff>

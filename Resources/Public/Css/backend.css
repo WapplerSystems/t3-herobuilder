@@ -4,6 +4,9 @@
    ========================================================================== */
 
 .herobuilder {
+    /* Duration of the breakpoint morph — keep in sync with BP_ANIM_MS in canvas.js. */
+    --hb-bp-anim: 480ms;
+    --hb-bp-ease: cubic-bezier(.4, 0, .2, 1);
     margin-top: .25rem;
     border: 1px solid var(--typo3-component-border-color, #ccc);
     border-radius: 6px;
@@ -23,7 +26,9 @@
 }
 .herobuilder-title { font-weight: 700; font-size: 1rem; white-space: nowrap; }
 
-/* Breakpoint switcher: its own strip directly below the toolbar. */
+/* Breakpoint switcher: its own strip directly below the toolbar.
+   These are device toggle buttons, not tabs — picking one animates the stage over to that
+   device size instead of swapping a pane (see .hb-bp-anim below). */
 .herobuilder-breakpoints {
     display: flex;
     justify-content: center;
@@ -31,28 +36,26 @@
     border-bottom: 1px solid var(--typo3-component-border-color, #e0e0e0);
     background: var(--typo3-component-bg, #fff);
 }
-.herobuilder-tabs { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; }
-.herobuilder-tab {
+.herobuilder-bpbar { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: center; }
+.herobuilder-bp {
     display: inline-flex;
-    align-items: baseline;
-    gap: .3rem;
-    padding: .2rem .6rem;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .6rem;
     font-size: .8rem;
-    border: 2px solid transparent;
-    border-radius: 999px;
-    background: var(--typo3-component-bg, #fff);
-    color: var(--typo3-component-color, #1a1a1a);
-    box-shadow: inset 0 0 0 1px var(--typo3-component-border-color, #ccc);
-    cursor: pointer;
+    line-height: 1.25;
+    transition: color .15s, border-color .15s, background-color .15s;
 }
-.herobuilder-tab:hover { box-shadow: inset 0 0 0 1px var(--typo3-component-primary-color, #0b64c6); }
-.herobuilder-tab.active {
+.herobuilder-bp-icon { flex: 0 0 auto; opacity: .7; }
+.herobuilder-bp-label { font-weight: 600; letter-spacing: .02em; }
+.herobuilder-bp-meta { font-size: .7rem; opacity: .6; font-variant-numeric: tabular-nums; }
+.herobuilder-bp-meta::after { content: "px"; }
+.herobuilder .herobuilder-bp.active {
     border-color: var(--typo3-component-primary-color, #0b64c6);
-    box-shadow: none;
+    background: rgba(11, 100, 198, .1);
     color: var(--typo3-component-primary-color, #0b64c6);
-    font-weight: 600;
 }
-.herobuilder-tab-ratio { font-size: .72rem; opacity: .7; }
+.herobuilder .herobuilder-bp.active .herobuilder-bp-icon { opacity: 1; }
 
 .herobuilder-actions { display: flex; gap: .35rem; white-space: nowrap; }
 /* The preview toggle switches a mode, not an add action — set it apart from Bild/Text/Button. */
@@ -199,47 +202,81 @@
 .hb-ll-btn:hover { opacity: 1; }
 
 /* ---- Canvas (center) --------------------------------------------------- */
+/* The scroll box owns the whole middle column: the stage is centred inside it while it is
+   smaller than the column, and scrolls/pans inside it once it is larger (xxxl, zoomed in). */
 .herobuilder-canvas {
+    position: relative;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
+    align-items: stretch;
     gap: .5rem;
-    padding: 1rem;
+    padding: .5rem;
     min-width: 0;
-    overflow: auto;
+    /* A definite height (not just a max) is what lets the scroll box below absorb the rest of
+       the column — and it keeps `resize` unclamped, so editors can still enlarge the area. */
+    height: 70vh;
+    overflow: hidden;
+    resize: vertical;
 }
 .herobuilder-stage-wrap {
-    position: relative;
-    max-width: 100%;
-    max-height: 70vh;
-    margin: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    /* `safe` keeps the top/left edge reachable when the stage outgrows the box. */
+    place-items: safe center;
+    padding: .5rem;
     overflow: auto;
-    resize: vertical;
 }
 .herobuilder-stage-wrap.hb-pan-ready { cursor: grab; }
 .herobuilder-stage-wrap.hb-panning { cursor: grabbing; }
 .herobuilder-stage-wrap.hb-panning * { pointer-events: none; }
 .herobuilder-stage { width: 100%; min-height: 120px; }
 
-.herobuilder-zoom-badge {
+/* Zoom picker — floats over the top-right corner of the stage area, outside the scroll box so
+   it stays put while an oversized stage is scrolled. */
+.herobuilder-zoom {
     position: absolute;
+    top: 8px;
     right: 8px;
-    bottom: 8px;
     z-index: 10;
-    padding: .1rem .5rem;
+}
+.herobuilder-zoom .form-select {
+    width: auto;
+    min-width: 8rem;
+    padding-top: .1rem;
+    padding-bottom: .1rem;
     font-size: .75rem;
     font-variant-numeric: tabular-nums;
-    background: rgba(255, 255, 255, .9);
-    color: #1a1a1a;
-    border: 1px solid var(--typo3-component-border-color, #ccc);
-    border-radius: 999px;
+    background-color: rgba(255, 255, 255, .92);
     cursor: pointer;
-    user-select: none;
 }
 
 .herobuilder-layer { user-select: none; -webkit-user-drag: none; }
 .herobuilder-layer:hover { outline: 1px solid rgba(47, 128, 237, .8); }
+
+/* ---- Breakpoint morph --------------------------------------------------- */
+/* Armed by canvas.js only while switching breakpoints: the stage box travels to the new device
+   size and every layer slides/scales to the geometry stored for that breakpoint. Outside the
+   switch the transitions must stay off — dragging with Moveable has to follow the pointer 1:1. */
+.herobuilder.hb-bp-anim .herobuilder-stage {
+    transition: width var(--hb-bp-anim) var(--hb-bp-ease), height var(--hb-bp-anim) var(--hb-bp-ease);
+    /* Mid-flight the stage rect is stale — block selecting/dragging until it settles. */
+    pointer-events: none;
+}
+.herobuilder.hb-bp-anim .herobuilder-layer {
+    transition: left var(--hb-bp-anim) var(--hb-bp-ease),
+                top var(--hb-bp-anim) var(--hb-bp-ease),
+                width var(--hb-bp-anim) var(--hb-bp-ease),
+                height var(--hb-bp-anim) var(--hb-bp-ease),
+                transform var(--hb-bp-anim) var(--hb-bp-ease),
+                opacity calc(var(--hb-bp-anim) / 2) linear;
+}
+.herobuilder.hb-bp-anim .herobuilder-layer:hover { outline: 0; }
+@media (prefers-reduced-motion: reduce) {
+    .herobuilder.hb-bp-anim .herobuilder-stage,
+    .herobuilder.hb-bp-anim .herobuilder-layer { transition: none; }
+}
 .herobuilder-layer-text { color: #fff; text-shadow: 0 1px 2px rgba(0, 0, 0, .6); line-height: 1.1; }
 
 /* Moveable handles: dim until the box is hovered, so they don't hide layer content. */
@@ -354,6 +391,8 @@
 
 /* ---- Live preview (mounts in the canvas column) ------------------------ */
 .herobuilder-preview {
+    /* Keeps its own height; the stage scroll box above absorbs the remaining space. */
+    flex: 0 0 auto;
     width: 100%;
     max-width: 100%;
     overflow: auto;
