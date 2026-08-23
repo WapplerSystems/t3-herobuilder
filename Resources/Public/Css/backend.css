@@ -224,10 +224,16 @@
     resize: vertical;
 }
 .herobuilder-stage-wrap {
-    flex: 1 1 auto;
+    /* Hug the stage instead of filling the column, and centre the box itself in the space that
+       is left (auto margins absorb the free space in a flex column). Filling the column put the
+       horizontal scrollbar at the bottom edge of a box up to 900px tall — for a flat stage that
+       is hundreds of px below the thing it scrolls, which reads as a stray scrollbar and hides
+       that zooming changed the scroll range at all. Shrinking is still allowed, so a stage
+       taller than the column scrolls vertically as before. */
+    flex: 0 1 auto;
+    margin-block: auto;
     min-height: 0;
     display: grid;
-    place-items: center;
     /* `safe` keeps the top/left edge reachable when the stage outgrows the box. */
     place-items: safe center;
     padding: .5rem;
