@@ -30,6 +30,12 @@ const SNAP_THRESHOLD = 12;
 // Offered in the zoom picker; steps below a breakpoint's minimum zoom are dropped from the list.
 const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 
+// Hard lower bound for the zoom. minStageHeight still decides what a breakpoint *opens* at, but
+// it must not lock the editor out of 1:1 — on a flat site ratio (DOAG runs 2500:480 on lg+) the
+// height floor sits at 158%, which used to remove 100% from the picker and clamp it away when
+// picked. 100% is the view that matches the frontend, so it has to stay reachable.
+const MIN_ZOOM = 0.1;
+
 // Styles for the templates gallery, injected into the modal (which lives in the TOP
 // document, where the field's backend.css is not present).
 const GALLERY_CSS = `
@@ -454,7 +460,10 @@ export default class HerobuilderCanvas {
       if (base > 1.001) {
         add(base.toFixed(4), pct(base) + " · " + this.t("zoom.min", "min"));
       }
-      ZOOM_STEPS.filter((step) => step >= min - 0.001).forEach((step) => add(step.toFixed(4), pct(step)));
+      // Steps below the breakpoint's comfortable minimum are dropped — except 100%, which is
+      // always offered because it is the 1:1 match with the frontend rendering.
+      ZOOM_STEPS.filter((step) => step >= min - 0.001 || Math.abs(step - 1) < 0.001)
+        .forEach((step) => add(step.toFixed(4), pct(step)));
     }
 
     // Zoom values reached by wheel/keyboard rarely hit a step — carry them in one extra entry.
@@ -521,7 +530,7 @@ export default class HerobuilderCanvas {
   }
 
   setZoom(z) {
-    this.zoom = Math.min(6, Math.max(this.minZoomValue(), z));
+    this.zoom = Math.min(6, Math.max(MIN_ZOOM, z));
     this.applyStageSize();
     if (this.moveable) {
       this.moveable.updateRect();
