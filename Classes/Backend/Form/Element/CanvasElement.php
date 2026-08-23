@@ -286,7 +286,8 @@ class CanvasElement extends AbstractFormElement
      * carries the exact box canvas.js animates between (no jump on the first render).
      *
      * Height follows from width ÷ ratio; a box flatter than Composition::MIN_STAGE_HEIGHT is
-     * scaled up as a whole (ratio preserved) — same floor canvas.js applies as a zoom minimum.
+     * scaled up as a whole (ratio preserved) — the same zoom canvas.js opens that breakpoint at.
+     * It is only the opening view: the picker offers the whole ladder down from 100%.
      *
      * @param array{ratio: string, ratioCss: string, width: int} $stage
      * @return array{0: int, 1: int}
@@ -331,7 +332,7 @@ class CanvasElement extends AbstractFormElement
             'panel.geometry', 'panel.focus', 'panel.overlay', 'panel.align', 'panel.alignV', 'ctx.alignLeft', 'ctx.alignCenterH',
             'ctx.alignRight', 'list.reorder', 'list.toggleVisible', 'list.toggleLock',
             'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'zoom.label',
-            'zoom.min', 'preview.replay',
+            'preview.replay',
             'button.copyToAll', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
             'template.applyHint', 'template.empty', 'template.saveError',

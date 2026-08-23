@@ -432,8 +432,9 @@ export default class HerobuilderCanvas {
   }
 
   /**
-   * Keep the picker in sync: the step list depends on the breakpoint (steps below its minimum
-   * zoom would only be clamped away), the selection on the zoom actually in effect.
+   * Keep the picker in sync. The step ladder is the same for every breakpoint: 100% means the
+   * stage at its true device width, and the steps below it are what a stage too wide for the
+   * canvas column is viewed at. Only the selection changes per breakpoint.
    */
   updateZoomControl() {
     const select = this.zoomSelect;
@@ -441,9 +442,7 @@ export default class HerobuilderCanvas {
       return;
     }
     const pct = (z) => Math.round(z * 100) + "%";
-    const min = this.minZoomValue();
-    const base = this.baseZoomValue();
-    const signature = min.toFixed(3) + "|" + base.toFixed(3);
+    const signature = "steps";
     if (select.dataset.signature !== signature) {
       select.dataset.signature = signature;
       select.textContent = "";
@@ -455,15 +454,10 @@ export default class HerobuilderCanvas {
         return option;
       };
       add("fit", this.t("zoom.fit", "Fit to width"));
-      // On a stage scaled up to clear the height floor the base view is no round step — offer
-      // it by name, it is the smallest zoom this breakpoint allows.
-      if (base > 1.001) {
-        add(base.toFixed(4), pct(base) + " · " + this.t("zoom.min", "min"));
-      }
-      // Steps below the breakpoint's comfortable minimum are dropped — except 100%, which is
-      // always offered because it is the 1:1 match with the frontend rendering.
-      ZOOM_STEPS.filter((step) => step >= min - 0.001 || Math.abs(step - 1) < 0.001)
-        .forEach((step) => add(step.toFixed(4), pct(step)));
+      // The full ladder, unfiltered. A breakpoint's opening zoom is no longer offered as a named
+      // entry: when it is not a round step (a flat ratio opens scaled up to clear the height
+      // floor) the current-zoom entry below already shows it.
+      ZOOM_STEPS.forEach((step) => add(step.toFixed(4), pct(step)));
     }
 
     // Zoom values reached by wheel/keyboard rarely hit a step — carry them in one extra entry.
