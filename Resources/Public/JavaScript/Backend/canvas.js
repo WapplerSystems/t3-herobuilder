@@ -16,6 +16,17 @@ const FIT_MODES = ["fill", "cover", "contain"];
 // `--hb-bp-anim` transition in backend.css — the reconciling render() runs once it is over.
 const BP_ANIM_MS = 480;
 
+// Snapping pull, in screen px. The old value was 6, which is about the width of a pointer
+// jitter — it snapped, but you had to already be on the edge for it to trigger, so it never
+// felt like a magnet. 12 grabs from a visible distance without fighting deliberate placement.
+//
+// Moveable 0.53 splits this across three options and only the latter two set the actual pull:
+// `snapThreshold` decides which guidelines get built at all, while snapHorizontalThreshold /
+// snapVerticalThreshold are the distances the target is drawn in from (both default 5, which is
+// why raising snapThreshold alone changed nothing). Setting all three keeps it moot which axis
+// Moveable maps to which name.
+const SNAP_THRESHOLD = 12;
+
 // Offered in the zoom picker; steps below a breakpoint's minimum zoom are dropped from the list.
 const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 
@@ -128,6 +139,11 @@ export default class HerobuilderCanvas {
     this.selected = null;
     this.moveable = null;
     this.fileInfo = {};
+    // Snapping is a working preference, not document data: it belongs to the editor, not to the
+    // collage, so it lives in localStorage and applies to every composition this user opens.
+    this.magnet = this.loadMagnet();
+    // Alt held down suspends snapping for as long as it is held (see bindKeyboard).
+    this._altSnapOff = false;
 
     const m = this.name.match(/\[tx_herobuilder_collage\]\[([^\]]+)\]/);
     this.recordId = m ? m[1] : null;
@@ -220,6 +236,11 @@ export default class HerobuilderCanvas {
     this.root.querySelector(".t3js-herobuilder-add")?.addEventListener("click", () => this.addImage());
     this.root.querySelector(".t3js-herobuilder-add-text")?.addEventListener("click", () => this.addTextLayer());
     this.root.querySelector(".t3js-herobuilder-add-button")?.addEventListener("click", () => this.addButtonLayer());
+    const magnetBtn = this.root.querySelector(".t3js-herobuilder-magnet");
+    if (magnetBtn) {
+      magnetBtn.addEventListener("click", () => this.toggleMagnet());
+      this.syncMagnetButton();
+    }
     this.root.querySelector(".t3js-herobuilder-copy")?.addEventListener("click", () => this.copyToAll());
     this.root.querySelector(".t3js-herobuilder-templates")?.addEventListener("click", () => this.openTemplates());
     this.root.querySelector(".t3js-herobuilder-save-template")?.addEventListener("click", () => this.saveTemplate());
@@ -936,8 +957,10 @@ export default class HerobuilderCanvas {
       keepRatio: true,
       origin: false,
       // Snapping to stage edges/center and to other layers, with visible guide lines.
-      snappable: true,
-      snapThreshold: 6,
+      snappable: this.snapActive(),
+      snapThreshold: SNAP_THRESHOLD,
+      snapHorizontalThreshold: SNAP_THRESHOLD,
+      snapVerticalThreshold: SNAP_THRESHOLD,
       snapDirections: { top: true, left: true, bottom: true, right: true, center: true, middle: true },
       elementSnapDirections: { top: true, left: true, bottom: true, right: true, center: true, middle: true },
       snapGap: true,
@@ -962,6 +985,104 @@ export default class HerobuilderCanvas {
       .on("renderEnd", () => this.commitGeometry(layer));
   }
 
+  // ---- Snapping ("magnet") -----------------------------------------------
+
+  loadMagnet() {
+    try {
+      // Default on: snapping was unconditional before the toggle existed, so an editor who
+      // never touches the button keeps the behaviour they know.
+      return localStorage.getItem("herobuilder:magnet") !== "0";
+    } catch (e) {
+      return true;
+    }
+  }
+
+  /** Snapping in effect right now: the editor's preference, unless Alt is held. */
+  snapActive() {
+    return this.magnet && !this._altSnapOff;
+  }
+
+  /**
+   * Suspend/resume snapping while Alt is held. Moveable's vanilla wrapper exposes every prop as
+   * a setter that goes through setState, so `snappable` can be flipped mid-drag and the next
+   * mouse move is already unsnapped — no need to rebuild the controller.
+   */
+  setAltSuspend(on) {
+    if (this._altSnapOff === on) {
+      return;
+    }
+    this._altSnapOff = on;
+    if (this.moveable) {
+      this.moveable.snappable = this.snapActive();
+    }
+    this.syncMagnetButton();
+  }
+
+  toggleMagnet() {
+    this.magnet = !this.magnet;
+    try {
+      localStorage.setItem("herobuilder:magnet", this.magnet ? "1" : "0");
+    } catch (e) {
+      // Private mode / storage disabled: the toggle still works for this session.
+    }
+    this.syncMagnetButton();
+    // Moveable takes snappable at construction time, so rebuild the controller for the
+    // current selection instead of poking at its options.
+    if (this.selected) {
+      this.select(this.selected);
+    }
+  }
+
+  syncMagnetButton() {
+    const btn = this.root.querySelector(".t3js-herobuilder-magnet");
+    if (!btn) {
+      return;
+    }
+    // `active` shows the stored preference, the suspended class the momentary Alt override —
+    // conflating them would read as if Alt had flipped the setting.
+    btn.classList.toggle("active", this.magnet);
+    btn.classList.toggle("hb-magnet-suspended", this.magnet && this._altSnapOff);
+    btn.setAttribute("aria-pressed", this.snapActive() ? "true" : "false");
+    btn.setAttribute(
+      "title",
+      (this._altSnapOff && this.magnet
+        ? this.t("magnet.suspended", "Snapping paused (Alt)")
+        : this.t(this.magnet ? "magnet.on" : "magnet.off", this.magnet ? "Snapping on" : "Snapping off"))
+        + " — " + this.t("magnet.hint", "Snap layers to stage edges, centre and other layers while dragging")
+        + " · " + this.t("magnet.altHint", "hold Alt to place freely")
+    );
+  }
+
+  /**
+   * Put a snapped layer exactly on the edge it snapped to.
+   *
+   * Moveable snaps in screen px, but geometry is stored as percentages rounded to two decimals,
+   * so a layer dropped flush against the left edge persists as e.g. x=0.03% — visually a hair
+   * off, and it drifts further every time the stage is rendered at another zoom. Anything that
+   * lands within two px of an edge or the centre can only have got there by snapping, so it is
+   * quantized onto the exact value.
+   */
+  snapEdges(p, sw, sh) {
+    if (!this.snapActive()) {
+      return;
+    }
+    const near = (a, b, px, size) => Math.abs(a - b) < (px / Math.max(size, 1)) * 100;
+    if (near(p.x, 0, 2, sw)) {
+      p.x = 0;
+    } else if (near(p.x + p.w, 100, 2, sw)) {
+      p.x = round(100 - p.w);
+    } else if (near(p.x + p.w / 2, 50, 2, sw)) {
+      p.x = round(50 - p.w / 2);
+    }
+    if (near(p.y, 0, 2, sh)) {
+      p.y = 0;
+    } else if (p.h && near(p.y + p.h, 100, 2, sh)) {
+      p.y = round(100 - p.h);
+    } else if (p.h && near(p.y + p.h / 2, 50, 2, sh)) {
+      p.y = round(50 - p.h / 2);
+    }
+  }
+
   deselect() {
     this.selected = null;
     if (this.moveable) {
@@ -981,6 +1102,7 @@ export default class HerobuilderCanvas {
     p.w = round((el.offsetWidth / sw) * 100);
     p.h = round((el.offsetHeight / sh) * 100);
     p.rot = round(this.readRotation(el));
+    this.snapEdges(p, sw, sh);
     p.z = p.z || 1;
     p.visible = p.visible !== false;
     layer.placements[this.activeBp] = p;
@@ -2654,6 +2776,21 @@ export default class HerobuilderCanvas {
         this.root.querySelector(".herobuilder-stage-wrap")?.classList.remove("hb-pan-ready");
       }
     });
+
+    // Alt = place freely. Deliberately outside the focus guard of the handler above: during a
+    // drag the pointer owns the interaction and focus can sit anywhere. Nothing is
+    // preventDefault()ed, so no existing Alt shortcut is swallowed — only an internal flag flips.
+    const syncAlt = (e) => this.setAltSuspend(!!e.altKey);
+    document.addEventListener("keydown", syncAlt);
+    document.addEventListener("keyup", syncAlt);
+    // Alt+drag is a window-move gesture on many Linux desktops, so the keydown can be eaten by
+    // the window manager before the browser sees it. Mouse events carry the real modifier state
+    // regardless — read it there too, in the capture phase so Moveable's own move handler
+    // already sees the updated prop within the same event.
+    document.addEventListener("mousemove", syncAlt, true);
+    // Releasing Alt while the window is not focused never produces a keyup here, which would
+    // leave snapping stuck off.
+    window.addEventListener("blur", () => this.setAltSuspend(false));
   }
 }
 

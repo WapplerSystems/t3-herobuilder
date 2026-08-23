@@ -34,6 +34,12 @@
             <trans-unit id="button.addButton"><source>Add button</source><target>Button hinzufügen</target></trans-unit>
             <trans-unit id="button.undo"><source>Undo</source><target>Rückgängig</target></trans-unit>
             <trans-unit id="button.redo"><source>Redo</source><target>Wiederholen</target></trans-unit>
+            <trans-unit id="button.magnet"><source>Snap</source><target>Magnet</target></trans-unit>
+            <trans-unit id="magnet.hint"><source>Snap layers to stage edges, centre and other layers while dragging</source><target>Ebenen beim Verschieben an Bühnenrand, Mitte und andere Ebenen anlegen</target></trans-unit>
+            <trans-unit id="magnet.on"><source>Snapping on</source><target>Magnet an</target></trans-unit>
+            <trans-unit id="magnet.off"><source>Snapping off</source><target>Magnet aus</target></trans-unit>
+            <trans-unit id="magnet.suspended"><source>Snapping paused (Alt)</source><target>Magnet ausgesetzt (Alt)</target></trans-unit>
+            <trans-unit id="magnet.altHint"><source>hold Alt to place freely</source><target>Alt halten, um frei zu platzieren</target></trans-unit>
             <trans-unit id="draft.available"><source>Unsaved changes from {0} were found.</source><target>Ungespeicherte Änderungen von {0} gefunden.</target></trans-unit>
             <trans-unit id="draft.restore"><source>Restore</source><target>Wiederherstellen</target></trans-unit>
             <trans-unit id="draft.discard"><source>Discard</source><target>Verwerfen</target></trans-unit>

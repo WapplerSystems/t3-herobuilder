@@ -158,6 +158,14 @@ class CanvasElement extends AbstractFormElement
         $html[] = $this->iconButton('t3js-herobuilder-add', 'actions-image', 'button.addImage', 'Add image');
         $html[] = $this->iconButton('t3js-herobuilder-add-text', 'content-text', 'button.addText', 'Add text');
         $html[] = $this->iconButton('t3js-herobuilder-add-button', 'actions-link', 'button.addButton', 'Add button');
+        // Snapping toggle. Pressed state and persistence live in canvas.js (localStorage), the
+        // markup only ships the initial state so the button does not flicker on load.
+        $html[] = sprintf(
+            '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-magnet" aria-pressed="false" title="%s">%s <span>%s</span></button>',
+            htmlspecialchars($this->getLabel('magnet.hint', 'Snap layers to stage edges, centre and other layers while dragging')),
+            $this->magnetIcon(),
+            htmlspecialchars($this->getLabel('button.magnet', 'Snap'))
+        );
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-templates">' . htmlspecialchars($this->getLabel('button.templates', 'Templates')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-save-template">' . htmlspecialchars($this->getLabel('button.saveTemplate', 'Save as template')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-export">' . htmlspecialchars($this->getLabel('button.export', 'Export image')) . '</button>';
@@ -249,6 +257,18 @@ class CanvasElement extends AbstractFormElement
     }
 
     /**
+     * Inline horseshoe-magnet glyph for the snapping toggle. Inline rather than an IconFactory
+     * identifier because the TYPO3 core icon set has no magnet.
+     */
+    private function magnetIcon(): string
+    {
+        return '<svg class="herobuilder-magnet-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"'
+            . ' fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">'
+            . '<path d="M4 13V7a4 4 0 0 1 8 0v6"/><path d="M4 10h3"/><path d="M9 10h3"/>'
+            . '</svg>';
+    }
+
+    /**
      * Inline device glyph for a breakpoint button (falls back to the desktop shape for
      * breakpoints without an explicit mapping).
      */
@@ -321,6 +341,7 @@ class CanvasElement extends AbstractFormElement
             'panel.autoTrim', 'trim.none', 'trim.already',
             'crop.hint', 'crop.cancel', 'crop.reset', 'crop.apply',
             'sidebar.collapse', 'sidebar.expand',
+            'button.magnet', 'magnet.hint', 'magnet.on', 'magnet.off', 'magnet.suspended', 'magnet.altHint',
         ];
         $labels = [];
         foreach ($keys as $key) {

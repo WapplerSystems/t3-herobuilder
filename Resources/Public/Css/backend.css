@@ -505,3 +505,11 @@
 .herobuilder-ctxmenu .hb-ctx-item:hover { background: var(--typo3-component-primary-color, #0b64c6); color: #fff; }
 .herobuilder-ctxmenu .hb-ctx-item[data-act="delete"]:hover { background: var(--typo3-state-danger-color, #c83c3c); }
 .herobuilder-ctxmenu .hb-ctx-sep { height: 1px; margin: .25rem 0; background: var(--typo3-component-border-color, #e0e0e0); }
+
+/* Snapping toggle: `active` = stored preference, `hb-magnet-suspended` = Alt held down right
+   now. Kept visually distinct so a momentary override does not look like a changed setting. */
+.herobuilder-toolbar .t3js-herobuilder-magnet.hb-magnet-suspended {
+    opacity: 0.55;
+    outline: 1px dashed currentColor;
+    outline-offset: -2px;
+}
