@@ -90,6 +90,8 @@ $newColumns = [
             'items' => [
                 ['label' => $ll . 'tt_content.slider_effect.slide', 'value' => 'slide'],
                 ['label' => $ll . 'tt_content.slider_effect.fade', 'value' => 'fade'],
+                ['label' => $ll . 'tt_content.slider_effect.layers', 'value' => 'layers'],
+                ['label' => $ll . 'tt_content.slider_effect.parallax', 'value' => 'parallax'],
             ],
         ],
     ],

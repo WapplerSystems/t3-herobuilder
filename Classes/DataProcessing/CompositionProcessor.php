@@ -110,6 +110,7 @@ final readonly class CompositionProcessor implements DataProcessorInterface
             }
             $layers[] = [
                 'id' => (string)($layer['id'] ?? $cssClass),
+                'z' => $this->primaryZ((array)($layer['placements'] ?? [])),
                 'type' => $isText ? $type : 'image',
                 'cssClass' => $cssClass,
                 'userClass' => $this->filterClasses((string)($layer['cssClass'] ?? ''), $allowedClasses),
@@ -120,6 +121,19 @@ final readonly class CompositionProcessor implements DataProcessorInterface
                 'crop' => $crop,
                 'anim' => $layer['anim'] ?? [],
             ];
+        }
+
+        // Depth ranking by z-index: the rearmost layer is the slide's background image and is
+        // exempt from per-layer transitions (it cross-fades with the slide itself, so the stage
+        // is never empty). --hb-depth / --hb-depth-rev let a transition stagger its layers in
+        // either direction without the stylesheet knowing how many layers a slide has.
+        $order = array_keys($layers);
+        usort($order, static fn(int $a, int $b): int => [$layers[$a]['z'], $a] <=> [$layers[$b]['z'], $b]);
+        $rearmost = count($order) - 1;
+        foreach ($order as $rank => $i) {
+            $layers[$i]['depth'] = $rank;
+            $layers[$i]['stateClass'] = $rank === 0 ? 'hb-layer-bg' : '';
+            $css .= '.' . $layers[$i]['cssClass'] . '{--hb-depth:' . $rank . ';--hb-depth-rev:' . ($rearmost - $rank) . ';}';
         }
 
         return [
@@ -171,6 +185,23 @@ final readonly class CompositionProcessor implements DataProcessorInterface
             $css .= '@media ' . Composition::BREAKPOINT_MEDIA[$bp] . '{' . $sel . '{' . $this->declarations($placements[$bp]) . '}}';
         }
         return $css;
+    }
+
+    /**
+     * z-index of the layer's primary placement (lg, else the first defined) — the single value the
+     * depth ranking is built from. Per-breakpoint z overrides are ignored on purpose: the ranking
+     * feeds CSS custom properties, which cannot be re-ordered per media query without emitting a
+     * full second rule set for every breakpoint.
+     *
+     * @param array<string, array<string, mixed>> $placements
+     */
+    private function primaryZ(array $placements): int
+    {
+        if ($placements === []) {
+            return 0;
+        }
+        $primaryBp = isset($placements['lg']) ? 'lg' : (string)array_key_first($placements);
+        return (int)($placements[$primaryBp]['z'] ?? 1);
     }
 
     /**

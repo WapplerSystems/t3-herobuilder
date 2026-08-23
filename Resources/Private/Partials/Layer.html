@@ -2,7 +2,7 @@
 <f:comment>A layer is a text/button block (styled via whitelisted classes, optional TYPO3 link) or an image.</f:comment>
 <f:if condition="{layer.type} == 'text' || {layer.type} == 'button'">
     <f:then>
-        <f:variable name="tclass">hb-layer {f:if(condition: '{layer.type} == \'button\'', then: 'hb-layer-button', else: 'hb-layer-text')} {layer.cssClass} {layer.userClass}</f:variable>
+        <f:variable name="tclass">hb-layer {f:if(condition: '{layer.type} == \'button\'', then: 'hb-layer-button', else: 'hb-layer-text')} {layer.cssClass} {layer.stateClass} {layer.userClass}</f:variable>
         <f:if condition="{layer.link}">
             <f:then>
                 <f:link.typolink parameter="{layer.link}" class="{tclass}" additionalAttributes="{data-aos: '{layer.anim.effect}', data-aos-delay: '{layer.anim.delay}', data-aos-duration: '{layer.anim.duration}'}">{layer.text}</f:link.typolink>
@@ -15,12 +15,12 @@
     <f:else>
         <f:if condition="{layer.link}">
             <f:then>
-                <f:link.typolink parameter="{layer.link}" class="hb-layer {layer.cssClass} {layer.userClass}" additionalAttributes="{data-aos: '{layer.anim.effect}', data-aos-delay: '{layer.anim.delay}', data-aos-duration: '{layer.anim.duration}'}">
+                <f:link.typolink parameter="{layer.link}" class="hb-layer {layer.cssClass} {layer.stateClass} {layer.userClass}" additionalAttributes="{data-aos: '{layer.anim.effect}', data-aos-delay: '{layer.anim.delay}', data-aos-duration: '{layer.anim.duration}'}">
                     <f:image image="{layer.file}" alt="{layer.alt}" maxWidth="1600" crop="{layer.crop}" class="hb-layer-img"/>
                 </f:link.typolink>
             </f:then>
             <f:else>
-                <div class="hb-layer {layer.cssClass} {layer.userClass}" data-aos="{layer.anim.effect}" data-aos-delay="{layer.anim.delay}" data-aos-duration="{layer.anim.duration}">
+                <div class="hb-layer {layer.cssClass} {layer.stateClass} {layer.userClass}" data-aos="{layer.anim.effect}" data-aos-delay="{layer.anim.delay}" data-aos-duration="{layer.anim.duration}">
                     <f:image image="{layer.file}" alt="{layer.alt}" maxWidth="1600" crop="{layer.crop}" class="hb-layer-img"/>
                 </div>
             </f:else>

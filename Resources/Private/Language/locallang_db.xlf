@@ -20,6 +20,8 @@
             <trans-unit id="tt_content.slider_effect"><source>Transition</source></trans-unit>
             <trans-unit id="tt_content.slider_effect.slide"><source>Slide</source></trans-unit>
             <trans-unit id="tt_content.slider_effect.fade"><source>Fade</source></trans-unit>
+            <trans-unit id="tt_content.slider_effect.layers"><source>Layers (background cross-fades, elements staggered)</source></trans-unit>
+            <trans-unit id="tt_content.slider_effect.parallax"><source>Parallax (layers drift by depth)</source></trans-unit>
 
             <trans-unit id="collage"><source>Collage</source></trans-unit>
             <trans-unit id="collage.title"><source>Title (internal)</source></trans-unit>

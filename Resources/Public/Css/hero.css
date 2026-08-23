@@ -231,3 +231,117 @@
         transition: none;
     }
 }
+
+/* ---------------------------------------------------------------------------
+   Transition: "layers" (slider_effect = layers).
+
+   The slide itself cross-fades (Bootstrap's .carousel-fade), which is what carries the
+   background image: the incoming background is already visible while the outgoing one
+   fades, so the stage is never empty. Every other layer is animated on its own —
+   fading out front-most first, and building back up rearmost-first on the incoming
+   slide, staggered by depth.
+
+   Only `opacity` is animated on purpose. The generated per-slide CSS owns `transform`
+   on .hb-layer (layer rotation) and on .hb-layer-img (flip), so a transform here would
+   silently drop those.
+
+   --hb-depth (0 = rearmost) and --hb-depth-rev (0 = front-most) come from the
+   composition's z-order; the rearmost layer carries .hb-layer-bg and is exempt.
+   --------------------------------------------------------------------------- */
+.herobuilder-carousel.hb-fx-layers .carousel-item .hb-layer:not(.hb-layer-bg) {
+    opacity: 0;
+    transition: opacity 260ms ease;
+}
+
+/* Resting and incoming slide: rearmost layer first, so the composition builds up in depth
+   order. The incoming item only gains .active once Bootstrap's 600ms item fade is done,
+   which is exactly when the new background has arrived. */
+.herobuilder-carousel.hb-fx-layers .carousel-item.active .hb-layer:not(.hb-layer-bg) {
+    opacity: 1;
+    transition-delay: calc(var(--hb-depth, 1) * 70ms);
+}
+
+/* Outgoing slide: front-most layer first and quicker than the background cross-fade, so the
+   composition comes apart before the background underneath it changes. */
+.herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg),
+.herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+    opacity: 0;
+    transition-duration: 180ms;
+    transition-delay: calc(var(--hb-depth-rev, 0) * 70ms);
+}
+
+/* Reduced motion: keep every layer up, no staggering — the slide change itself stays a plain
+   cross-fade. Repeating the outgoing selector here keeps it from winning on specificity. */
+@media (prefers-reduced-motion: reduce) {
+    .herobuilder-carousel.hb-fx-layers .carousel-item .hb-layer:not(.hb-layer-bg),
+    .herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg),
+    .herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+        opacity: 1;
+        transition: none;
+    }
+}
+
+/* ---------------------------------------------------------------------------
+   Transition: "parallax" (slider_effect = parallax).
+
+   Same choreography as "layers", but the elements also drift horizontally, further the
+   further forward they sit — so the slide comes apart and reassembles with depth. The
+   background layer never moves: it only cross-fades with the slide, which keeps the
+   stage covered at all times.
+
+   Movement uses the individual `translate` property, not `transform`: the generated
+   per-slide CSS already puts `transform:rotate()` on .hb-layer, and individual transform
+   properties compose (translate → rotate → scale) instead of replacing it.
+
+   The offset is a viewport-relative length, not a percentage: `translate` percentages
+   resolve against the element's own box, and layer boxes here range from a few percent of
+   the stage to over 200% of it (corner clusters), which would scramble the depth order.
+   Override --hb-parallax-step per site to dial the travel up or down.
+   --------------------------------------------------------------------------- */
+.herobuilder-carousel.hb-fx-parallax .carousel-item .hb-layer:not(.hb-layer-bg) {
+    --hb-parallax-step: clamp(8px, 1.8vw, 34px);
+    --hb-off: calc(var(--hb-depth, 0) * var(--hb-parallax-step));
+    opacity: 0;
+    translate: var(--hb-off) 0;
+    transition: opacity 300ms ease, translate 380ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* Backward navigation: the incoming slide waits on the other side, so the travel direction
+   always matches the direction the user asked for. */
+.herobuilder-carousel.hb-fx-parallax .carousel-item.carousel-item-prev .hb-layer:not(.hb-layer-bg) {
+    translate: calc(-1 * var(--hb-off)) 0;
+}
+
+/* Resting and incoming slide: settle into place, rearmost layer first. */
+.herobuilder-carousel.hb-fx-parallax .carousel-item.active .hb-layer:not(.hb-layer-bg) {
+    opacity: 1;
+    translate: 0 0;
+    transition-delay: calc(var(--hb-depth, 1) * 70ms);
+}
+
+/* Outgoing slide, forward: drift on to the left, front-most layer leaving first. */
+.herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg) {
+    opacity: 0;
+    translate: calc(-1 * var(--hb-off)) 0;
+    transition-duration: 260ms;
+    transition-delay: calc(var(--hb-depth-rev, 0) * 70ms);
+}
+
+/* Outgoing slide, backward: same, mirrored. */
+.herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+    opacity: 0;
+    translate: var(--hb-off) 0;
+    transition-duration: 260ms;
+    transition-delay: calc(var(--hb-depth-rev, 0) * 70ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .herobuilder-carousel.hb-fx-parallax .carousel-item .hb-layer:not(.hb-layer-bg),
+    .herobuilder-carousel.hb-fx-parallax .carousel-item.carousel-item-prev .hb-layer:not(.hb-layer-bg),
+    .herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg),
+    .herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+        opacity: 1;
+        translate: 0 0;
+        transition: none;
+    }
+}

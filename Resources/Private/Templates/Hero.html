@@ -9,7 +9,7 @@
     <f:variable name="cid">herobuilder-{data.uid}</f:variable>
     <f:variable name="count" value="{collages -> f:count()}"/>
 
-    <div id="{cid}" class="carousel slide herobuilder-carousel<f:if condition="{data.slider_effect} == 'fade'"> carousel-fade</f:if>"<f:if condition="{data.slider_autoplay}"> data-bs-ride="carousel"</f:if> data-bs-interval="{data.slider_interval}" data-bs-wrap="{f:if(condition: data.slider_loop, then: 'true', else: 'false')}">
+    <div id="{cid}" class="carousel slide herobuilder-carousel<f:if condition="{data.slider_effect} == 'fade'"> carousel-fade hb-fx-fade</f:if><f:if condition="{data.slider_effect} == 'layers'"> carousel-fade hb-fx-layers</f:if><f:if condition="{data.slider_effect} == 'parallax'"> carousel-fade hb-fx-parallax</f:if>"<f:if condition="{data.slider_autoplay}"> data-bs-ride="carousel"</f:if> data-bs-interval="{data.slider_interval}" data-bs-wrap="{f:if(condition: data.slider_loop, then: 'true', else: 'false')}">
 
         <f:if condition="{data.slider_indicators} && {count} > 1">
             <div class="carousel-indicators">
