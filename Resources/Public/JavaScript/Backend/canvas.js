@@ -521,8 +521,13 @@ export default class HerobuilderCanvas {
     if (w && ratio > 0) {
       this.stageEl.style.aspectRatio = "auto";
       this.stageEl.style.height = Math.round(w / ratio) + "px";
+      // The stylesheet's min-height is a floor for the fluid fallback below; here it would fight
+      // the height we just derived and stretch the preview. A flat ratio at a small zoom lands
+      // under it — 50% of DOAG's 2500:480 is 95px — and every layer would sit 26% too low.
+      this.stageEl.style.minHeight = "0px";
     } else {
       this.stageEl.style.height = "";
+      this.stageEl.style.minHeight = "";
       this.stageEl.style.aspectRatio = this.stageRatioCss(this.activeBp);
     }
     this.updateZoomControl();
