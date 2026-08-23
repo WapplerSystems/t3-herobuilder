@@ -17,6 +17,11 @@
 /* ---- Toolbar ------------------------------------------------------------ */
 .herobuilder-toolbar {
     display: flex;
+    /* Must wrap. TYPO3 v14 renders the field wrapper (.form-wizards-wrap) as a grid, and a grid
+       item's automatic minimum size is its min-content width — so a non-wrapping button row
+       widens the whole form column past the viewport and puts a horizontal scrollbar on the
+       module. Wrapping keeps the editor inside the space it is given at any window width. */
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
@@ -57,7 +62,7 @@
 }
 .herobuilder .herobuilder-bp.active .herobuilder-bp-icon { opacity: 1; }
 
-.herobuilder-actions { display: flex; gap: .35rem; white-space: nowrap; }
+.herobuilder-actions { display: flex; flex-wrap: wrap; gap: .35rem; white-space: nowrap; }
 /* The preview toggle switches a mode, not an add action — set it apart from Bild/Text/Button. */
 .herobuilder-actions .t3js-herobuilder-preview { margin-left: .75rem; }
 .t3js-herobuilder-preview.active {
