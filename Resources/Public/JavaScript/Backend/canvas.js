@@ -461,8 +461,13 @@ export default class HerobuilderCanvas {
     }
 
     // Zoom values reached by wheel/keyboard rarely hit a step — carry them in one extra entry.
+    // The extra entry must be excluded from the lookup: it carries the current zoom as its value,
+    // so it would match itself, get removed as redundant, and leave select.value pointing at an
+    // option that no longer exists (empty picker).
     const match = [...select.options].find(
-      (option) => option.value !== "fit" && Math.abs(parseFloat(option.value) - this.zoom) < 0.005
+      (option) => option.value !== "fit"
+        && !option.dataset.custom
+        && Math.abs(parseFloat(option.value) - this.zoom) < 0.005
     );
     let custom = select.querySelector("option[data-custom]");
     if (match) {
