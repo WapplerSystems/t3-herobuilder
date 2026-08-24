@@ -245,14 +245,45 @@
        has no effect on overlay scrollbars. */
     padding-bottom: 1rem;
     overflow: auto;
-    /* Override the backend's global `* { scrollbar-color: currentcolor 25% / transparent }`. That
-       is fine for incidental scroll areas, but this is the one scrollbar in the editor that
-       carries information — how much of an oversized stage is off screen — and with a transparent
-       track it reads as a stray hairline rather than a control. Mixed off currentcolor so it
-       still follows a light or dark backend. */
-    scrollbar-color: color-mix(in srgb, currentcolor 45%, transparent)
-                     color-mix(in srgb, currentcolor 12%, transparent);
+    /* Undo the backend's global `* { scrollbar-color: currentcolor 25% / transparent }`. That is
+       fine for incidental scroll areas, but this is the one scrollbar in the editor that carries
+       information — how much of an oversized stage is off screen — and a 25% thumb on a
+       transparent track reads as a stray hairline rather than a control.
+       `auto` is also what re-enables the ::-webkit-scrollbar rules below: Chrome ignores those
+       pseudo-elements on any element where the standard scrollbar-* properties apply, and the
+       global rule above applies them everywhere. Browsers without the pseudo-elements fall back
+       to their native scrollbar, which is visible by default. */
+    scrollbar-color: auto;
 }
+/* Spell the scrollbar out rather than leaving it to how a platform interprets scrollbar-color.
+   Styling ::-webkit-scrollbar also pins it to the space-consuming kind in Chrome — no overlay
+   variant painting over the artwork — and drops the arrow buttons, which were the only clearly
+   visible part while the thumb sat at 25% opacity. scrollbar-color above stays as the standard
+   path for browsers without these pseudo-elements. */
+.herobuilder-stage-wrap::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+.herobuilder-stage-wrap::-webkit-scrollbar-track {
+    background: color-mix(in srgb, currentcolor 10%, transparent);
+    border-radius: 6px;
+}
+.herobuilder-stage-wrap::-webkit-scrollbar-thumb {
+    /* The transparent border plus content-box clipping is what insets the thumb inside its
+       track — padding is not honoured on scrollbar pseudo-elements. */
+    background: color-mix(in srgb, currentcolor 45%, transparent);
+    background-clip: content-box;
+    border: 2px solid transparent;
+    border-radius: 6px;
+}
+.herobuilder-stage-wrap::-webkit-scrollbar-thumb:hover {
+    background: color-mix(in srgb, currentcolor 70%, transparent);
+    background-clip: content-box;
+}
+.herobuilder-stage-wrap::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 .herobuilder-stage-wrap.hb-pan-ready { cursor: grab; }
 .herobuilder-stage-wrap.hb-panning { cursor: grabbing; }
 .herobuilder-stage-wrap.hb-panning * { pointer-events: none; }
