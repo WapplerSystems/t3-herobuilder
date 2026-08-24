@@ -237,6 +237,13 @@
     /* `safe` keeps the top/left edge reachable when the stage outgrows the box. */
     place-items: safe center;
     padding: .5rem;
+    /* Reserve a strip below the stage for the horizontal scrollbar. Whether a scrollbar takes
+       layout space is a platform decision: the classic kind gets its own 15px and sits below the
+       padding, but an overlay scrollbar takes no space at all and is painted over the bottom edge
+       of whatever is there — the artwork, in this case. This padding is what it paints on
+       instead, so the stage stays clear under either model. scrollbar-gutter is no help here; it
+       has no effect on overlay scrollbars. */
+    padding-bottom: 1rem;
     overflow: auto;
     /* Override the backend's global `* { scrollbar-color: currentcolor 25% / transparent }`. That
        is fine for incidental scroll areas, but this is the one scrollbar in the editor that
