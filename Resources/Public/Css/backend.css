@@ -238,6 +238,13 @@
     place-items: safe center;
     padding: .5rem;
     overflow: auto;
+    /* Override the backend's global `* { scrollbar-color: currentcolor 25% / transparent }`. That
+       is fine for incidental scroll areas, but this is the one scrollbar in the editor that
+       carries information — how much of an oversized stage is off screen — and with a transparent
+       track it reads as a stray hairline rather than a control. Mixed off currentcolor so it
+       still follows a light or dark backend. */
+    scrollbar-color: color-mix(in srgb, currentcolor 45%, transparent)
+                     color-mix(in srgb, currentcolor 12%, transparent);
 }
 .herobuilder-stage-wrap.hb-pan-ready { cursor: grab; }
 .herobuilder-stage-wrap.hb-panning { cursor: grabbing; }
