@@ -31,7 +31,7 @@ const SNAP_THRESHOLD = 12;
 const ZOOM_STEPS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
 
 // Hard lower bound for the zoom. minStageHeight still decides what a breakpoint *opens* at, but
-// it must not lock the editor out of 1:1 — on a flat site ratio (DOAG runs 2500:480 on lg+) the
+// it must not lock the editor out of 1:1 — on a very flat site ratio (e.g. 2500:480 on lg+) the
 // height floor sits at 158%, which used to remove 100% from the picker and clamp it away when
 // picked. 100% is the view that matches the frontend, so it has to stay reachable.
 const MIN_ZOOM = 0.1;
@@ -523,7 +523,7 @@ export default class HerobuilderCanvas {
       this.stageEl.style.height = Math.round(w / ratio) + "px";
       // The stylesheet's min-height is a floor for the fluid fallback below; here it would fight
       // the height we just derived and stretch the preview. A flat ratio at a small zoom lands
-      // under it — 50% of DOAG's 2500:480 is 95px — and every layer would sit 26% too low.
+      // under it — 50% of a 2500:480 stage is 95px — and every layer would sit 26% too low.
       this.stageEl.style.minHeight = "0px";
     } else {
       this.stageEl.style.height = "";

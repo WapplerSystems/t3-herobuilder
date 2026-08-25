@@ -266,7 +266,7 @@ Where “Save as template” stores `tx_herobuilder_template` records. Templates
 regardless of pid); point this at a sysfolder. Falls back to the record’s pid if unset.
 
 ```tsconfig
-tx_herobuilder.templatePid = 2600
+tx_herobuilder.templatePid = 123
 ```
 
 ### Live-preview stylesheets (page TSconfig)
@@ -277,8 +277,8 @@ its own `hero.css`/`aos.css`; add the site's compiled theme CSS here (absolute U
 
 ```tsconfig
 tx_herobuilder.previewCss {
-    10 = /typo3temp/assets/css/doag/event-devland.css
-    20 = /typo3temp/assets/css/template/fonts.css
+    10 = /typo3temp/assets/css/mytheme.css
+    20 = EXT:my_sitepackage/Resources/Public/Css/fonts.css
 }
 ```
 

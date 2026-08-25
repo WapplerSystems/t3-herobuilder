@@ -1,7 +1,9 @@
 # Hero Builder — storage folder (sysfolder uid) where "Save as template" stores
 # tx_herobuilder_template records. Templates are global (listed regardless of pid).
-# Override per site if a site-specific template folder is preferred.
-tx_herobuilder.templatePid = 2600
+# Unset by default: the record's own pid is used. Set this per site to collect
+# templates in one sysfolder:
+#
+#   tx_herobuilder.templatePid = 123
 
 # Hero Builder — predefined CSS classes selectable per layer (text & image).
 # Key = CSS class (as applied to the layer), value = editor label.
@@ -40,10 +42,12 @@ tx_herobuilder.layerClasses {
 # (Bootstrap/theme utility classes, fonts). The extension always adds its own hero.css/aos.css.
 # Absolute URLs are used as-is; EXT:/site-relative paths are resolved and skipped if missing.
 # Override per site in the site root's page TSconfig to match that site's compiled theme.
-tx_herobuilder.previewCss {
-    10 = /typo3temp/assets/css/doag/event-devland.css
-    20 = /typo3temp/assets/css/template/fonts.css
-}
+# No defaults are shipped — a stylesheet path is always site-specific. Example:
+#
+#   tx_herobuilder.previewCss {
+#       10 = /typo3temp/assets/css/mytheme.css
+#       20 = EXT:my_sitepackage/Resources/Public/Css/fonts.css
+#   }
 
 mod.wizards.newContentElement.wizardItems.common {
     elements {

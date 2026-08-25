@@ -55,9 +55,9 @@
    Bootstrap 5 carousel fallback.
 
    The CE emits Bootstrap carousel markup, but a site theme may compile only a
-   subset of Bootstrap's components (the DOAG themes, for instance, import their
-   own SCSS component list and leave `bootstrap/carousel` out — their legacy
-   hero slider used flexslider). Without the component CSS every slide stays
+   subset of Bootstrap's components (a theme that curates its own SCSS component
+   list may leave `bootstrap/carousel` out, e.g. when its legacy hero slider used
+   a different library). Without the component CSS every slide stays
    `display: block` and the slides stack vertically instead of sliding.
 
    These rules mirror Bootstrap's own carousel component, scoped to
