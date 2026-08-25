@@ -28,12 +28,20 @@
 }
 
 /* Text layers: fill their geometry box, vertically centred; box-sizing keeps the
-   readability scrim padding inside the placed box. */
+   readability scrim padding inside the placed box.
+
+   `line-height` is reset here on purpose: `.herobuilder-carousel .carousel-item`
+   below sets `line-height: 0` to kill the inline-image baseline gap under the
+   image layer, and that value is inherited. Without this reset every text layer
+   that has no explicit `lh-*` class collapses — all wrapped lines land on the
+   same baseline and the text renders as an unreadable overlay of itself.
+   Bootstrap's `lh-*` utilities ship with !important, so they still win. */
 .hb-layer-text {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    line-height: normal;
 }
 
 /* Button layers fill their placed box; the label is centred and btn classes style it. */
