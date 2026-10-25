@@ -58,6 +58,10 @@ export** (ImageMagick), and a **live preview rendered with the real frontend CSS
 - **Responsive images** — every image layer gets a `srcset` (480–3200px, capped at the cropped
   source) and a `sizes` computed from its per-breakpoint geometry, including the overflow of
   `cover` (e.g. a wide background on a tall phone stage is painted much wider than the screen).
+- **Accessible carousel** — localized labels (`locallang.xlf`), carousel/slide roles, a
+  pause/play button whenever autoplay is on (WCAG 2.2.2), no autoplay and no AOS entrance
+  animations under `prefers-reduced-motion`, autoplay holds while keyboard focus is inside,
+  visible focus rings on the controls.
 - **CSP-ready frontend** — the scoped composition CSS goes into the `<head>` via the
   AssetCollector with `csp="true"` (hash/nonce), no inline `<style>` in the body.
 - Backend page-module **preview renderer** (slide + layer thumbnails / text chips).

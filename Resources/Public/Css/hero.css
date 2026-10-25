@@ -198,6 +198,63 @@ html .hb-stage :is(h1, h2, h3, h4, h5, h6, p) {
     opacity: 0.9;
 }
 
+/* Keyboard focus must stay visible (the rule above drops the outline for mouse focus). */
+.herobuilder-carousel .carousel-control-prev:focus-visible,
+.herobuilder-carousel .carousel-control-next:focus-visible,
+.herobuilder-carousel .carousel-indicators [data-bs-target]:focus-visible,
+.herobuilder-carousel .hb-carousel-toggle:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: -4px;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Pause/play for autoplay (WCAG 2.2.2), bottom left, above the slide layers. */
+.herobuilder-carousel .hb-carousel-toggle {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    z-index: 5;
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: 0;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border: 0;
+    border-radius: 50%;
+    opacity: 0.7;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.herobuilder-carousel .hb-carousel-toggle:hover,
+.herobuilder-carousel .hb-carousel-toggle:focus-visible {
+    opacity: 1;
+}
+
+.herobuilder-carousel .hb-carousel-toggle[hidden] {
+    display: none;
+}
+
+/* Two bars = pause; a triangle = play (drawn with borders, no icon font needed). */
+.herobuilder-carousel .hb-carousel-toggle-icon {
+    display: block;
+    width: 0.75rem;
+    height: 0.875rem;
+    margin: auto;
+    border-left: 0.25rem solid currentColor;
+    border-right: 0.25rem solid currentColor;
+}
+
+.herobuilder-carousel .hb-carousel-toggle.is-paused .hb-carousel-toggle-icon {
+    width: 0;
+    height: 0;
+    margin-left: calc(50% - 0.25rem);
+    border-left: 0.75rem solid currentColor;
+    border-right: 0;
+    border-top: 0.45rem solid transparent;
+    border-bottom: 0.45rem solid transparent;
+}
+
 .herobuilder-carousel .carousel-control-prev {
     left: 0;
 }

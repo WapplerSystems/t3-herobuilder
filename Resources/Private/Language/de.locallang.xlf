@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xliff version="1.0">
+    <file source-language="en" target-language="de" datatype="plaintext" original="messages" date="2026-10-25T00:00:00Z" product-name="herobuilder">
+        <header/>
+        <body>
+            <trans-unit id="carousel.label"><source>Slideshow</source><target>Diashow</target></trans-unit>
+            <trans-unit id="carousel.slide"><source>Slide %1$s of %2$s</source><target>Folie %1$s von %2$s</target></trans-unit>
+            <trans-unit id="carousel.previous"><source>Previous slide</source><target>Vorherige Folie</target></trans-unit>
+            <trans-unit id="carousel.next"><source>Next slide</source><target>Nächste Folie</target></trans-unit>
+            <trans-unit id="carousel.pause"><source>Pause slideshow</source><target>Diashow anhalten</target></trans-unit>
+            <trans-unit id="carousel.play"><source>Play slideshow</source><target>Diashow abspielen</target></trans-unit>
+        </body>
+    </file>
+</xliff>
