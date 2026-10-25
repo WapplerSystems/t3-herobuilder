@@ -13,6 +13,7 @@ use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Core\View\ViewFactoryData;
 use TYPO3\CMS\Core\View\ViewFactoryInterface;
 use WapplerSystems\Herobuilder\DataProcessing\CompositionProcessor;
+use WapplerSystems\Herobuilder\Domain\Composition;
 
 /**
  * Backend AJAX endpoint: renders a single (possibly unsaved) collage composition
@@ -35,11 +36,13 @@ final class PreviewController
         $uid = (int)($params['uid'] ?? 0);
         $pid = (int)($params['pid'] ?? 0);
 
+        // The editor sends the stage mode it shows — the content element's field may be changed
+        // and not yet saved, so the stored value would be stale.
         $slide = $this->processor->expand([
             'uid' => $uid > 0 ? $uid : 1,
             'pid' => $pid,
             'composition' => $composition,
-        ]);
+        ], [], Composition::normalizeStageMode($params['stageMode'] ?? null));
 
         // Preview.html renders the stage WITHOUT an inline <style> (CSP-safe).
         $view = $this->viewFactory->create(new ViewFactoryData(

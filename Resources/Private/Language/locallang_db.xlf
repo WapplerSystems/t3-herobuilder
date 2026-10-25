@@ -11,6 +11,10 @@
             <trans-unit id="tab.collages"><source>Collages (slides)</source></trans-unit>
             <trans-unit id="tab.slider"><source>Slider</source></trans-unit>
             <trans-unit id="tt_content.collages"><source>Collages (slides)</source></trans-unit>
+            <trans-unit id="tt_content.stage_mode"><source>Stage height</source></trans-unit>
+            <trans-unit id="tt_content.stage_mode.description"><source>Aspect ratio: the stage grows with the screen width and keeps its shape. Fixed height: the height per breakpoint comes from the site configuration, the width follows the screen.</source></trans-unit>
+            <trans-unit id="tt_content.stage_mode.ratio"><source>Aspect ratio</source></trans-unit>
+            <trans-unit id="tt_content.stage_mode.height"><source>Fixed height</source></trans-unit>
             <trans-unit id="tt_content.slider_autoplay"><source>Autoplay</source></trans-unit>
             <trans-unit id="tt_content.slider_interval"><source>Interval (ms)</source></trans-unit>
             <trans-unit id="tt_content.slider_loop"><source>Loop</source></trans-unit>

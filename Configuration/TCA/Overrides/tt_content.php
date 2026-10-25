@@ -50,6 +50,23 @@ $newColumns = [
             ],
         ],
     ],
+    // Applies to all collages of the element; the per-breakpoint heights come from page TSconfig
+    // (tx_herobuilder.stages.<bp>.height). The canvas follows a change without a reload.
+    'stage_mode' => [
+        'exclude' => 1,
+        'l10n_mode' => 'exclude',
+        'label' => $ll . 'tt_content.stage_mode',
+        'description' => $ll . 'tt_content.stage_mode.description',
+        'config' => [
+            'type' => 'select',
+            'renderType' => 'selectSingle',
+            'default' => 'ratio',
+            'items' => [
+                ['label' => $ll . 'tt_content.stage_mode.ratio', 'value' => 'ratio'],
+                ['label' => $ll . 'tt_content.stage_mode.height', 'value' => 'height'],
+            ],
+        ],
+    ],
     'slider_autoplay' => [
         'exclude' => 1,
         'label' => $ll . 'tt_content.slider_autoplay',
@@ -106,6 +123,7 @@ $GLOBALS['TCA']['tt_content']['types'][$ctype] = [
             --palette--;;general,
             --palette--;;headers,
         --div--;' . $ll . 'tab.collages,
+            stage_mode,
             collages,
         --div--;' . $ll . 'tab.slider,
             slider_autoplay, slider_interval, slider_loop,

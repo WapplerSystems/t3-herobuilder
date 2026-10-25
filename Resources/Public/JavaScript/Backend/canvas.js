@@ -109,6 +109,17 @@ export default class HerobuilderCanvas {
     const init = JSON.parse(this.root.dataset.herobuilder || "{}");
     this.breakpoints = init.breakpoints || ["lg"];
     this.stages = init.stages || {};
+    // Stage configs for both stage modes (aspect ratio / fixed height). The mode is a field of
+    // the parent content element in the same form; its current — possibly unsaved — value wins
+    // over the stored one, so the editor always shows what the frontend will render.
+    this.stagesByMode = init.stagesByMode || null;
+    this.stageMode = init.stageMode || "ratio";
+    this.stageModeField = init.stageModeField || "";
+    const modeField = this.stageModeField ? document.querySelector('[name="' + CSS.escape(this.stageModeField) + '"]') : null;
+    if (modeField && this.stagesByMode && this.stagesByMode[modeField.value]) {
+      this.stageMode = modeField.value;
+      this.stages = this.stagesByMode[this.stageMode];
+    }
     this.classes = Array.isArray(init.classes) ? init.classes : [];
     this.labels = init.labels || {};
     this.uid = init.uid || 0;
@@ -187,7 +198,46 @@ export default class HerobuilderCanvas {
     this.bindStageNav();
     this.bindKeyboard();
     this.listenForAssetInserts();
+    this.listenForStageMode();
     this.init();
+  }
+
+  /** Follow the content element's stage mode field (delegated: inline forms load lazily). */
+  listenForStageMode() {
+    if (!this.stageModeField || !this.stagesByMode) {
+      return;
+    }
+    this.updateBpTitles();
+    document.addEventListener("change", (e) => {
+      if (this.root.isConnected && e.target && e.target.name === this.stageModeField) {
+        this.setStageMode(e.target.value);
+      }
+    });
+  }
+
+  setStageMode(mode) {
+    if (!this.stagesByMode || !this.stagesByMode[mode] || mode === this.stageMode) {
+      return;
+    }
+    const atBase = Math.abs(this.zoom - this.baseZoomValue()) < 0.01;
+    this.stageMode = mode;
+    this.stages = this.stagesByMode[mode];
+    this.zoom = atBase ? this.baseZoomValue() : Math.max(this.zoom, this.minZoomValue());
+    this.deselect();
+    this.updateBpTitles();
+    this.updatePreviewWidth();
+    this.render();
+    this.schedulePreviewRefresh();
+  }
+
+  /** Breakpoint button tooltips name the stage format: fixed height, else the ratio. */
+  updateBpTitles() {
+    this.root.querySelectorAll(".t3js-herobuilder-bp").forEach((b) => {
+      const stage = this.stages[b.dataset.breakpoint];
+      if (stage) {
+        b.title = b.dataset.breakpoint.toUpperCase() + " · " + stage.width + "px · " + (stage.height || stage.ratio);
+      }
+    });
   }
 
   async init() {
@@ -1416,6 +1466,7 @@ export default class HerobuilderCanvas {
         composition: this.input.value || "{}",
         uid: String(this.uid),
         pid: String(this.pid),
+        stageMode: this.stageMode,
       });
       const html = await response.raw().text();
       this.previewFrame.srcdoc = html;

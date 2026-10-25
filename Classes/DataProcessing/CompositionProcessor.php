@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace WapplerSystems\Herobuilder\DataProcessing;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
@@ -17,10 +18,14 @@ use WapplerSystems\Herobuilder\Domain\Composition;
  *
  * Runs as a nested processor inside DatabaseQueryProcessor (one invocation per collage/slide).
  */
-final readonly class CompositionProcessor implements DataProcessorInterface
+final class CompositionProcessor implements DataProcessorInterface
 {
+    /** @var array<int, string> Stage mode per content element uid (one lookup per carousel). */
+    private array $stageModes = [];
+
     public function __construct(
-        private ResourceFactory $resourceFactory,
+        private readonly ResourceFactory $resourceFactory,
+        private readonly ConnectionPool $connectionPool,
     ) {}
 
     public function process(
@@ -44,9 +49,11 @@ final readonly class CompositionProcessor implements DataProcessorInterface
      *
      * @param array<string, mixed> $row       Collage record (needs uid, pid, composition, title, link)
      * @param array<string, mixed> $stagesOverride TypoScript settings.stages override
+     * @param string|null $stageMode Composition::STAGE_MODE_*; null = the content element's
+     *                               `stage_mode` (looked up via the row's content_uid)
      * @return array{uid:int,title:string,link:string,scope:string,css:string,layers:array,stages:array}
      */
-    public function expand(array $row, array $stagesOverride = []): array
+    public function expand(array $row, array $stagesOverride = [], ?string $stageMode = null): array
     {
         $uid = (int)($row['uid'] ?? 0);
         $composition = Composition::fromJson((string)($row['composition'] ?? ''));
@@ -58,7 +65,10 @@ final readonly class CompositionProcessor implements DataProcessorInterface
             ? Composition::parseTsConfigStages((array)(BackendUtility::getPagesTSconfig($pid)['tx_herobuilder.']['stages.'] ?? []))
             : [];
         $override = array_replace_recursive(is_array($stagesOverride) ? $stagesOverride : [], $tsConfigStages);
-        $stages = Composition::stageConfig($override);
+        $stages = Composition::stageConfig(
+            $override,
+            Composition::normalizeStageMode($stageMode ?? $this->stageModeOf((int)($row['content_uid'] ?? 0)))
+        );
         $scope = 'hb-' . $uid;
 
         $layers = [];
@@ -148,21 +158,51 @@ final readonly class CompositionProcessor implements DataProcessorInterface
     }
 
     /**
-     * @param array<string, array{ratio: string, ratioCss: string}> $stages
+     * The content element's stage mode. Collages are expanded one by one, so the lookup is cached
+     * per content element.
+     */
+    private function stageModeOf(int $contentUid): string
+    {
+        if ($contentUid <= 0) {
+            return Composition::STAGE_MODE_RATIO;
+        }
+        if (!isset($this->stageModes[$contentUid])) {
+            $mode = $this->connectionPool->getConnectionForTable('tt_content')
+                ->select(['stage_mode'], 'tt_content', ['uid' => $contentUid])
+                ->fetchOne();
+            $this->stageModes[$contentUid] = Composition::normalizeStageMode($mode);
+        }
+        return $this->stageModes[$contentUid];
+    }
+
+    /**
+     * @param array<string, array{ratio: string, ratioCss: string, height?: string}> $stages
      */
     private function stageCss(string $scope, array $stages): string
     {
         $sel = '.' . $scope . ' .hb-stage';
-        $first = $stages[Composition::BREAKPOINTS[0]]['ratioCss'] ?? '16 / 9';
-        $css = $sel . '{position:relative;aspect-ratio:' . $first . ';}';
+        $css = $sel . '{position:relative;' . $this->stageBox($stages[Composition::BREAKPOINTS[0]] ?? null) . '}';
         foreach (Composition::BREAKPOINTS as $bp) {
-            $ratio = $stages[$bp]['ratioCss'] ?? null;
-            if ($ratio === null) {
+            if (!isset($stages[$bp])) {
                 continue;
             }
-            $css .= '@media ' . Composition::BREAKPOINT_MEDIA[$bp] . '{' . $sel . '{aspect-ratio:' . $ratio . ';}}';
+            $css .= '@media ' . Composition::BREAKPOINT_MEDIA[$bp] . '{' . $sel . '{' . $this->stageBox($stages[$bp]) . '}}';
         }
         return $css;
+    }
+
+    /**
+     * Fixed height or aspect ratio. Both are always declared, so a breakpoint never inherits the
+     * other mode's value from a smaller one.
+     *
+     * @param array{ratioCss: string, height?: string}|null $stage
+     */
+    private function stageBox(?array $stage): string
+    {
+        if (isset($stage['height'])) {
+            return 'aspect-ratio:auto;height:' . $stage['height'] . ';';
+        }
+        return 'aspect-ratio:' . ($stage['ratioCss'] ?? '16 / 9') . ';height:auto;';
     }
 
     /**

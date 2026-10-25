@@ -53,7 +53,8 @@ export** (ImageMagick), and a **live preview rendered with the real frontend CSS
 - Dedicated `herobuilder` content element with a New-Content-Element wizard entry.
 - 1:n collages (`tx_herobuilder_collage`) rendered as a **Bootstrap 5 carousel**
   (autoplay, interval, loop, prev/next controls, indicators, pause-on-hover, slide/fade transition).
-- Per-breakpoint **stage aspect ratios** (frontend) via scoped, media-query CSS.
+- Per-breakpoint **stage aspect ratios** (frontend) via scoped, media-query CSS — or a
+  **fixed stage height** per breakpoint, switchable per content element.
 - Backend page-module **preview renderer** (slide + layer thumbnails / text chips).
 
 ### Layers
@@ -240,6 +241,25 @@ plugin.tx_herobuilder.settings.stages {
 
 The backend editor additionally renders each breakpoint at a realistic **reference device width**
 (defaults: xs 390, sm 576, md 768, lg 992, xl 1200, xxl 1400 px).
+
+### Fixed stage height (page TSconfig + content element)
+
+Per content element, **Stage height** (`tt_content.stage_mode`, tab *Collages*) switches between
+*Aspect ratio* (default, above) and *Fixed height*. The heights are a site setting:
+
+```tsconfig
+tx_herobuilder.stages {
+    xs.height = 43rem
+    lg.height = 55rem
+}
+```
+
+Heights are inherited upwards (here: xs–md 43rem, lg and above 55rem); a breakpoint without a
+height keeps its ratio. Only `px` and `rem` are accepted (`rem` converted at 16px), so the editor
+can show the stage exactly as the frontend renders it at the reference width. The width stays
+fluid in the frontend — layers keep their `%` positions, so between reference widths their
+proportions shift (as with any fixed-height slider). The canvas follows a change of the field
+immediately, before the record is saved.
 
 ### Predefined layer classes (page TSconfig)
 

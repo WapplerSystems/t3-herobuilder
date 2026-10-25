@@ -3,6 +3,7 @@
 #
 CREATE TABLE tt_content (
     collages int(11) unsigned DEFAULT '0' NOT NULL,
+    stage_mode varchar(16) DEFAULT 'ratio' NOT NULL,
     slider_autoplay tinyint(1) unsigned DEFAULT '0' NOT NULL,
     slider_interval int(11) unsigned DEFAULT '5000' NOT NULL,
     slider_loop tinyint(1) unsigned DEFAULT '1' NOT NULL,

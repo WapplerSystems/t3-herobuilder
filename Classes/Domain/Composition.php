@@ -72,6 +72,22 @@ final readonly class Composition
      */
     public const MIN_STAGE_HEIGHT = 300;
 
+    /** Stage sized by its per-breakpoint aspect ratio — grows with the viewport width. */
+    public const STAGE_MODE_RATIO = 'ratio';
+
+    /**
+     * Stage with a fixed height per breakpoint (page TSconfig `tx_herobuilder.stages.<bp>.height`);
+     * the width stays fluid, so the shape changes with the viewport. Chosen per content element.
+     */
+    public const STAGE_MODE_HEIGHT = 'height';
+
+    /**
+     * px per rem when a fixed stage height is converted for the backend editor, which needs a px
+     * box. Assumes the browser default root font size — a theme that changes `html { font-size }`
+     * should configure px heights instead.
+     */
+    public const REM_PX = 16;
+
     /** @param array<int, array<string, mixed>> $layers */
     public function __construct(
         public array $layers = [],
@@ -113,7 +129,7 @@ final readonly class Composition
      * e.g. ['lg.' => ['ratio' => '2500:480']]) into the override shape stageConfig() expects.
      *
      * @param array<string, mixed> $tsStages
-     * @return array<string, array{ratio?: string, width?: int}>
+     * @return array<string, array{ratio?: string, width?: int, height?: string}>
      */
     public static function parseTsConfigStages(array $tsStages): array
     {
@@ -129,22 +145,61 @@ final readonly class Composition
             if (isset($val['width']) && (string)$val['width'] !== '') {
                 $out[$bp]['width'] = (int)$val['width'];
             }
+            if (isset($val['height']) && trim((string)$val['height']) !== '') {
+                $out[$bp]['height'] = trim((string)$val['height']);
+            }
         }
         return $out;
     }
 
-    public static function stageConfig(array $override): array
+    public static function normalizeStageMode(mixed $mode): string
+    {
+        return $mode === self::STAGE_MODE_HEIGHT ? self::STAGE_MODE_HEIGHT : self::STAGE_MODE_RATIO;
+    }
+
+    /**
+     * In STAGE_MODE_HEIGHT a breakpoint with a fixed height gets `height` (CSS length, for the
+     * frontend) and its ratio is replaced by reference width : height in px. The backend editor
+     * and every other consumer keep working with `ratio`, so they show the stage exactly as the
+     * frontend renders it at the reference width. Heights are inherited upwards (mobile-first,
+     * like Bootstrap): `xs.height = 43rem` + `lg.height = 55rem` covers all breakpoints.
+     * A breakpoint without a usable height keeps its aspect ratio.
+     *
+     * @return array<string, array{ratio: string, ratioCss: string, width: int, height?: string}>
+     */
+    public static function stageConfig(array $override, string $mode = self::STAGE_MODE_RATIO): array
     {
         $stages = [];
+        $height = null;
         foreach (self::BREAKPOINTS as $bp) {
             $ratio = (string)($override[$bp]['ratio'] ?? self::DEFAULT_STAGE_RATIOS[$bp]);
             $width = (int)($override[$bp]['width'] ?? self::DEFAULT_STAGE_WIDTHS[$bp]);
+            if (isset($override[$bp]['height']) && self::lengthToPx((string)$override[$bp]['height']) !== null) {
+                $height = (string)$override[$bp]['height'];
+            }
+            $stage = [];
+            if ($mode === self::STAGE_MODE_HEIGHT && $height !== null && $width > 0) {
+                $ratio = $width . ':' . round((float)self::lengthToPx($height), 2);
+                $stage['height'] = $height;
+            }
             $stages[$bp] = [
                 'ratio' => $ratio,
                 'ratioCss' => str_replace(':', ' / ', $ratio),
                 'width' => $width,
-            ];
+            ] + $stage;
         }
         return $stages;
+    }
+
+    /**
+     * A fixed stage height in px, or null when it is not a positive px/rem length. Viewport units
+     * are refused on purpose: the editor could not show them the way the frontend renders them.
+     */
+    public static function lengthToPx(string $length): ?float
+    {
+        if (!preg_match('/^(\d+(?:\.\d+)?)(px|rem)$/', trim($length), $m) || (float)$m[1] <= 0) {
+            return null;
+        }
+        return $m[2] === 'rem' ? (float)$m[1] * self::REM_PX : (float)$m[1];
     }
 }

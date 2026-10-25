@@ -7,6 +7,7 @@ namespace WapplerSystems\Herobuilder\Backend\Form\Element;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Crypto\HashService;
+use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
@@ -51,6 +52,7 @@ class CanvasElement extends AbstractFormElement
     public function __construct(
         private readonly HashService $hashService,
         private readonly IconFactory $iconFactory,
+        private readonly ConnectionPool $connectionPool,
     ) {}
 
     public function render(): array
@@ -65,8 +67,15 @@ class CanvasElement extends AbstractFormElement
 
         // Stage aspect ratios come from page TSconfig (tx_herobuilder.stages.<bp>.ratio) so the
         // editor matches the frontend per site — e.g. a flatter hero for a given site.
-        $tsStages = $this->data['pageTsConfig']['tx_herobuilder.']['stages.'] ?? [];
-        $stages = Composition::stageConfig(Composition::parseTsConfigStages((array)$tsStages));
+        // Both stage modes are handed to the editor: the content element's `stage_mode` field sits
+        // in the same form, and canvas.js switches as soon as it changes — before it is saved.
+        $tsStages = Composition::parseTsConfigStages((array)($this->data['pageTsConfig']['tx_herobuilder.']['stages.'] ?? []));
+        $stagesByMode = [
+            Composition::STAGE_MODE_RATIO => Composition::stageConfig($tsStages, Composition::STAGE_MODE_RATIO),
+            Composition::STAGE_MODE_HEIGHT => Composition::stageConfig($tsStages, Composition::STAGE_MODE_HEIGHT),
+        ];
+        [$contentUid, $stageMode] = $this->parentStageMode();
+        $stages = $stagesByMode[$stageMode];
         $classes = $this->layerClasses();
 
         // TYPO3 Link Browser wiring: a proxy input the browser writes into (change event),
@@ -114,7 +123,7 @@ class CanvasElement extends AbstractFormElement
                 $active ? 'true' : 'false',
                 htmlspecialchars(strtoupper($bp)),
                 (int)$stages[$bp]['width'],
-                htmlspecialchars($stages[$bp]['ratio']),
+                htmlspecialchars($stages[$bp]['height'] ?? $stages[$bp]['ratio']),
                 $this->deviceIcon($bp),
                 htmlspecialchars(strtoupper($bp)),
                 (int)$stages[$bp]['width']
@@ -128,6 +137,9 @@ class CanvasElement extends AbstractFormElement
             'activeBp' => $activeBp,
             'minStageHeight' => Composition::MIN_STAGE_HEIGHT,
             'stages' => $stages,
+            'stagesByMode' => $stagesByMode,
+            'stageMode' => $stageMode,
+            'stageModeField' => $contentUid !== '' ? 'data[tt_content][' . $contentUid . '][stage_mode]' : '',
             'classes' => $classes,
             'labels' => $this->jsLabels(),
             'uid' => (int)($this->data['databaseRow']['uid'] ?? 0),
@@ -279,6 +291,30 @@ class CanvasElement extends AbstractFormElement
             . ' fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">'
             . self::DEVICE_ICONS[$device]
             . '</svg>';
+    }
+
+    /**
+     * The content element this collage belongs to (uid, or a NEW… id while unsaved) and its
+     * stored stage mode. Inside the content element's form the inline parent is known; a collage
+     * opened on its own carries the link in content_uid.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function parentStageMode(): array
+    {
+        $contentUid = ($this->data['inlineParentTableName'] ?? '') === 'tt_content'
+            ? (string)($this->data['inlineParentUid'] ?? '')
+            : (string)(int)($this->data['databaseRow']['content_uid'] ?? 0);
+        if ($contentUid === '0') {
+            $contentUid = '';
+        }
+        $mode = null;
+        if (ctype_digit($contentUid)) {
+            $mode = $this->connectionPool->getConnectionForTable('tt_content')
+                ->select(['stage_mode'], 'tt_content', ['uid' => (int)$contentUid])
+                ->fetchOne();
+        }
+        return [$contentUid, Composition::normalizeStageMode($mode)];
     }
 
     /**

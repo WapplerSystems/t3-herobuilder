@@ -11,6 +11,10 @@
             <trans-unit id="tab.collages"><source>Collages (slides)</source><target>Collagen (Slides)</target></trans-unit>
             <trans-unit id="tab.slider"><source>Slider</source><target>Slider</target></trans-unit>
             <trans-unit id="tt_content.collages"><source>Collages (slides)</source><target>Collagen (Slides)</target></trans-unit>
+            <trans-unit id="tt_content.stage_mode"><source>Stage height</source><target>Bühnenhöhe</target></trans-unit>
+            <trans-unit id="tt_content.stage_mode.description"><source>Aspect ratio: the stage grows with the screen width and keeps its shape. Fixed height: the height per breakpoint comes from the site configuration, the width follows the screen.</source><target>Seitenverhältnis: Die Bühne wächst mit der Bildschirmbreite und behält ihre Form. Feste Höhe: Die Höhe pro Breakpoint kommt aus der Seitenkonfiguration, die Breite folgt dem Bildschirm.</target></trans-unit>
+            <trans-unit id="tt_content.stage_mode.ratio"><source>Aspect ratio</source><target>Seitenverhältnis</target></trans-unit>
+            <trans-unit id="tt_content.stage_mode.height"><source>Fixed height</source><target>Feste Höhe</target></trans-unit>
             <trans-unit id="tt_content.slider_autoplay"><source>Autoplay</source><target>Autoplay</target></trans-unit>
             <trans-unit id="tt_content.slider_interval"><source>Interval (ms)</source><target>Intervall (ms)</target></trans-unit>
             <trans-unit id="tt_content.slider_loop"><source>Loop</source><target>Endlosschleife</target></trans-unit>
