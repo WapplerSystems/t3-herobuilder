@@ -16,6 +16,9 @@ const FIT_MODES = ["fill", "cover", "contain"];
 // the look still comes from the classes. Mirrors CompositionProcessor::TEXT_TAGS.
 const TEXT_TAGS = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6"];
 
+// Height the live preview is fitted into until the editor resizes the panel.
+const PREVIEW_MAX_HEIGHT = 420;
+
 // Duration of the breakpoint morph (stage box + layer geometry). Must stay in sync with the
 // `--hb-bp-anim` transition in backend.css — the reconciling render() runs once it is over.
 const BP_ANIM_MS = 480;
@@ -1412,15 +1415,28 @@ export default class HerobuilderCanvas {
     bar.querySelector(".hb-preview-replay").addEventListener("click", () => this.replayPreview());
     wrap.appendChild(bar);
 
+    // The frame is laid out at the full stage size — the frontend's viewport width and stage
+    // height — and scaled down into the box, so the preview neither scrolls nor loses width to
+    // a scrollbar (which would shift every layer off its frontend position).
+    const box = document.createElement("div");
+    box.className = "herobuilder-preview-box";
     const frame = document.createElement("iframe");
     frame.className = "herobuilder-preview-frame";
     frame.setAttribute("title", this.t("button.preview", "Live preview"));
-    wrap.appendChild(frame);
+    frame.setAttribute("scrolling", "no");
+    box.appendChild(frame);
+    wrap.appendChild(box);
 
     // Mount below the stage in the center canvas column.
     (this.root.querySelector(".herobuilder-canvas") || this.layerList).appendChild(wrap);
     this.previewWrap = wrap;
+    this.previewBar = bar;
+    this.previewBox = box;
     this.previewFrame = frame;
+    // Refit when the column changes width or the editor drags the preview taller (resize: vertical).
+    if (window.ResizeObserver) {
+      new ResizeObserver(() => this.previewOpen && this.updatePreviewWidth()).observe(wrap);
+    }
   }
 
   replayPreview() {
@@ -1450,7 +1466,25 @@ export default class HerobuilderCanvas {
       return;
     }
     const w = this.stageWidth(this.activeBp);
-    this.previewFrame.style.width = w ? w + "px" : "100%";
+    const ratio = this.stageRatio(this.activeBp);
+    if (!w || ratio <= 0) {
+      this.previewFrame.style.width = "100%";
+      return;
+    }
+    const h = Math.round(w / ratio);
+    // Room for the scaled frame: the column width, and the preview's height — 420px until the
+    // editor resizes the panel (then its explicit height, minus the button bar).
+    const availW = Math.max(50, this.previewWrap.clientWidth - 2);
+    const availH = this.previewWrap.style.height
+      ? Math.max(50, this.previewWrap.clientHeight - (this.previewBar ? this.previewBar.offsetHeight : 0) - 2)
+      : PREVIEW_MAX_HEIGHT;
+    const scale = Math.min(1, availW / w, availH / h);
+    const frame = this.previewFrame;
+    frame.style.width = w + "px";
+    frame.style.height = h + "px";
+    frame.style.transform = scale < 1 ? "scale(" + scale + ")" : "";
+    this.previewBox.style.width = Math.floor(w * scale) + "px";
+    this.previewBox.style.height = Math.floor(h * scale) + "px";
   }
 
   schedulePreviewRefresh() {
