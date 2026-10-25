@@ -7,10 +7,8 @@
     z-index: 0;
 }
 
-/* Keep the carousel controls and indicators above the slide layers. */
-.herobuilder-carousel .carousel-control-prev,
-.herobuilder-carousel .carousel-control-next,
-.herobuilder-carousel .carousel-indicators {
+/* Keep the carousel navigation above the slide layers. */
+.herobuilder-carousel .hb-carousel-nav {
     z-index: 5;
 }
 
@@ -170,65 +168,137 @@ html .hb-stage :is(h1, h2, h3, h4, h5, h6, p) {
     transition: opacity 0s 0.6s;
 }
 
-.herobuilder-carousel .carousel-control-prev,
-.herobuilder-carousel .carousel-control-next {
+/* ---------------------------------------------------------------------------
+   Navigation: prev · indicators · next as one group, bottom centre.
+
+   The slides are free compositions — text can sit anywhere, and on light product
+   shots white controls vanish. So the controls do not sit on the artwork at the
+   sides (where they overlapped text) but in their own dark pill, which keeps them
+   at >= 3:1 (WCAG 1.4.11) on any background, a white one included:
+   pill 55 % black, glyphs white, inactive indicators 70 % white. The active
+   indicator is also twice as long, so the state does not rest on brightness alone.
+   Every target is at least 24 x 24 px (WCAG 2.5.8).
+   --------------------------------------------------------------------------- */
+.herobuilder-carousel .hb-carousel-nav {
     position: absolute;
-    top: 0;
-    bottom: 0;
+    left: 50%;
+    bottom: 1rem;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    background: rgba(0, 0, 0, 0.55);
+    border-radius: 999px;
+    transform: translateX(-50%);
+}
+
+.herobuilder-carousel .hb-carousel-nav .carousel-control-prev,
+.herobuilder-carousel .hb-carousel-nav .carousel-control-next {
+    position: static;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 15%;
+    flex: 0 0 auto;
+    width: 2.25rem;
+    height: 2.25rem;
     padding: 0;
     color: #fff;
-    text-align: center;
     background: none;
     border: 0;
-    opacity: 0.5;
-    transition: opacity 0.15s ease;
+    border-radius: 50%;
+    opacity: 1;
+    transition: background-color 0.15s ease;
 }
 
-.herobuilder-carousel .carousel-control-prev:hover,
-.herobuilder-carousel .carousel-control-prev:focus,
-.herobuilder-carousel .carousel-control-next:hover,
-.herobuilder-carousel .carousel-control-next:focus {
-    color: #fff;
-    text-decoration: none;
-    outline: 0;
-    opacity: 0.9;
+.herobuilder-carousel .hb-carousel-nav .carousel-control-prev:hover,
+.herobuilder-carousel .hb-carousel-nav .carousel-control-next:hover {
+    background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Keyboard focus must stay visible (the rule above drops the outline for mouse focus). */
+.herobuilder-carousel .carousel-control-prev-icon,
+.herobuilder-carousel .carousel-control-next-icon {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    background-repeat: no-repeat;
+    background-position: 50%;
+    background-size: 100% 100%;
+    /* Bootstrap's dark-variant filter must not turn the white glyph dark. */
+    filter: none;
+}
+
+.herobuilder-carousel .carousel-control-prev-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
+}
+
+.herobuilder-carousel .carousel-control-next-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+}
+
+.herobuilder-carousel .hb-carousel-nav .carousel-indicators {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.25rem;
+    margin: 0;
+    list-style: none;
+}
+
+/* The visible bar is the content box; padding widens the target to 24 x 24 px. */
+.herobuilder-carousel .hb-carousel-nav .carousel-indicators [data-bs-target] {
+    box-sizing: content-box;
+    flex: 0 0 auto;
+    width: 1rem;
+    height: 4px;
+    padding: 10px 4px;
+    margin: 0;
+    text-indent: -999px;
+    cursor: pointer;
+    background-color: rgba(255, 255, 255, 0.7);
+    background-clip: content-box;
+    border: 0;
+    border-radius: 999px;
+    opacity: 1;
+    transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.herobuilder-carousel .hb-carousel-nav .carousel-indicators .active {
+    width: 2rem;
+    background-color: #fff;
+}
+
+/* Keyboard focus must stay visible on the dark pill and on any slide. */
 .herobuilder-carousel .carousel-control-prev:focus-visible,
 .herobuilder-carousel .carousel-control-next:focus-visible,
 .herobuilder-carousel .carousel-indicators [data-bs-target]:focus-visible,
 .herobuilder-carousel .hb-carousel-toggle:focus-visible {
     outline: 2px solid #fff;
-    outline-offset: -4px;
+    outline-offset: -2px;
     box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.6);
 }
 
-/* Pause/play for autoplay (WCAG 2.2.2), bottom left, above the slide layers. */
+/* Pause/play for autoplay (WCAG 2.2.2), bottom left — same backdrop as the nav pill,
+   vertically centred on it (pill: 2.25rem + 2 x 0.25rem padding). */
 .herobuilder-carousel .hb-carousel-toggle {
     position: absolute;
     left: 1rem;
-    bottom: 1rem;
+    bottom: 1.25rem;
     z-index: 5;
     width: 2.25rem;
     height: 2.25rem;
     padding: 0;
     color: #fff;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(0, 0, 0, 0.55);
     border: 0;
     border-radius: 50%;
-    opacity: 0.7;
     cursor: pointer;
-    transition: opacity 0.15s ease;
+    transition: background-color 0.15s ease;
 }
 
-.herobuilder-carousel .hb-carousel-toggle:hover,
-.herobuilder-carousel .hb-carousel-toggle:focus-visible {
-    opacity: 1;
+.herobuilder-carousel .hb-carousel-toggle:hover {
+    background-color: rgba(0, 0, 0, 0.75);
 }
 
 .herobuilder-carousel .hb-carousel-toggle[hidden] {
@@ -253,69 +323,6 @@ html .hb-stage :is(h1, h2, h3, h4, h5, h6, p) {
     border-right: 0;
     border-top: 0.45rem solid transparent;
     border-bottom: 0.45rem solid transparent;
-}
-
-.herobuilder-carousel .carousel-control-prev {
-    left: 0;
-}
-
-.herobuilder-carousel .carousel-control-next {
-    right: 0;
-}
-
-.herobuilder-carousel .carousel-control-prev-icon,
-.herobuilder-carousel .carousel-control-next-icon {
-    display: inline-block;
-    width: 2rem;
-    height: 2rem;
-    background-repeat: no-repeat;
-    background-position: 50%;
-    background-size: 100% 100%;
-}
-
-.herobuilder-carousel .carousel-control-prev-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z'/%3e%3c/svg%3e");
-}
-
-.herobuilder-carousel .carousel-control-next-icon {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23fff'%3e%3cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-}
-
-.herobuilder-carousel .carousel-indicators {
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    display: flex;
-    justify-content: center;
-    padding: 0;
-    margin-right: 15%;
-    margin-bottom: 1rem;
-    margin-left: 15%;
-    list-style: none;
-}
-
-.herobuilder-carousel .carousel-indicators [data-bs-target] {
-    box-sizing: content-box;
-    flex: 0 1 auto;
-    width: 30px;
-    height: 3px;
-    padding: 0;
-    margin-right: 3px;
-    margin-left: 3px;
-    text-indent: -999px;
-    cursor: pointer;
-    background-color: #fff;
-    background-clip: padding-box;
-    border: 0;
-    border-top: 10px solid transparent;
-    border-bottom: 10px solid transparent;
-    opacity: 0.5;
-    transition: opacity 0.6s ease;
-}
-
-.herobuilder-carousel .carousel-indicators .active {
-    opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -61,7 +61,9 @@ export** (ImageMagick), and a **live preview rendered with the real frontend CSS
 - **Accessible carousel** — localized labels (`locallang.xlf`), carousel/slide roles, a
   pause/play button whenever autoplay is on (WCAG 2.2.2), no autoplay and no AOS entrance
   animations under `prefers-reduced-motion`, autoplay holds while keyboard focus is inside,
-  visible focus rings on the controls.
+  visible focus rings on the controls. Prev · indicators · next sit together in a dark pill at
+  the bottom centre: never on the composition's text, >= 3:1 contrast on any artwork, 24 px
+  targets.
 - **CSP-ready frontend** — the scoped composition CSS goes into the `<head>` via the
   AssetCollector with `csp="true"` (hash/nonce), no inline `<style>` in the body.
 - Backend page-module **preview renderer** (slide + layer thumbnails / text chips).

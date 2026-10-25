@@ -12,14 +12,6 @@
 
     <div id="{cid}" class="carousel slide herobuilder-carousel<f:if condition="{data.slider_effect} == 'fade'"> carousel-fade hb-fx-fade</f:if><f:if condition="{data.slider_effect} == 'layers'"> carousel-fade hb-fx-layers</f:if><f:if condition="{data.slider_effect} == 'parallax'"> carousel-fade hb-fx-parallax</f:if>"<f:if condition="{data.slider_autoplay}"> data-bs-ride="carousel"</f:if> data-bs-interval="{data.slider_interval}" data-bs-pause="{f:if(condition: data.slider_pause_hover, then: 'hover', else: 'false')}" data-bs-wrap="{f:if(condition: data.slider_loop, then: 'true', else: 'false')}"<f:if condition="{count} > 1"> role="region" aria-roledescription="carousel" aria-label="{f:translate(key: '{ll}carousel.label')}"</f:if>>
 
-        <f:if condition="{data.slider_indicators} && {count} > 1">
-            <div class="carousel-indicators">
-                <f:for each="{collages}" as="slide" iteration="it">
-                    <button type="button" data-bs-target="#{cid}" data-bs-slide-to="{it.index}" class="<f:if condition="{it.isFirst}">active</f:if>" aria-current="{f:if(condition: it.isFirst, then: 'true', else: 'false')}" aria-label="{f:translate(key: '{ll}carousel.slide', arguments: {0: it.cycle, 1: count})}"></button>
-                </f:for>
-            </div>
-        </f:if>
-
         <div class="carousel-inner">
             <f:for each="{collages}" as="slide" iteration="it">
                 <div class="carousel-item<f:if condition="{it.isFirst}"> active</f:if>"<f:if condition="{count} > 1"> role="group" aria-roledescription="slide" aria-label="{f:translate(key: '{ll}carousel.slide', arguments: {0: it.cycle, 1: count})}"</f:if>>
@@ -28,15 +20,30 @@
             </f:for>
         </div>
 
-        <f:if condition="{data.slider_controls} && {count} > 1">
-            <button class="carousel-control-prev" type="button" data-bs-target="#{cid}" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">{f:translate(key: '{ll}carousel.previous')}</span>
-            </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#{cid}" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">{f:translate(key: '{ll}carousel.next')}</span>
-            </button>
+        <f:comment>prev · indicators · next as one group at the bottom (see hero.css): the controls
+        never sit on the composition's text and stay readable on light artwork.</f:comment>
+        <f:if condition="{count} > 1 && ({data.slider_controls} || {data.slider_indicators})">
+            <div class="hb-carousel-nav">
+                <f:if condition="{data.slider_controls}">
+                    <button class="carousel-control-prev" type="button" data-bs-target="#{cid}" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">{f:translate(key: '{ll}carousel.previous')}</span>
+                    </button>
+                </f:if>
+                <f:if condition="{data.slider_indicators}">
+                    <div class="carousel-indicators">
+                        <f:for each="{collages}" as="slide" iteration="it">
+                            <button type="button" data-bs-target="#{cid}" data-bs-slide-to="{it.index}" class="<f:if condition="{it.isFirst}">active</f:if>" aria-current="{f:if(condition: it.isFirst, then: 'true', else: 'false')}" aria-label="{f:translate(key: '{ll}carousel.slide', arguments: {0: it.cycle, 1: count})}"></button>
+                        </f:for>
+                    </div>
+                </f:if>
+                <f:if condition="{data.slider_controls}">
+                    <button class="carousel-control-next" type="button" data-bs-target="#{cid}" data-bs-slide="next">
+                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        <span class="visually-hidden">{f:translate(key: '{ll}carousel.next')}</span>
+                    </button>
+                </f:if>
+            </div>
         </f:if>
 
         <f:comment>WCAG 2.2.2: anything that moves on its own must be pausable. Hidden until hero.js
