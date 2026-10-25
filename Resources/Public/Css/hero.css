@@ -44,6 +44,36 @@
     line-height: normal;
 }
 
+/* A text layer's HTML element (h1–h6, p) is semantics only — the look comes from the layer's
+   classes. Reset what browsers and Bootstrap give headings/paragraphs (size, weight, margin, …).
+   `html … :is(h1, …)` weighs 0,0,2: above Bootstrap's element rules (0,0,1), below any class
+   (0,1,0), so `display-*`, `fw-*` or a site's own layer classes still win.
+   .hb-layer-tag is the element inside a linked text layer (classes sit on the <a>). */
+html :where(.hb-layer-text):is(h1, h2, h3, h4, h5, h6, p),
+html .hb-layer-tag {
+    margin: 0;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    letter-spacing: inherit;
+    text-transform: inherit;
+    color: inherit;
+}
+
+html .hb-layer-tag {
+    line-height: inherit;
+}
+
+/* Box properties need more weight: themes style headings in context, e.g. t3bootstrap's
+   `.hero h1, .hero p { padding; background-color }` (0,1,1) when the CE sits in the hero area.
+   0,1,2 beats such rules; the text scrim is emitted at 0,2,0 (CompositionProcessor) and wins,
+   and Bootstrap's padding/background utilities are !important anyway. */
+html .hb-stage :is(h1, h2, h3, h4, h5, h6, p) {
+    padding: 0;
+    background-color: transparent;
+}
+
 /* Button layers fill their placed box; the label is centred and btn classes style it. */
 .hb-layer-button {
     box-sizing: border-box;

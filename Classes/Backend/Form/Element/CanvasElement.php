@@ -359,7 +359,8 @@ class CanvasElement extends AbstractFormElement
     private function jsLabels(): array
     {
         $keys = [
-            'panel.text', 'panel.classes', 'panel.animation', 'panel.delay', 'panel.duration',
+            'panel.text', 'panel.tag', 'tag.div', 'tag.p', 'tag.h1', 'tag.h2', 'tag.h3', 'tag.h4', 'tag.h5', 'tag.h6',
+            'panel.classes', 'panel.animation', 'panel.delay', 'panel.duration',
             'panel.fit', 'panel.visible', 'panel.deleteLayer', 'panel.noClasses', 'panel.animNone',
             'fit.fill', 'fit.cover', 'fit.contain', 'list.empty', 'list.hidden', 'prompt.fileUid',
             'ctx.align', 'ctx.alignLeft', 'ctx.alignCenterH', 'ctx.alignRight', 'ctx.alignTop',

@@ -12,6 +12,10 @@ const AOS_EFFECTS = [
 // Labels are resolved via i18n (this.t("fit.<value>")) at render time.
 const FIT_MODES = ["fill", "cover", "contain"];
 
+// HTML element of a text layer. Purely semantic: hero.css resets the heading/paragraph styles,
+// the look still comes from the classes. Mirrors CompositionProcessor::TEXT_TAGS.
+const TEXT_TAGS = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6"];
+
 // Duration of the breakpoint morph (stage box + layer geometry). Must stay in sync with the
 // `--hb-bp-anim` transition in backend.css — the reconciling render() runs once it is over.
 const BP_ANIM_MS = 480;
@@ -1823,6 +1827,10 @@ export default class HerobuilderCanvas {
       '<div class="herobuilder-tabpane" data-tab="style">' +
       '<div class="herobuilder-panel-row hb-row-text"><label>' + escapeHtml(this.t("panel.text", "Text")) + "</label>" +
       '<textarea class="hb-text form-control form-control-sm" rows="2"></textarea></div>' +
+      '<div class="herobuilder-panel-row hb-row-tag"><label>' + escapeHtml(this.t("panel.tag", "HTML element")) + "</label>" +
+      '<select class="hb-tag form-select form-select-sm">' +
+      TEXT_TAGS.map((t) => '<option value="' + t + '">' + escapeHtml(this.t("tag." + t, t)) + "</option>").join("") +
+      "</select></div>" +
       '<div class="herobuilder-panel-row hb-row-link"><label>' + escapeHtml(this.t("panel.link", "Link")) + "</label>" +
       '<div class="hb-link"><code class="hb-link-value">—</code>' +
       '<div class="hb-link-btns">' +
@@ -1859,6 +1867,7 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-anim-duration").addEventListener("input", (e) => this.setAnim("duration", e.target.value));
     panel.querySelector(".hb-fit").addEventListener("change", (e) => this.setFit(e.target.value));
     panel.querySelector(".hb-text").addEventListener("input", (e) => this.setText(e.target.value));
+    panel.querySelector(".hb-tag").addEventListener("change", (e) => this.setTag(e.target.value));
     panel.querySelector(".hb-overlay").addEventListener("input", (e) => this.setOverlay(e.target.value));
     panel.querySelectorAll(".hb-class-chip").forEach((chip) =>
       chip.addEventListener("click", () => {
@@ -1946,6 +1955,8 @@ export default class HerobuilderCanvas {
     const p = this.placementFor(this.selected) || {};
     this.panel.querySelector(".hb-row-text").hidden = !isText;
     this.panel.querySelector(".hb-row-overlay").hidden = type !== "text";
+    this.panel.querySelector(".hb-row-tag").hidden = type !== "text";
+    this.panel.querySelector(".hb-tag").value = TEXT_TAGS.includes(this.selected.tag) ? this.selected.tag : "div";
     this.panel.querySelector(".hb-row-fit").hidden = isText;
     this.panel.querySelector(".hb-text").value = this.selected.text || "";
     // Link row: shown for all layer types (any layer may carry a TYPO3 link).
@@ -2038,6 +2049,14 @@ export default class HerobuilderCanvas {
       this.selected._el.textContent = value || "Text";
     }
     this.renderLayerList();
+    this.save();
+  }
+
+  setTag(value) {
+    if (!this.selected) {
+      return;
+    }
+    this.selected.tag = TEXT_TAGS.includes(value) ? value : "div";
     this.save();
   }
 
@@ -2511,6 +2530,8 @@ export default class HerobuilderCanvas {
       focusX: l.focusX ?? 50,
       focusY: l.focusY ?? 50,
       overlay: l.overlay ?? 0,
+      // Only text layers carry an element; undefined drops out of the JSON for the others.
+      tag: l.type === "text" && TEXT_TAGS.includes(l.tag) && l.tag !== "div" ? l.tag : undefined,
       locked: !!l.locked,
       flipH: !!l.flipH,
       flipV: !!l.flipV,

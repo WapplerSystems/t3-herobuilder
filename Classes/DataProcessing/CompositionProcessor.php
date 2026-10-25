@@ -28,6 +28,12 @@ final class CompositionProcessor implements DataProcessorInterface
      */
     private const SRCSET_WIDTHS = [480, 800, 1200, 1600, 2000, 2560, 3200];
 
+    /**
+     * HTML elements a text layer may be rendered as (whitelist; anything else becomes a div).
+     * Purely semantic — hero.css resets the element's own styles, the look comes from classes.
+     */
+    private const TEXT_TAGS = ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
+
     /** Width the plain `src` fallback is rendered at (what the layer used before srcset). */
     private const FALLBACK_WIDTH = 1600;
 
@@ -129,7 +135,8 @@ final class CompositionProcessor implements DataProcessorInterface
                 $overlay = $this->clampPercent($layer['overlay'] ?? 0);
                 if ($overlay > 0) {
                     $alpha = rtrim(rtrim(number_format($overlay / 100, 3, '.', ''), '0'), '.');
-                    $css .= '.' . $cssClass . '{background-color:rgba(0,0,0,' . $alpha . ');padding:.35em .6em;}';
+                    // Scoped (0,2,0) so it outweighs hero.css's box reset for heading/paragraph layers.
+                    $css .= '.' . $scope . ' .' . $cssClass . '{background-color:rgba(0,0,0,' . $alpha . ');padding:.35em .6em;}';
                 }
             }
             $layers[] = [
@@ -139,6 +146,7 @@ final class CompositionProcessor implements DataProcessorInterface
                 'cssClass' => $cssClass,
                 'userClass' => $this->filterClasses((string)($layer['cssClass'] ?? ''), $allowedClasses),
                 'text' => $isText ? (string)($layer['text'] ?? '') : '',
+                'tag' => $type === 'text' && in_array($layer['tag'] ?? null, self::TEXT_TAGS, true) ? $layer['tag'] : 'div',
                 'file' => $file,
                 'alt' => $isText ? '' : (string)($layer['alt'] ?? ($file?->getProperty('alternative') ?? '')),
                 'link' => (string)($layer['link'] ?? ''),

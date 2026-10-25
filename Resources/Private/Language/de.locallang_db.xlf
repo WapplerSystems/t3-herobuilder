@@ -129,6 +129,15 @@
             <trans-unit id="panel.alignV"><source>Center vertically</source><target>Vertikal zentrieren</target></trans-unit>
             <trans-unit id="panel.geometry"><source>Position / size (%)</source><target>Position / Größe (%)</target></trans-unit>
             <trans-unit id="panel.focus"><source>Focus point (cover/contain)</source><target>Fokuspunkt (Cover/Contain)</target></trans-unit>
+            <trans-unit id="panel.tag"><source>HTML element</source><target>HTML-Element</target></trans-unit>
+            <trans-unit id="tag.div"><source>div (no meaning)</source><target>div (ohne Bedeutung)</target></trans-unit>
+            <trans-unit id="tag.p"><source>p (paragraph)</source><target>p (Absatz)</target></trans-unit>
+            <trans-unit id="tag.h1"><source>h1 (main heading — once per page)</source><target>h1 (Hauptüberschrift – einmal pro Seite)</target></trans-unit>
+            <trans-unit id="tag.h2"><source>h2 (heading)</source><target>h2 (Überschrift)</target></trans-unit>
+            <trans-unit id="tag.h3"><source>h3 (sub-heading)</source><target>h3 (Unterüberschrift)</target></trans-unit>
+            <trans-unit id="tag.h4"><source>h4</source><target>h4</target></trans-unit>
+            <trans-unit id="tag.h5"><source>h5</source><target>h5</target></trans-unit>
+            <trans-unit id="tag.h6"><source>h6</source><target>h6</target></trans-unit>
             <trans-unit id="panel.overlay"><source>Darkening behind text (%)</source><target>Abdunkelung hinter Text (%)</target></trans-unit>
             <trans-unit id="list.reorder"><source>Drag to reorder</source><target>Zum Umsortieren ziehen</target></trans-unit>
             <trans-unit id="list.toggleVisible"><source>Toggle visibility</source><target>Sichtbarkeit umschalten</target></trans-unit>

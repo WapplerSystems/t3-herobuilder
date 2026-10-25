@@ -5,10 +5,12 @@
         <f:variable name="tclass">hb-layer {f:if(condition: '{layer.type} == \'button\'', then: 'hb-layer-button', else: 'hb-layer-text')} {layer.cssClass} {layer.stateClass} {layer.userClass}</f:variable>
         <f:if condition="{layer.link}">
             <f:then>
-                <f:link.typolink parameter="{layer.link}" class="{tclass}" additionalAttributes="{data-aos: '{layer.anim.effect}', data-aos-delay: '{layer.anim.delay}', data-aos-duration: '{layer.anim.duration}'}">{layer.text}</f:link.typolink>
+                <f:comment>A heading inside a link: the classes stay on the <a>, the element inherits them.</f:comment>
+                <f:link.typolink parameter="{layer.link}" class="{tclass}" additionalAttributes="{data-aos: '{layer.anim.effect}', data-aos-delay: '{layer.anim.delay}', data-aos-duration: '{layer.anim.duration}'}"><f:if condition="{layer.tag} == 'div'"><f:then>{layer.text}</f:then><f:else><{layer.tag} class="hb-layer-tag">{layer.text}</{layer.tag}></f:else></f:if></f:link.typolink>
             </f:then>
             <f:else>
-                <div class="{tclass}" data-aos="{layer.anim.effect}" data-aos-delay="{layer.anim.delay}" data-aos-duration="{layer.anim.duration}">{layer.text}</div>
+                <f:comment>layer.tag is whitelisted in CompositionProcessor::TEXT_TAGS.</f:comment>
+                <{layer.tag} class="{tclass}" data-aos="{layer.anim.effect}" data-aos-delay="{layer.anim.delay}" data-aos-duration="{layer.anim.duration}">{layer.text}</{layer.tag}>
             </f:else>
         </f:if>
     </f:then>

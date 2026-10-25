@@ -66,6 +66,8 @@ export** (ImageMagick), and a **live preview rendered with the real frontend CSS
 - **Image layers** from FAL (native TYPO3 file browser via the sibling `assets` field → real
   `sys_file_reference`, clean reference index).
 - **Text layers** — plain text, styled exclusively via predefined classes (safe, auto-escaped).
+  The HTML element is selectable (`div`, `p`, `h1`–`h6`) for semantics only: hero.css resets the
+  element's own styles, so a heading looks exactly like the same layer as a `div`.
 - **Button layers** — text + **TYPO3 link** (page/url/file/mail/…) via the native Link Browser,
   styled with `btn` classes; rendered as a `<a>` typolink on the frontend.
 - **Per-breakpoint geometry** — x / y / width / height (%), rotation, z-index, visibility.
@@ -202,6 +204,7 @@ slide). Each collage stores its layer geometry in `composition` (JSON):
 
 Field notes:
 - `type` — `"image"` (default), `"text"` or `"button"`.
+- `tag` — HTML element of a text layer: `p`, `h1`–`h6` (whitelisted; absent = `div`).
 - `text` — label (text/button layers). `link` — TYPO3 link (`t3://…`), works on any layer;
   a button is rendered as an `<a>` typolink.
 - `fit` — `fill` | `cover` | `contain` (image layers).
