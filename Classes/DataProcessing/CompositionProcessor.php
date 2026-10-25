@@ -6,8 +6,10 @@ namespace WapplerSystems\Herobuilder\DataProcessing;
 
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\ContentObject\DataProcessorInterface;
 use WapplerSystems\Herobuilder\Domain\Composition;
@@ -20,12 +22,22 @@ use WapplerSystems\Herobuilder\Domain\Composition;
  */
 final class CompositionProcessor implements DataProcessorInterface
 {
+    /**
+     * Candidate widths (px) for an image layer's srcset, capped at the (cropped) source width.
+     * Reaches 3200 so a full-bleed background stays sharp on a 1600px-wide 2x screen.
+     */
+    private const SRCSET_WIDTHS = [480, 800, 1200, 1600, 2000, 2560, 3200];
+
+    /** Width the plain `src` fallback is rendered at (what the layer used before srcset). */
+    private const FALLBACK_WIDTH = 1600;
+
     /** @var array<int, string> Stage mode per content element uid (one lookup per carousel). */
     private array $stageModes = [];
 
     public function __construct(
         private readonly ResourceFactory $resourceFactory,
         private readonly ConnectionPool $connectionPool,
+        private readonly ImageService $imageService,
     ) {}
 
     public function process(
@@ -85,6 +97,7 @@ final class CompositionProcessor implements DataProcessorInterface
             $cssClass = $scope . '-l' . $index;
             $css .= $this->layerCss('.' . $cssClass, (array)($layer['placements'] ?? []));
             $crop = '';
+            $image = null;
             if (!$isText) {
                 $imgDecl = '';
                 $fit = $this->normalizeFit($layer['fit'] ?? null);
@@ -110,6 +123,7 @@ final class CompositionProcessor implements DataProcessorInterface
                 }
                 // Crop → CropVariants JSON for f:image, which renders a physically smaller derivative.
                 $crop = $this->cropString($layer['crop'] ?? null);
+                $image = $this->responsiveImage($file, $crop, (array)($layer['placements'] ?? []), $fit, $stages);
             } else {
                 // Darkening scrim behind text for readability over busy backgrounds.
                 $overlay = $this->clampPercent($layer['overlay'] ?? 0);
@@ -129,6 +143,7 @@ final class CompositionProcessor implements DataProcessorInterface
                 'alt' => $isText ? '' : (string)($layer['alt'] ?? ($file?->getProperty('alternative') ?? '')),
                 'link' => (string)($layer['link'] ?? ''),
                 'crop' => $crop,
+                'image' => $image,
                 'anim' => $layer['anim'] ?? [],
             ];
         }
@@ -155,6 +170,126 @@ final class CompositionProcessor implements DataProcessorInterface
             'layers' => $layers,
             'stages' => $stages,
         ];
+    }
+
+    /**
+     * Processed derivatives of an image layer as `src` / `srcset` / `sizes`, so a phone does not
+     * load the desktop file and a wide screen does not get an upscaled 1600px one.
+     *
+     * `sizes` states the width the image is actually painted at per breakpoint. The stage spans
+     * the viewport, so a layer box is `w` vw wide; with `cover` the image overflows the box
+     * whenever the box is flatter than the image, and is then as wide as box height × aspect.
+     * With a fixed stage height that height is a px value, hence `max(…vw, …px)`.
+     *
+     * @param array<string, array<string, mixed>> $placements
+     * @param array<string, array{ratio: string, ratioCss: string, width: int, height?: string}> $stages
+     * @return array{src: string, srcset: string, sizes: string, width: int, height: int}|null
+     */
+    private function responsiveImage(File $file, string $crop, array $placements, ?string $fit, array $stages): ?array
+    {
+        $cropArea = CropVariantCollection::create($crop)->getCropArea('default');
+        $cropArea = $cropArea->isEmpty() ? null : $cropArea->makeAbsoluteBasedOnFile($file);
+        $sourceWidth = (int)round($cropArea?->getWidth() ?? (float)$file->getProperty('width'));
+        $sourceHeight = (int)round($cropArea?->getHeight() ?? (float)$file->getProperty('height'));
+        if ($sourceWidth <= 0 || $sourceHeight <= 0) {
+            return null;
+        }
+
+        try {
+            $candidates = [];
+            foreach (self::SRCSET_WIDTHS as $width) {
+                if ($width >= $sourceWidth) {
+                    break;
+                }
+                $candidates[] = $width;
+            }
+            // The full source width closes the list, so the largest screens get every pixel there is.
+            $candidates[] = $sourceWidth;
+
+            $srcset = [];
+            $fallback = null;
+            foreach ($candidates as $width) {
+                $processed = $this->imageService->applyProcessingInstructions($file, [
+                    'width' => $width,
+                    'crop' => $cropArea,
+                ]);
+                $uri = $this->imageService->getImageUri($processed);
+                if ($uri === '') {
+                    return null;
+                }
+                $srcset[] = $uri . ' ' . (int)$processed->getProperty('width') . 'w';
+                if ($fallback === null || $width <= self::FALLBACK_WIDTH) {
+                    $fallback = ['uri' => $uri, 'width' => (int)$processed->getProperty('width'), 'height' => (int)$processed->getProperty('height')];
+                }
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return [
+            'src' => $fallback['uri'],
+            'srcset' => implode(', ', $srcset),
+            'sizes' => $this->sizes($placements, $fit, $sourceWidth / $sourceHeight, $stages),
+            'width' => $fallback['width'],
+            'height' => $fallback['height'],
+        ];
+    }
+
+    /**
+     * @param array<string, array<string, mixed>> $placements
+     * @param array<string, array{ratio: string, width: int, height?: string}> $stages
+     */
+    private function sizes(array $placements, ?string $fit, float $aspect, array $stages): string
+    {
+        if ($placements === []) {
+            return '100vw';
+        }
+        // Same cascade as layerCss(): a breakpoint without its own placement uses the primary one.
+        $primaryBp = isset($placements['lg']) ? 'lg' : (string)array_key_first($placements);
+        $entries = [];
+        foreach (array_reverse(Composition::BREAKPOINTS) as $bp) {
+            $p = $placements[$bp] ?? $placements[$primaryBp];
+            $size = $this->paintedWidth($p, $fit, $aspect, $stages[$bp] ?? null);
+            if (preg_match('/min-width:\s*([\d.]+px)/', Composition::BREAKPOINT_MEDIA[$bp], $m)) {
+                $entries[] = '(min-width: ' . $m[1] . ') ' . $size;
+            } else {
+                $entries[] = $size;
+            }
+        }
+        return implode(', ', $entries);
+    }
+
+    /**
+     * @param array<string, mixed> $p
+     * @param array{ratio: string, height?: string}|null $stage
+     */
+    private function paintedWidth(array $p, ?string $fit, float $aspect, ?array $stage): string
+    {
+        if (($p['visible'] ?? true) === false) {
+            return '1px';
+        }
+        $w = max(0.0, (float)($p['w'] ?? 40));
+        $h = max(0.0, (float)($p['h'] ?? 0));
+        $vw = $this->num($w);
+        if ($fit !== 'cover' || $h <= 0 || $stage === null) {
+            return $vw . 'vw';
+        }
+        if (isset($stage['height'])) {
+            $px = (float)Composition::lengthToPx($stage['height']) * $h / 100 * $aspect;
+            return 'max(' . $vw . 'vw, ' . (int)ceil($px) . 'px)';
+        }
+        // Stage height in vw = 100 × H / W of the ratio.
+        $parts = array_map('floatval', explode(':', $stage['ratio']));
+        if (($parts[0] ?? 0) <= 0 || ($parts[1] ?? 0) <= 0) {
+            return $vw . 'vw';
+        }
+        $coverVw = $h / 100 * (100 * $parts[1] / $parts[0]) * $aspect;
+        return $this->num(max($w, $coverVw)) . 'vw';
+    }
+
+    private function num(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
     }
 
     /**
