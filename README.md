@@ -55,7 +55,7 @@ export** (ImageMagick), and a **live preview rendered with the real frontend CSS
   (autoplay, interval, loop, prev/next controls, indicators, pause-on-hover, slide/fade transition).
 - Per-breakpoint **stage aspect ratios** (frontend) via scoped, media-query CSS — or a
   **fixed stage height** per breakpoint, switchable per content element.
-- **Responsive images** — every image layer gets a `srcset` (480–3200px, capped at the cropped
+- **Responsive images** — every image layer gets a WebP `srcset` (480–3200px, capped at the cropped
   source) and a `sizes` computed from its per-breakpoint geometry, including the overflow of
   `cover` (e.g. a wide background on a tall phone stage is painted much wider than the screen).
 - **Accessible carousel** — localized labels (`locallang.xlf`), carousel/slide roles, a
@@ -302,6 +302,19 @@ regardless of pid); point this at a sysfolder. Falls back to the record’s pid 
 ```tsconfig
 tx_herobuilder.templatePid = 123
 ```
+
+### Image format (page TSconfig)
+
+Image layer derivatives are written as **WebP** by default — several times smaller than PNG
+cut-outs, with their transparency kept. SVG and GIF sources are never converted.
+
+```tsconfig
+tx_herobuilder.imageFormat = webp     # default; "original" keeps the source format
+```
+
+The format must be listed in `$GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext']` and writable
+by the configured processor — otherwise the source format is used. (GraphicsMagick usually reads
+AVIF but cannot write it.)
 
 ### Live-preview stylesheets (page TSconfig)
 

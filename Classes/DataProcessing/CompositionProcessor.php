@@ -34,6 +34,15 @@ final class CompositionProcessor implements DataProcessorInterface
      */
     private const TEXT_TAGS = ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
 
+    /** Output format of the image derivatives unless page TSconfig `tx_herobuilder.imageFormat` says otherwise. */
+    private const DEFAULT_IMAGE_FORMAT = 'webp';
+
+    /**
+     * Source formats that are never converted: SVG is vector (rasterising only loses), GIF may be
+     * animated (a WebP derivative would keep just the first frame).
+     */
+    private const KEEP_FORMAT = ['svg', 'gif'];
+
     /** Width the plain `src` fallback is rendered at (what the layer used before srcset). */
     private const FALLBACK_WIDTH = 1600;
 
@@ -92,6 +101,7 @@ final class CompositionProcessor implements DataProcessorInterface
         $layers = [];
         $css = $this->stageCss($scope, $stages);
         $allowedClasses = $this->allowedClasses((int)($row['pid'] ?? 0));
+        $imageFormat = $this->imageFormat($pid);
 
         foreach ($composition->layers as $index => $layer) {
             $type = $layer['type'] ?? 'image';
@@ -129,7 +139,7 @@ final class CompositionProcessor implements DataProcessorInterface
                 }
                 // Crop → CropVariants JSON for f:image, which renders a physically smaller derivative.
                 $crop = $this->cropString($layer['crop'] ?? null);
-                $image = $this->responsiveImage($file, $crop, (array)($layer['placements'] ?? []), $fit, $stages);
+                $image = $this->responsiveImage($file, $crop, (array)($layer['placements'] ?? []), $fit, $stages, $imageFormat);
             } else {
                 // Darkening scrim behind text for readability over busy backgrounds.
                 $overlay = $this->clampPercent($layer['overlay'] ?? 0);
@@ -189,12 +199,19 @@ final class CompositionProcessor implements DataProcessorInterface
      * whenever the box is flatter than the image, and is then as wide as box height × aspect.
      * With a fixed stage height that height is a px value, hence `max(…vw, …px)`.
      *
+     * The derivatives are written in $imageFormat (WebP by default) — for the PNG cut-outs that
+     * hero compositions are made of this is several times smaller, and WebP keeps their alpha.
+     *
      * @param array<string, array<string, mixed>> $placements
      * @param array<string, array{ratio: string, ratioCss: string, width: int, height?: string}> $stages
+     * @param string $imageFormat Target file extension, '' = keep the source format
      * @return array{src: string, srcset: string, sizes: string, width: int, height: int}|null
      */
-    private function responsiveImage(File $file, string $crop, array $placements, ?string $fit, array $stages): ?array
+    private function responsiveImage(File $file, string $crop, array $placements, ?string $fit, array $stages, string $imageFormat = ''): ?array
     {
+        $fileExtension = $imageFormat !== '' && !in_array(strtolower($file->getExtension()), self::KEEP_FORMAT, true)
+            ? $imageFormat
+            : '';
         $cropArea = CropVariantCollection::create($crop)->getCropArea('default');
         $cropArea = $cropArea->isEmpty() ? null : $cropArea->makeAbsoluteBasedOnFile($file);
         $sourceWidth = (int)round($cropArea?->getWidth() ?? (float)$file->getProperty('width'));
@@ -217,10 +234,11 @@ final class CompositionProcessor implements DataProcessorInterface
             $srcset = [];
             $fallback = null;
             foreach ($candidates as $width) {
-                $processed = $this->imageService->applyProcessingInstructions($file, [
-                    'width' => $width,
-                    'crop' => $cropArea,
-                ]);
+                $instructions = ['width' => $width, 'crop' => $cropArea];
+                if ($fileExtension !== '') {
+                    $instructions['fileExtension'] = $fileExtension;
+                }
+                $processed = $this->imageService->applyProcessingInstructions($file, $instructions);
                 $uri = $this->imageService->getImageUri($processed);
                 if ($uri === '') {
                     return null;
@@ -417,6 +435,22 @@ final class CompositionProcessor implements DataProcessorInterface
     {
         $fit = is_string($fit) ? strtolower(trim($fit)) : '';
         return in_array($fit, ['cover', 'contain', 'fill', 'none', 'scale-down'], true) ? $fit : null;
+    }
+
+    /**
+     * Derivative format from page TSconfig `tx_herobuilder.imageFormat`: `webp` (default), another
+     * extension the image processor can write, or `original` to keep the source format. A value
+     * missing from $GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] falls back to the source
+     * format — TYPO3 would refuse to process it.
+     */
+    private function imageFormat(int $pid): string
+    {
+        $format = strtolower(trim((string)(BackendUtility::getPagesTSconfig($pid)['tx_herobuilder.']['imageFormat'] ?? self::DEFAULT_IMAGE_FORMAT)));
+        if ($format === '' || $format === 'original') {
+            return '';
+        }
+        $allowed = array_map('trim', explode(',', strtolower((string)($GLOBALS['TYPO3_CONF_VARS']['GFX']['imagefile_ext'] ?? ''))));
+        return in_array($format, $allowed, true) ? $format : '';
     }
 
     /**
