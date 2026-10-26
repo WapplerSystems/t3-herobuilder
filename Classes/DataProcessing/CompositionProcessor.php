@@ -137,9 +137,24 @@ final class CompositionProcessor implements DataProcessorInterface
                 if ($imgDecl !== '') {
                     $css .= '.' . $cssClass . ' .hb-layer-img{' . $imgDecl . '}';
                 }
-                // Crop → CropVariants JSON for f:image, which renders a physically smaller derivative.
+                $placements = (array)($layer['placements'] ?? []);
+                $framing = $this->framingPerBreakpoint($layer, $placements);
+                // Art direction: once any breakpoint has its own focus, every breakpoint states its
+                // effective one — media rules overlap (xxl also matches xxxl), so leaving one out
+                // would let it inherit a neighbour's focus instead of the layer's.
+                if ($this->hasArtDirection($placements)) {
+                    foreach (Composition::BREAKPOINTS as $bp) {
+                        [$fx, $fy] = $framing[$bp]['focus'];
+                        $css .= '@media ' . Composition::BREAKPOINT_MEDIA[$bp] . '{.' . $cssClass . ' .hb-layer-img{object-position:'
+                            . $this->pct($fx) . ' ' . $this->pct($fy) . ';}}';
+                    }
+                }
+                // Crop → CropVariants JSON; the derivatives are physically cropped (smaller files).
                 $crop = $this->cropString($layer['crop'] ?? null);
-                $image = $this->responsiveImage($file, $crop, (array)($layer['placements'] ?? []), $fit, $stages, $imageFormat);
+                $image = $this->responsiveImage($file, $crop, $placements, $fit, $stages, $imageFormat);
+                if ($image !== null) {
+                    $image['sources'] = $this->artSources($file, $crop, $framing, $placements, $fit, $stages, $imageFormat);
+                }
             } else {
                 // Darkening scrim behind text for readability over busy backgrounds.
                 $overlay = $this->clampPercent($layer['overlay'] ?? 0);
@@ -316,6 +331,76 @@ final class CompositionProcessor implements DataProcessorInterface
     private function num(float $value): string
     {
         return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+    }
+
+    /**
+     * Effective framing per breakpoint: crop string + focus. A breakpoint takes its placement's
+     * own `image` ({crop, focusX, focusY}) when set, otherwise the layer's. A breakpoint without a
+     * placement shows the primary placement (same cascade as layerCss()), so it frames like that one.
+     *
+     * @param array<string, mixed> $layer
+     * @param array<string, array<string, mixed>> $placements
+     * @return array<string, array{crop: string, focus: array{0: float, 1: float}}>
+     */
+    private function framingPerBreakpoint(array $layer, array $placements): array
+    {
+        $primaryBp = isset($placements['lg']) ? 'lg' : (string)array_key_first($placements);
+        $out = [];
+        foreach (Composition::BREAKPOINTS as $bp) {
+            $p = $placements[$bp] ?? ($placements[$primaryBp] ?? []);
+            $src = is_array($p['image'] ?? null) ? $p['image'] : $layer;
+            $out[$bp] = [
+                'crop' => $this->cropString($src['crop'] ?? null),
+                'focus' => [$this->clampPercent($src['focusX'] ?? 50), $this->clampPercent($src['focusY'] ?? 50)],
+            ];
+        }
+        return $out;
+    }
+
+    /** @param array<string, array<string, mixed>> $placements */
+    private function hasArtDirection(array $placements): bool
+    {
+        foreach ($placements as $p) {
+            if (is_array($p['image'] ?? null)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * <source> entries for breakpoints whose crop differs from the layer's: each gets its own
+     * physically cropped srcset, so a phone downloads the phone framing only — not the desktop
+     * image it would mostly crop away. Ordered large → small with exclusive media ranges (the
+     * first matching <source> wins); breakpoints framed like the layer fall through to the <img>.
+     *
+     * @param array<string, array{crop: string, focus: array{0: float, 1: float}}> $framing
+     * @param array<string, array<string, mixed>> $placements
+     * @param array<string, array{ratio: string, ratioCss: string, width: int, height?: string}> $stages
+     * @return list<array{media: string, srcset: string, sizes: string, width: int, height: int}>
+     */
+    private function artSources(File $file, string $baseCrop, array $framing, array $placements, ?string $fit, array $stages, string $imageFormat): array
+    {
+        $sources = [];
+        $cache = [];
+        foreach (array_reverse(Composition::BREAKPOINTS) as $bp) {
+            $crop = $framing[$bp]['crop'];
+            if ($crop === $baseCrop) {
+                continue;
+            }
+            $cache[$crop] ??= $this->responsiveImage($file, $crop, $placements, $fit, $stages, $imageFormat);
+            if ($cache[$crop] === null) {
+                continue;
+            }
+            $sources[] = [
+                'media' => Composition::BREAKPOINT_MEDIA_EXCLUSIVE[$bp],
+                'srcset' => $cache[$crop]['srcset'],
+                'sizes' => $cache[$crop]['sizes'],
+                'width' => $cache[$crop]['width'],
+                'height' => $cache[$crop]['height'],
+            ];
+        }
+        return $sources;
     }
 
     /**

@@ -376,7 +376,7 @@ class CanvasElement extends AbstractFormElement
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
             'draft.available', 'draft.restore', 'draft.discard',
             'panel.imageEdit', 'panel.flipH', 'panel.flipV', 'panel.crop', 'panel.cropReset',
-            'panel.autoTrim', 'trim.none', 'trim.already',
+            'panel.autoTrim', 'trim.none', 'trim.already', 'panel.artDirection',
             'crop.hint', 'crop.cancel', 'crop.reset', 'crop.apply',
             'sidebar.collapse', 'sidebar.expand',
             'button.magnet', 'magnet.hint', 'magnet.on', 'magnet.off', 'magnet.suspended', 'magnet.altHint',

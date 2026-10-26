@@ -16,6 +16,12 @@ const FIT_MODES = ["fill", "cover", "contain"];
 // the look still comes from the classes. Mirrors CompositionProcessor::TEXT_TAGS.
 const TEXT_TAGS = ["div", "p", "h1", "h2", "h3", "h4", "h5", "h6"];
 
+// A placement without the breakpoint-specific image framing (`image: {crop, focusX, focusY}`).
+const geometryOf = (p) => {
+  const { image, ...geometry } = p;
+  return { ...geometry };
+};
+
 // Height the live preview is fitted into until the editor resizes the panel.
 const PREVIEW_MAX_HEIGHT = 420;
 
@@ -681,7 +687,7 @@ export default class HerobuilderCanvas {
       const primaryBp = layer.placements.lg ? "lg" : Object.keys(layer.placements)[0];
       const src = primaryBp ? layer.placements[primaryBp] : null;
       layer.placements[this.activeBp] = src
-        ? { ...src }
+        ? geometryOf(src)
         : { x: 20, y: 20, w: 40, h: 25, rot: 0, z: 1, visible: true };
     }
     return layer.placements[this.activeBp];
@@ -906,7 +912,7 @@ export default class HerobuilderCanvas {
       const sx = layer.flipH ? -1 : 1;
       const sy = layer.flipV ? -1 : 1;
       img.style.transform = sx !== 1 || sy !== 1 ? "scale(" + sx + "," + sy + ")" : "";
-      const crop = layer.crop;
+      const crop = this.effCrop(layer);
       if (crop) {
         // Show only the crop region. The image is enlarged + offset so the region maps 1:1 to
         // its container, which is sized to the cropped aspect ratio and fitted into the layer
@@ -958,7 +964,8 @@ export default class HerobuilderCanvas {
       } else {
         img.style.width = "100%";
         img.style.objectFit = layer.fit || "fill";
-        img.style.objectPosition = (layer.focusX ?? 50) + "% " + (layer.focusY ?? 50) + "%";
+        const focus = this.effFocus(layer);
+        img.style.objectPosition = focus.x + "% " + focus.y + "%";
         // With an explicit height the image fills the box (object-fit governs); without one the
         // box follows the image's natural aspect ratio (height auto).
         img.style.height = p.h ? "100%" : "auto";
@@ -1187,7 +1194,7 @@ export default class HerobuilderCanvas {
     this.save();
     // A cropped layer's preview fits the crop region into the box (object-fit), which depends
     // on the box aspect — re-render so it updates after a resize.
-    if (layer.crop && p.h) {
+    if (this.effCrop(layer) && p.h) {
       this.render();
       this.select(layer);
     }
@@ -1279,7 +1286,12 @@ export default class HerobuilderCanvas {
       if (src) {
         this.breakpoints.forEach((bp) => {
           if (bp !== this.activeBp) {
-            layer.placements[bp] = { ...src };
+            // Position only: a breakpoint keeps its own image framing (crop/focus).
+            const own = layer.placements[bp] && layer.placements[bp].image;
+            layer.placements[bp] = geometryOf(src);
+            if (own) {
+              layer.placements[bp].image = own;
+            }
           }
         });
       }
@@ -1842,7 +1854,9 @@ export default class HerobuilderCanvas {
       '<button type="button" class="hb-crop btn btn-sm btn-default">' + ICON.crop + " " + escapeHtml(this.t("panel.crop", "Crop")) + "</button>" +
       '<button type="button" class="hb-autotrim btn btn-sm btn-default">' + escapeHtml(this.t("panel.autoTrim", "Auto-trim")) + "</button>" +
       '<button type="button" class="hb-crop-reset btn btn-sm btn-default" hidden>' + escapeHtml(this.t("panel.cropReset", "Reset crop")) + "</button>" +
-      "</div></div>" +
+      "</div>" +
+      '<label class="hb-art-bp-label"><input type="checkbox" class="hb-art-bp"> <span class="hb-art-bp-text"></span></label>' +
+      "</div>" +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.align", "Align")) + "</label>" +
       '<div class="hb-align-row">' +
       alignBtn("left", ICON.alignLeft, this.t("ctx.alignLeft", "Left")) +
@@ -1920,6 +1934,7 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-flip-h").addEventListener("click", () => this.toggleFlip("flipH"));
     panel.querySelector(".hb-flip-v").addEventListener("click", () => this.toggleFlip("flipV"));
     panel.querySelector(".hb-crop").addEventListener("click", () => this.openCrop());
+    panel.querySelector(".hb-art-bp").addEventListener("change", (e) => this.setArtDirection(e.target.checked));
     panel.querySelector(".hb-autotrim").addEventListener("click", () => this.autoTrimSelected());
     panel.querySelector(".hb-crop-reset").addEventListener("click", () => this.resetCrop());
     panel.querySelector(".hb-anim-replay").addEventListener("click", () => this.replayPreview());
@@ -2026,8 +2041,12 @@ export default class HerobuilderCanvas {
       imgEditRow.hidden = false;
       this.panel.querySelector(".hb-flip-h").classList.toggle("active", !!this.selected.flipH);
       this.panel.querySelector(".hb-flip-v").classList.toggle("active", !!this.selected.flipV);
-      this.panel.querySelector(".hb-crop").classList.toggle("active", !!this.selected.crop);
-      this.panel.querySelector(".hb-crop-reset").hidden = !this.selected.crop;
+      const crop = this.effCrop(this.selected);
+      this.panel.querySelector(".hb-crop").classList.toggle("active", !!crop);
+      this.panel.querySelector(".hb-crop-reset").hidden = !crop;
+      this.panel.querySelector(".hb-art-bp").checked = !!this.imageOverride(this.selected);
+      this.panel.querySelector(".hb-art-bp-text").textContent =
+        this.t("panel.artDirection", "Crop & focus only for %s").replace("%s", this.activeBp.toUpperCase());
     } else {
       imgEditRow.hidden = true;
     }
@@ -2174,14 +2193,14 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    this.selected.crop = null;
+    this.imageTarget(this.selected).crop = null;
     this.save();
     this.render();
     this.select(this.selected);
   }
 
   applyCrop(layer, fractions) {
-    layer.crop = this.cleanCrop(fractions);
+    this.imageTarget(layer).crop = this.cleanCrop(fractions);
     this.adjustBoxToCrop(layer);
     this.save();
     this.render();
@@ -2196,28 +2215,81 @@ export default class HerobuilderCanvas {
 
   /**
    * After a crop the visible content has a new aspect ratio. Update each defined placement's
-   * height (keeping its width) so the layer box matches the cropped image — otherwise the image
-   * would be stretched inside the old box (most visibly with fit "fill").
+   * height (keeping its width) so the layer box matches the cropped image — otherwise a "fill"
+   * image would be stretched inside the old box.
    */
   adjustBoxToCrop(layer) {
-    if (!layer.crop) {
-      return;
-    }
     const info = this.fileInfo[layer.fileUid];
     if (!info) {
       return;
     }
-    const cropAspect = (layer.crop.width * (info.width || 1)) / (layer.crop.height * (info.height || 1));
-    if (!isFinite(cropAspect) || cropAspect <= 0) {
+    // cover/contain fit the cropped region into the box without distortion — and a full-bleed
+    // background (cover, h 100 %) must keep filling the stage after a crop. Only "fill" (and a box
+    // without a height, which follows the image anyway) needs the box reshaped.
+    if (layer.fit === "cover" || layer.fit === "contain") {
       return;
     }
-    Object.keys(layer.placements || {}).forEach((bp) => {
+    // A breakpoint with its own framing only follows its own crop; the others follow the
+    // layer's. So a crop made "only for XS" never reshapes the desktop boxes.
+    const own = this.imageOverride(layer);
+    const bps = own
+      ? [this.activeBp]
+      : Object.keys(layer.placements || {}).filter((bp) => !layer.placements[bp].image);
+    bps.forEach((bp) => {
       const p = layer.placements[bp];
-      if (p && p.w) {
+      const crop = this.effCrop(layer, bp);
+      if (!p || !p.w || !crop) {
+        return;
+      }
+      const cropAspect = (crop.width * (info.width || 1)) / (crop.height * (info.height || 1));
+      if (isFinite(cropAspect) && cropAspect > 0) {
         // box aspect = (w/h) * stageRatio  →  h = w * stageRatio / cropAspect
         p.h = round((p.w * this.stageRatio(bp)) / cropAspect);
       }
     });
+  }
+
+  // ---- Art direction: crop & focus per breakpoint ------------------------
+
+  /** The breakpoint's own image framing ({crop, focusX, focusY}), or null when it inherits the layer's. */
+  imageOverride(layer, bp = this.activeBp) {
+    const p = layer && layer.placements && layer.placements[bp];
+    return p && p.image ? p.image : null;
+  }
+
+  /** Where crop/focus edits go: the active breakpoint's own framing if it has one, else the layer. */
+  imageTarget(layer) {
+    return this.imageOverride(layer) || layer;
+  }
+
+  effCrop(layer, bp = this.activeBp) {
+    const own = this.imageOverride(layer, bp);
+    return (own ? own.crop : layer.crop) || null;
+  }
+
+  effFocus(layer, bp = this.activeBp) {
+    const src = this.imageOverride(layer, bp) || layer;
+    return { x: src.focusX ?? 50, y: src.focusY ?? 50 };
+  }
+
+  /** Give the active breakpoint its own crop/focus (starting from the inherited one), or drop it. */
+  setArtDirection(on) {
+    const layer = this.selected;
+    if (!layer || layer.type === "text" || layer.type === "button") {
+      return;
+    }
+    const p = this.ensurePlacement(layer);
+    if (on) {
+      const focus = this.effFocus(layer);
+      const crop = this.effCrop(layer);
+      p.image = { crop: crop ? { ...crop } : null, focusX: focus.x, focusY: focus.y };
+    } else {
+      delete p.image;
+      this.adjustBoxToCrop(layer);
+    }
+    this.save();
+    this.render();
+    this.select(layer);
   }
 
   async openCrop() {
@@ -2327,7 +2399,7 @@ export default class HerobuilderCanvas {
     });
 
     modal.addEventListener("typo3-modal-shown", () => {
-      setRect(layer.crop || { x: 0, y: 0, width: 1, height: 1 });
+      setRect(this.effCrop(layer) || { x: 0, y: 0, width: 1, height: 1 });
       updateDims();
       mv = new window.Moveable(stage, {
         target: rect,
@@ -2374,7 +2446,7 @@ export default class HerobuilderCanvas {
       Notification.info("Hero Builder", this.t("trim.already", "Nothing to trim — no empty margins found"));
       return;
     }
-    layer.crop = this.cleanCrop(box);
+    this.imageTarget(layer).crop = this.cleanCrop(box);
     this.adjustBoxToCrop(layer);
     this.save();
     this.render();
@@ -2486,11 +2558,12 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    this.selected.focusX = round(x);
-    this.selected.focusY = round(y);
+    const target = this.imageTarget(this.selected);
+    target.focusX = round(x);
+    target.focusY = round(y);
     const img = this.selected._el && this.selected._el._img;
     if (img && this.selected.type !== "text") {
-      img.style.objectPosition = this.selected.focusX + "% " + this.selected.focusY + "%";
+      img.style.objectPosition = target.focusX + "% " + target.focusY + "%";
     }
     this.updateFocusDot();
     this.save();
@@ -2499,8 +2572,9 @@ export default class HerobuilderCanvas {
   updateFocusDot() {
     const dot = this.panel && this.panel.querySelector(".hb-focus-dot");
     if (dot && this.selected) {
-      dot.style.left = (this.selected.focusX ?? 50) + "%";
-      dot.style.top = (this.selected.focusY ?? 50) + "%";
+      const focus = this.effFocus(this.selected);
+      dot.style.left = focus.x + "%";
+      dot.style.top = focus.y + "%";
     }
   }
 
@@ -2571,8 +2645,24 @@ export default class HerobuilderCanvas {
       flipV: !!l.flipV,
       crop: this.cleanCrop(l.crop),
       anim: l.anim || {},
-      placements: l.placements || {},
+      placements: this.cleanPlacements(l.placements),
     };
+  }
+
+  cleanPlacements(placements) {
+    const out = {};
+    Object.keys(placements || {}).forEach((bp) => {
+      const p = { ...placements[bp] };
+      if (p.image) {
+        p.image = {
+          crop: this.cleanCrop(p.image.crop),
+          focusX: round(p.image.focusX ?? 50),
+          focusY: round(p.image.focusY ?? 50),
+        };
+      }
+      out[bp] = p;
+    });
+    return out;
   }
 
   // Crop area as fractions (0..1) of the source image, or null when the whole image is used.

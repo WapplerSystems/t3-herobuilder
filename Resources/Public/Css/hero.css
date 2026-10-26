@@ -17,6 +17,11 @@
     position: absolute;
 }
 
+/* Art direction wraps the <img> in a <picture>; it must not become a box of its own. */
+.hb-layer picture {
+    display: contents;
+}
+
 .hb-layer .hb-layer-img,
 .hb-layer.hb-layer-img {
     display: block;

@@ -31,10 +31,23 @@
 </f:if>
 
 <f:section name="Image">
-    <f:comment>srcset/sizes from CompositionProcessor::responsiveImage(); f:image only if that failed.</f:comment>
+    <f:comment>srcset/sizes from CompositionProcessor::responsiveImage(); f:image only if that failed.
+    Breakpoints with their own crop get a <source> (art direction) — see artSources().</f:comment>
     <f:if condition="{layer.image}">
         <f:then>
-            <img src="{layer.image.src}" srcset="{layer.image.srcset}" sizes="{layer.image.sizes}" width="{layer.image.width}" height="{layer.image.height}" alt="{layer.alt}" class="hb-layer-img"/>
+            <f:if condition="{layer.image.sources}">
+                <f:then>
+                    <picture>
+                        <f:for each="{layer.image.sources}" as="source">
+                            <source media="{source.media}" srcset="{source.srcset}" sizes="{source.sizes}" width="{source.width}" height="{source.height}"/>
+                        </f:for>
+                        <img src="{layer.image.src}" srcset="{layer.image.srcset}" sizes="{layer.image.sizes}" width="{layer.image.width}" height="{layer.image.height}" alt="{layer.alt}" class="hb-layer-img"/>
+                    </picture>
+                </f:then>
+                <f:else>
+                    <img src="{layer.image.src}" srcset="{layer.image.srcset}" sizes="{layer.image.sizes}" width="{layer.image.width}" height="{layer.image.height}" alt="{layer.alt}" class="hb-layer-img"/>
+                </f:else>
+            </f:if>
         </f:then>
         <f:else>
             <f:image image="{layer.file}" alt="{layer.alt}" maxWidth="1600" crop="{layer.crop}" class="hb-layer-img"/>

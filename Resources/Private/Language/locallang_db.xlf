@@ -138,6 +138,7 @@
             <trans-unit id="tag.h4"><source>h4</source></trans-unit>
             <trans-unit id="tag.h5"><source>h5</source></trans-unit>
             <trans-unit id="tag.h6"><source>h6</source></trans-unit>
+            <trans-unit id="panel.artDirection"><source>Crop &amp; focus only for %s</source></trans-unit>
             <trans-unit id="panel.overlay"><source>Darkening behind text (%)</source></trans-unit>
             <trans-unit id="list.reorder"><source>Drag to reorder</source></trans-unit>
             <trans-unit id="list.toggleVisible"><source>Toggle visibility</source></trans-unit>

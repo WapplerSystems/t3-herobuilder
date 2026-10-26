@@ -36,6 +36,20 @@ final readonly class Composition
         'xxxl' => '(min-width: 1920px)',
     ];
 
+    /**
+     * Non-overlapping variant of BREAKPOINT_MEDIA, for <picture><source media>: the first matching
+     * source wins, so xxl must stop where xxxl starts (in CSS the later xxxl rule simply wins).
+     */
+    public const BREAKPOINT_MEDIA_EXCLUSIVE = [
+        'xs' => '(max-width: 575.98px)',
+        'sm' => '(min-width: 576px) and (max-width: 767.98px)',
+        'md' => '(min-width: 768px) and (max-width: 991.98px)',
+        'lg' => '(min-width: 992px) and (max-width: 1199.98px)',
+        'xl' => '(min-width: 1200px) and (max-width: 1399.98px)',
+        'xxl' => '(min-width: 1400px) and (max-width: 1919.98px)',
+        'xxxl' => '(min-width: 1920px)',
+    ];
+
     /** Default stage aspect ratios per breakpoint (overridable via TypoScript settings.stages). */
     public const DEFAULT_STAGE_RATIOS = [
         'xs' => '9:16',

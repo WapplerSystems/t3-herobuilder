@@ -79,6 +79,10 @@ export** (ImageMagick), and a **live preview rendered with the real frontend CSS
 - **Per-breakpoint geometry** — x / y / width / height (%), rotation, z-index, visibility.
 - **Image fit** — `fill` / `cover` / `contain` (no distortion for cover/contain).
 - **Focus point** — `object-position` picker (which part stays visible when `cover` crops).
+- **Art direction** — "Crop & focus only for XS" gives a breakpoint its own crop and focus point.
+  The frontend renders a `<picture>` whose `<source>` for that breakpoint carries physically
+  cropped derivatives: a phone loads the phone framing (e.g. 588 px) instead of a desktop image
+  it would mostly crop away.
 - **Predefined CSS classes** — multi-select (chips) per layer from a page-TSconfig list
   (Bootstrap 5 set); validated against the same whitelist on the frontend (injection-safe).
 - **Darkening overlay behind text** — adjustable scrim (0–100 %) for readability over busy images.
@@ -218,7 +222,9 @@ Field notes:
 - `cssClass` — space-separated, **whitelisted** predefined classes.
 - `overlay` — 0–100 %, dark scrim behind text.
 - `locked` — layer locked in the editor (not draggable).
-- `placements[<bp>]` — `x,y,w,h` (%), `rot` (deg), `z`, `visible`.
+- `placements[<bp>]` — `x,y,w,h` (%), `rot` (deg), `z`, `visible`; optionally
+  `image: {crop, focusX, focusY}` — the breakpoint's own framing (art direction), overriding the
+  layer's `crop` / `focusX` / `focusY` there.
 
 `tx_herobuilder_template` holds the same `composition` JSON plus a `title` and an indicator
 `color`; presets are shipped as JSON (`{title, color, layers}`).
