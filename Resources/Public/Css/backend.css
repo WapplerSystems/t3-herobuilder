@@ -577,3 +577,36 @@
     outline: 1px dashed currentColor;
     outline-offset: -2px;
 }
+
+/* ---- Rendered canvas ----------------------------------------------------- */
+/* The server-rendered slide (frontend renderer, site CSS) sits under the layer handles at the
+   breakpoint's device width, scaled by the zoom (canvas.js sizeCanvasFrame()). */
+.herobuilder-canvas-frame {
+    position: absolute;
+    left: 0;
+    top: 0;
+    border: 0;
+    background: transparent;
+    transform-origin: 0 0;
+    pointer-events: none;
+    z-index: 0;
+    transition: opacity .15s;
+}
+/* Not rendered yet, failed, or mid breakpoint switch: the handles draw the layers themselves. */
+.herobuilder:not(.hb-canvas-live) .herobuilder-canvas-frame,
+.herobuilder.hb-bp-anim .herobuilder-canvas-frame { visibility: hidden; }
+/* A re-rendering is on its way (crop, fit, element … appear with it). */
+.herobuilder.hb-canvas-pending .herobuilder-canvas-frame { opacity: .8; }
+/* Live: the handles keep box, outline and Moveable — their own drawing gives way to the rendering. */
+.herobuilder.hb-canvas-live:not(.hb-bp-anim) .herobuilder-layer {
+    color: transparent !important;
+    text-shadow: none !important;
+    background: transparent !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+    /* The backend's own .btn styles would keep a button handle taller than the rendered button. */
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+}
+.herobuilder.hb-canvas-live:not(.hb-bp-anim) .herobuilder-layer > * { visibility: hidden; }

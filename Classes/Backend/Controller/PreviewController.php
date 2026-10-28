@@ -56,13 +56,18 @@ final class PreviewController
 
         // Transparent mode (template thumbnails) lets the card's indicator color show through
         // behind compositions that have no background image layer.
-        $bg = !empty($params['transparent']) ? 'transparent' : '#fff';
+        // Canvas mode: the editor lays this document under its drag handles as the stage itself —
+        // transparent, no scrollbars, and no entrance animations (every edit re-renders it).
+        $canvas = !empty($params['canvas']);
+        $bg = !empty($params['transparent']) || $canvas ? 'transparent' : '#fff';
         // Base preview CSS + the scoped composition CSS — delivered as data, injected by JS.
         $css = 'html,body{margin:0;padding:0;background:' . $bg . ';}'
+            // Themes may force a scrollbar (body{overflow-y:scroll}); it would take 15px of width.
+            . ($canvas ? 'html,body{overflow:hidden;}' : '')
             . '.herobuilder-carousel .hb-stage{width:100%;}'
             . (string)($slide['css'] ?? '');
 
-        return new HtmlResponse($this->document($body, $css, $pid));
+        return new HtmlResponse($this->document($body, $css, $pid, $canvas));
     }
 
     /**
@@ -71,10 +76,10 @@ final class PreviewController
      * data island (not governed by script-src) that preview-frame.js injects via a
      * constructable stylesheet (not governed by style-src). Robust under a strict backend CSP.
      */
-    private function document(string $body, string $css, int $pid): string
+    private function document(string $body, string $css, int $pid, bool $canvas = false): string
     {
         $links = '';
-        foreach ($this->cssFiles($pid) as $href) {
+        foreach ($this->cssFiles($pid, $canvas) as $href) {
             $links .= '<link rel="stylesheet" href="' . htmlspecialchars($href) . '">';
         }
         $aos = htmlspecialchars($this->webPath('EXT:herobuilder/Resources/Public/JavaScript/Vendor/aos.js'));
@@ -87,7 +92,8 @@ final class PreviewController
             . $links
             . '<script type="application/json" id="hb-preview-css">' . $cssData . '</script>'
             . '</head><body><div class="herobuilder-carousel">' . $body . '</div>'
-            . '<script src="' . $aos . '"></script><script src="' . $frameJs . '"></script>'
+            . ($canvas ? '' : '<script src="' . $aos . '"></script>')
+            . '<script src="' . $frameJs . '"></script>'
             . '</body></html>';
     }
 
@@ -97,12 +103,12 @@ final class PreviewController
      *
      * @return list<string>
      */
-    private function cssFiles(int $pid): array
+    private function cssFiles(int $pid, bool $canvas = false): array
     {
-        $files = [
-            $this->webPath('EXT:herobuilder/Resources/Public/Css/aos.css'),
-            $this->webPath('EXT:herobuilder/Resources/Public/Css/hero.css'),
-        ];
+        // aos.css hides every [data-aos] element until AOS animates it — without AOS (canvas
+        // mode) it must not be loaded, or the layers stay invisible.
+        $files = $canvas ? [] : [$this->webPath('EXT:herobuilder/Resources/Public/Css/aos.css')];
+        $files[] = $this->webPath('EXT:herobuilder/Resources/Public/Css/hero.css');
 
         $configured = BackendUtility::getPagesTSconfig($pid)['tx_herobuilder.']['previewCss.'] ?? [];
         foreach ((array)$configured as $entry) {

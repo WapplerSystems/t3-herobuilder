@@ -626,6 +626,7 @@ export default class HerobuilderCanvas {
       this.stageEl.style.minHeight = "";
       this.stageEl.style.aspectRatio = this.stageRatioCss(this.activeBp);
     }
+    this.sizeCanvasFrame();
     this.updateZoomControl();
   }
 
@@ -735,7 +736,9 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    fn(this.ensurePlacement(this.selected), this.selected);
+    const p = this.ensurePlacement(this.selected);
+    fn(p, this.selected);
+    this.patchCanvasGeometry(this.selected, p);
     this.save();
     this.render();
     this.select(this.selected);
@@ -879,6 +882,7 @@ export default class HerobuilderCanvas {
 
   render() {
     this.highlightActiveBp();
+    this.ensureCanvasFrame();
     // Render the stage at the breakpoint's real device width × zoom. Because layers are
     // %-based, zooming just resizes the stage box — geometry (offset/clientWidth → %) and
     // Moveable stay correct without any CSS transform.
@@ -911,6 +915,7 @@ export default class HerobuilderCanvas {
       layer._el = el;
     });
 
+    this.syncHandlesToCanvas();
     this.updatePanel();
   }
 
@@ -1083,15 +1088,20 @@ export default class HerobuilderCanvas {
       .on("drag", ({ target, left, top }) => {
         target.style.left = left + "px";
         target.style.top = top + "px";
+        this.patchCanvasGeometry(layer, this.handleGeometry(target));
       })
       .on("resize", ({ target, width, height, drag }) => {
         target.style.width = width + "px";
         target.style.height = height + "px";
         target.style.left = drag.left + "px";
         target.style.top = drag.top + "px";
+        const g = this.handleGeometry(target);
+        g.h = autoHeight ? 0 : (target.offsetHeight / (this.stageEl.clientHeight || 1)) * 100;
+        this.patchCanvasGeometry(layer, g);
       })
       .on("rotate", ({ target, transform }) => {
         target.style.transform = transform;
+        this.patchCanvasGeometry(layer, this.handleGeometry(target));
       })
       .on("renderEnd", () => this.commitGeometry(layer));
   }
@@ -1228,6 +1238,8 @@ export default class HerobuilderCanvas {
     el.style.top = p.y + "%";
     el.style.width = p.w + "%";
     el.style.height = autoHeight ? "auto" : p.h + "%";
+    this.patchCanvasGeometry(layer, p);
+    this.syncHandlesToCanvas(layer);
     if (this.moveable) {
       this.moveable.updateRect();
     }
@@ -1540,7 +1552,186 @@ export default class HerobuilderCanvas {
     this.previewBox.style.height = Math.floor(h * scale) + "px";
   }
 
+  // ---- Rendered canvas -------------------------------------------------
+  //
+  // The stage shows the server-rendered slide (same renderer as the frontend and the live
+  // preview) in an iframe at the breakpoint's real width, scaled by the zoom. Site CSS, media
+  // queries, fonts, crop and focus are therefore exactly the frontend's. The layer elements on
+  // top turn into transparent handles once a rendering is in place; until then — or when it
+  // fails — they keep drawing the layers themselves.
+
+  ensureCanvasFrame() {
+    if (this.canvasFrame || !this.previewUrl || !this.stageEl) {
+      return;
+    }
+    const frame = document.createElement("iframe");
+    frame.className = "herobuilder-canvas-frame";
+    frame.setAttribute("scrolling", "no");
+    frame.setAttribute("tabindex", "-1");
+    frame.setAttribute("aria-hidden", "true");
+    frame.setAttribute("title", this.t("button.preview", "Live preview"));
+    // Set before inserting: an empty iframe fires "load" as soon as it is in the document.
+    this.canvasFrame = frame;
+    this._canvasIds = [];
+    this._canvasSeq = 0;
+    frame.addEventListener("load", () => this.onCanvasFrameLoad());
+    this.stageEl.insertBefore(frame, this.stageEl.firstChild);
+    this.sizeCanvasFrame();
+    this.scheduleCanvasRefresh();
+  }
+
+  /** Lay the frame out at the breakpoint's device size and scale it down/up by the zoom. */
+  sizeCanvasFrame() {
+    if (!this.canvasFrame) {
+      return;
+    }
+    const w = this.stageWidth(this.activeBp);
+    const ratio = this.stageRatio(this.activeBp);
+    if (!w || ratio <= 0) {
+      // Fluid fallback stage without a device width: nothing to lay the frame out at.
+      this.root.classList.remove("hb-canvas-live");
+      this.canvasFrame.hidden = true;
+      return;
+    }
+    this.canvasFrame.hidden = false;
+    const h = Math.round(w / ratio);
+    this.canvasFrame.style.width = w + "px";
+    this.canvasFrame.style.height = h + "px";
+    // Scale to the stage's inner box rather than the nominal zoom: the layers' % geometry refers
+    // to that box, and its border takes the same px from width and height — a slightly different
+    // factor per axis (< 0.5 %), applied separately so the bottom edge lines up as well.
+    this._canvasScale = (this.stageEl.clientWidth || w * this.zoom) / w;
+    this._canvasScaleY = (this.stageEl.clientHeight || h * this.zoom) / h;
+    this.canvasFrame.style.transform = "scale(" + this._canvasScale + ", " + this._canvasScaleY + ")";
+    // A zoom change resizes the stage without a re-render; text boxes scale with it.
+    this.syncHandlesToCanvas();
+  }
+
+  scheduleCanvasRefresh() {
+    if (!this.canvasFrame) {
+      return;
+    }
+    window.clearTimeout(this._canvasTimer);
+    // Signal at once: changes without an instant mirror (crop, fit, element …) show up with it.
+    this.root.classList.add("hb-canvas-pending");
+    this._canvasTimer = window.setTimeout(() => this.refreshCanvas(), 400);
+  }
+
+  async refreshCanvas() {
+    if (!this.canvasFrame || !this.previewUrl) {
+      return;
+    }
+    const seq = ++this._canvasSeq;
+    // Layer index i renders as .<scope>-l<i>; remember the order this rendering was made from,
+    // so handles still find their element after layers were added or removed meanwhile.
+    const ids = this.layers.map((l) => l.id);
+    this.root.classList.add("hb-canvas-pending");
+    try {
+      const response = await new AjaxRequest(this.previewUrl).post({
+        composition: this.input.value || "{}",
+        uid: String(this.uid),
+        pid: String(this.pid),
+        stageMode: this.stageMode,
+        canvas: "1",
+      });
+      const html = await response.raw().text();
+      if (seq !== this._canvasSeq) {
+        return;
+      }
+      this._canvasPendingIds = ids;
+      this.canvasFrame.srcdoc = html;
+    } catch (e) {
+      if (seq === this._canvasSeq) {
+        // Keep editing possible: the handles draw the layers themselves again.
+        this.root.classList.remove("hb-canvas-live", "hb-canvas-pending");
+      }
+    }
+  }
+
+  onCanvasFrameLoad() {
+    const doc = this.canvasFrame && this.canvasFrame.contentDocument;
+    if (!doc || !this.canvasFrame.srcdoc) {
+      return;
+    }
+    this._canvasIds = this._canvasPendingIds || [];
+    const slide = doc.querySelector(".herobuilder-slide");
+    this._canvasScope = slide ? [...slide.classList].find((c) => /^hb-\d+$/.test(c)) || "" : "";
+    this.root.classList.remove("hb-canvas-pending");
+    this.root.classList.toggle("hb-canvas-live", !!this._canvasScope);
+    this.syncHandlesToCanvas();
+    // Web fonts arrive after load and change text heights once more.
+    if (doc.fonts && doc.fonts.ready) {
+      doc.fonts.ready.then(() => this.syncHandlesToCanvas());
+    }
+  }
+
+  /** The rendered element of a layer in the canvas frame, or null. */
+  canvasElFor(layer) {
+    const doc = this.canvasFrame && this.canvasFrame.contentDocument;
+    const index = this._canvasIds ? this._canvasIds.indexOf(layer.id) : -1;
+    if (!doc || index < 0 || !this._canvasScope) {
+      return null;
+    }
+    return doc.querySelector("." + this._canvasScope + "-l" + index);
+  }
+
+  /**
+   * Give handles without a height of their own the height of the rendered element (text in the
+   * site's fonts), so the box around a text is the text's real box.
+   */
+  syncHandlesToCanvas(only = null) {
+    if (!this.root.classList.contains("hb-canvas-live")) {
+      return;
+    }
+    (only ? [only] : this.layers).forEach((layer) => {
+      const p = this.placementFor(layer);
+      const el = layer._el;
+      if (!el || !el.isConnected || !p || p.h) {
+        return;
+      }
+      const rendered = this.canvasElFor(layer);
+      if (rendered && rendered.offsetHeight) {
+        el.style.height = rendered.offsetHeight * (this._canvasScaleY || this.zoom) + "px";
+      }
+    });
+    if (this.moveable) {
+      this.moveable.updateRect();
+    }
+  }
+
+  /**
+   * Mirror a geometry change on the rendered element right away (the server rendering follows
+   * ~0.5 s later). Values in % of the stage, as stored in the placement.
+   */
+  patchCanvasGeometry(layer, g) {
+    const rendered = this.canvasElFor(layer);
+    if (!rendered) {
+      return;
+    }
+    rendered.style.left = g.x + "%";
+    rendered.style.top = g.y + "%";
+    rendered.style.width = g.w + "%";
+    if (g.h) {
+      rendered.style.height = g.h + "%";
+    }
+    rendered.style.transform = "rotate(" + (g.rot || 0) + "deg)";
+  }
+
+  /** Current geometry of a handle element in % of the stage (during a drag/resize/rotate). */
+  handleGeometry(el) {
+    const sw = this.stageEl.clientWidth || 1;
+    const sh = this.stageEl.clientHeight || 1;
+    return {
+      x: (el.offsetLeft / sw) * 100,
+      y: (el.offsetTop / sh) * 100,
+      w: (el.offsetWidth / sw) * 100,
+      h: el.style.height.endsWith("%") ? parseFloat(el.style.height) : 0,
+      rot: this.readRotation(el),
+    };
+  }
+
   schedulePreviewRefresh() {
+    this.scheduleCanvasRefresh();
     if (!this.previewOpen) {
       return;
     }
@@ -2125,6 +2316,8 @@ export default class HerobuilderCanvas {
       if (layer._el) {
         this.applyGeomToEl(layer._el, p);
       }
+      this.patchCanvasGeometry(layer, p);
+      this.syncHandlesToCanvas(layer);
       if (this.moveable) {
         this.moveable.updateRect();
       }
@@ -2153,6 +2346,11 @@ export default class HerobuilderCanvas {
     this.selected.text = value;
     if (this.selected._el) {
       this.selected._el.textContent = value || "Text";
+    }
+    const rendered = this.canvasElFor(this.selected);
+    if (rendered) {
+      (rendered.querySelector(".hb-layer-tag") || rendered).textContent = value;
+      this.syncHandlesToCanvas(this.selected);
     }
     this.renderLayerList();
     this.save();
@@ -2213,6 +2411,11 @@ export default class HerobuilderCanvas {
       return;
     }
     const vals = [...this.panel.querySelectorAll(".hb-class-chip.active")].map((c) => c.dataset.value);
+    const rendered = this.canvasElFor(this.selected);
+    if (rendered) {
+      (this.selected.cssClass || "").split(/\s+/).filter(Boolean).forEach((c) => rendered.classList.remove(c));
+      vals.forEach((c) => rendered.classList.add(c));
+    }
     this.selected.cssClass = vals.join(" ");
     this.save();
     this.render();
