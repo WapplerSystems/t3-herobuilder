@@ -103,6 +103,31 @@ const ICON = {
 };
 
 /**
+ * Size and offset of a cropped image region (aspect `regionAspect`) fitted into a box like
+ * CSS object-fit + object-position: "fill" stretches, "cover"/"contain" scale uniformly and the
+ * leftover space is split by the focus point — (box − region) × focus %, exactly what the
+ * frontend's object-position does with the cropped derivative.
+ *
+ * @returns {{w: number, h: number, left: number, top: number}}
+ */
+export function fitRegion(boxW, boxH, regionAspect, fit, focusX = 50, focusY = 50) {
+  if (fit !== "cover" && fit !== "contain") {
+    return { w: boxW, h: boxH, left: 0, top: 0 };
+  }
+  const wide = boxW / boxH > regionAspect;
+  const [w, h] = (fit === "cover") === wide
+    ? [boxW, boxW / regionAspect]
+    : [boxH * regionAspect, boxH];
+  return { w, h, left: (boxW - w) * focusX / 100, top: (boxH - h) * focusY / 100 };
+}
+
+/** True when a placement covers the whole stage — a background that must keep filling it. */
+export function isFullBleed(p) {
+  return !!p && (p.x ?? 0) <= 0 && (p.y ?? 0) <= 0
+    && (p.x ?? 0) + (p.w ?? 0) >= 100 && (p.y ?? 0) + (p.h ?? 0) >= 100;
+}
+
+/**
  * Hero Builder canvas editor (FormEngine node).
  *
  * - Drag/resize/rotate layers per breakpoint (Moveable).
@@ -942,27 +967,16 @@ export default class HerobuilderCanvas {
           el.appendChild(img);
         } else {
           // Fixed box: fit the cropped region into it honouring the layer's object-fit.
-          const boxAspect = boxW / boxH;
-          const fit = layer.fit || "fill";
-          let cvW;
-          let cvH;
-          if (fit === "fill") {
-            cvW = boxW;
-            cvH = boxH;
-          } else if (fit === "cover") {
-            [cvW, cvH] = boxAspect > cropAspect ? [boxW, boxW / cropAspect] : [boxH * cropAspect, boxH];
-          } else {
-            [cvW, cvH] = boxAspect > cropAspect ? [boxH * cropAspect, boxH] : [boxW, boxW / cropAspect];
-          }
-          el.style.display = "flex";
-          el.style.alignItems = "center";
-          el.style.justifyContent = "center";
+          // Placed by the focus point like the frontend's object-position — not centred.
+          const focus = this.effFocus(layer);
+          const fitted = fitRegion(boxW, boxH, cropAspect, layer.fit || "fill", focus.x, focus.y);
           const cv = document.createElement("div");
-          cv.style.position = "relative";
+          cv.style.position = "absolute";
           cv.style.overflow = "hidden";
-          cv.style.flex = "0 0 auto";
-          cv.style.width = cvW + "px";
-          cv.style.height = cvH + "px";
+          cv.style.left = fitted.left + "px";
+          cv.style.top = fitted.top + "px";
+          cv.style.width = fitted.w + "px";
+          cv.style.height = fitted.h + "px";
           cv.appendChild(img);
           el.appendChild(cv);
         }
@@ -2220,20 +2234,17 @@ export default class HerobuilderCanvas {
 
   /**
    * After a crop the visible content has a new aspect ratio. Update each defined placement's
-   * height (keeping its width) so the layer box matches the cropped image — otherwise a "fill"
-   * image would be stretched inside the old box.
+   * height (keeping its width) so the layer box matches the cropped image, whatever the fit.
+   * Full-bleed placements are left alone (see below).
    */
   adjustBoxToCrop(layer) {
     const info = this.fileInfo[layer.fileUid];
     if (!info) {
       return;
     }
-    // cover/contain fit the cropped region into the box without distortion — and a full-bleed
-    // background (cover, h 100 %) must keep filling the stage after a crop. Only "fill" (and a box
-    // without a height, which follows the image anyway) needs the box reshaped.
-    if (layer.fit === "cover" || layer.fit === "contain") {
-      return;
-    }
+    // Every fit gets a box shaped like the crop: "fill" would stretch, "contain" would letterbox
+    // and "cover" would crop the chosen region a second time. Only a placement covering the whole
+    // stage (a background) keeps its box — it must go on filling the stage after a crop.
     // A breakpoint with its own framing only follows its own crop; the others follow the
     // layer's. So a crop made "only for XS" never reshapes the desktop boxes.
     const own = this.imageOverride(layer);
@@ -2243,7 +2254,7 @@ export default class HerobuilderCanvas {
     bps.forEach((bp) => {
       const p = layer.placements[bp];
       const crop = this.effCrop(layer, bp);
-      if (!p || !p.w || !crop) {
+      if (!p || !p.w || !crop || isFullBleed(p)) {
         return;
       }
       const cropAspect = (crop.width * (info.width || 1)) / (crop.height * (info.height || 1));
