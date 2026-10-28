@@ -127,8 +127,14 @@
             <trans-unit id="editor.title"><source>Composition</source><target>Komposition</target></trans-unit>
             <trans-unit id="breakpoints.label"><source>Breakpoint</source><target>Breakpoint</target></trans-unit>
             <trans-unit id="list.title"><source>Layers</source><target>Ebenen</target></trans-unit>
-            <trans-unit id="panel.tabTransform"><source>Transform</source><target>Transform</target></trans-unit>
-            <trans-unit id="panel.tabStyle"><source>Style</source><target>Stil</target></trans-unit>
+            <trans-unit id="panel.tabStyle"><source>Design</source><target>Gestaltung</target></trans-unit>
+            <trans-unit id="panel.tabContent"><source>Content</source><target>Inhalt</target></trans-unit>
+            <trans-unit id="panel.tabPosition"><source>Position</source><target>Position</target></trans-unit>
+            <trans-unit id="panel.empty"><source>Select a layer on the stage or in the list.</source><target>Ebene auf der Bühne oder in der Liste auswählen.</target></trans-unit>
+            <trans-unit id="panel.visibleOn"><source>Visible on %s</source><target>Auf %s sichtbar</target></trans-unit>
+            <trans-unit id="panel.classesOther"><source>More</source><target>Weitere</target></trans-unit>
+            <trans-unit id="panel.overlayLocked"><source>A box class sets the background — darkening is off while it is selected.</source><target>Eine Box-Klasse bestimmt den Hintergrund – die Abdunkelung ist dann aus.</target></trans-unit>
+            <trans-unit id="list.delete"><source>Delete layer</source><target>Ebene löschen</target></trans-unit>
             <trans-unit id="panel.tabAnimation"><source>Animation</source><target>Animation</target></trans-unit>
             <trans-unit id="panel.align"><source>Align</source><target>Ausrichten</target></trans-unit>
             <trans-unit id="panel.alignV"><source>Center vertically</source><target>Vertikal zentrieren</target></trans-unit>
@@ -147,7 +153,7 @@
             <trans-unit id="panel.artDirection"><source>Crop &amp; focus only for %s</source><target>Zuschnitt &amp; Fokus nur für %s</target></trans-unit>
             <trans-unit id="panel.overlay"><source>Darkening behind text (%)</source><target>Abdunkelung hinter Text (%)</target></trans-unit>
             <trans-unit id="list.reorder"><source>Drag to reorder</source><target>Zum Umsortieren ziehen</target></trans-unit>
-            <trans-unit id="list.toggleVisible"><source>Toggle visibility</source><target>Sichtbarkeit umschalten</target></trans-unit>
+            <trans-unit id="list.toggleVisible"><source>Show / hide on %s</source><target>Auf %s ein-/ausblenden</target></trans-unit>
             <trans-unit id="list.toggleLock"><source>Lock / unlock</source><target>Sperren / entsperren</target></trans-unit>
             <trans-unit id="list.duplicate"><source>Duplicate</source><target>Duplizieren</target></trans-unit>
 

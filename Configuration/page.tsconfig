@@ -48,6 +48,62 @@ tx_herobuilder.layerClasses {
     }
 }
 
+# Hero Builder — groups for the class chips in the editor (presentation only; the whitelist is
+# layerClasses above). classes = comma list; exclusive = 1: selecting one deselects the others;
+# background = 1: these classes set the layer background (the text darkening is locked then).
+# Offered classes in no group are listed under "More".
+tx_herobuilder.layerClassGroups {
+    text {
+        10 {
+            label = Größe
+            exclusive = 1
+            classes = display-1, display-3, display-5, fs-1, fs-3, fs-5
+        }
+        20 {
+            label = Gewicht
+            exclusive = 1
+            classes = fw-bold, fw-semibold, fw-light
+        }
+        30 {
+            label = Stil
+            classes = fst-italic, text-uppercase, lh-1
+        }
+        40 {
+            label = Farbe
+            exclusive = 1
+            classes = text-white, text-dark, text-primary
+        }
+        50 {
+            label = Box
+            exclusive = 1
+            background = 1
+            classes = text-bg-primary, text-bg-dark
+        }
+        60 {
+            label = Ausrichtung
+            exclusive = 1
+            classes = text-start, text-center, text-end
+        }
+    }
+    button {
+        10 {
+            label = Variante
+            exclusive = 1
+            classes = btn-primary, btn-secondary, btn-light, btn-outline-light
+        }
+        20 {
+            label = Basis & Größe
+            classes = btn, btn-lg
+        }
+    }
+    image {
+        10 {
+            label = Effekte
+            classes = rounded-3, shadow, opacity-75
+        }
+    }
+}
+
 # Stylesheets pulled into the backend live-preview iframe so it looks like the frontend
 # (Bootstrap/theme utility classes, fonts). The extension always adds its own hero.css/aos.css.
 # Absolute URLs are used as-is; EXT:/site-relative paths are resolved and skipped if missing.

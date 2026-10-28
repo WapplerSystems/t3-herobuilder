@@ -105,9 +105,11 @@ export** (ImageMagick), and a **live preview rendered with the real frontend CSS
 - **Center — Stage**: drag / resize / rotate with **snapping & guide lines** (stage edges/center
   + other layers); **zoom badge** (Ctrl+wheel cursor-anchored, click = fit ↔ 100 %); pan via
   scrollbars, middle-mouse or Space+drag.
-- **Right — Property tabs**: **Transform** (numeric X/Y/W/H/rotation + arrow-key nudging, align
-  icons, copy-to-all-breakpoints, delete), **Style** (text, link, class chips, fit, focus picker,
-  scrim), **Animation** (effect, delay, duration, replay). Fields adapt to the layer type.
+- **Right — Property tabs**, fields per layer type: **Content** (text, HTML element, link — or for
+  images crop/flip/auto-trim/own framing, fit, focus point for cover/contain, alternative text,
+  link), **Design** (grouped class chips, text darkening), **Position** (numeric X/Y/W/H/rotation +
+  arrow-key nudging, align icons, visible on this breakpoint, copy to all breakpoints),
+  **Animation** (effect, delay, duration, replay). Delete via the layer list, context menu or Del.
 - **Undo / redo** (100-step history) + keyboard shortcuts.
 
 ### Quality & i18n
@@ -328,6 +330,30 @@ The shipped set covers Bootstrap text utilities, `btn`/`btn-*` for buttons and a
 utilities. A class stored on a layer that is not (or no longer) offered for its type shows as
 "not available" in the editor and is not rendered. Class names may use any utility syntax
 (`md:text-lg`, `w-1/2`); whitespace, quotes and `<>` are rejected.
+
+### Class groups in the editor (page TSconfig)
+
+Optional presentation for the class chips — the whitelist stays `layerClasses`. Per layer type,
+numbered groups with a `label`, a comma list of `classes`, `exclusive = 1` (selecting one class
+deselects the others of the group) and `background = 1` (the classes set the layer background;
+the text darkening is locked while one of them is selected). Offered classes in no group appear
+under "More"; without any group configuration the chips stay one plain list.
+
+```tsconfig
+tx_herobuilder.layerClassGroups.text {
+    10 {
+        label = Size
+        exclusive = 1
+        classes = display-1, display-3, fs-1, fs-5
+    }
+    50 {
+        label = Box
+        exclusive = 1
+        background = 1
+        classes = text-bg-primary, text-bg-dark
+    }
+}
+```
 
 ### Template storage folder (page TSconfig)
 

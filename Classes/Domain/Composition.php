@@ -209,6 +209,44 @@ final readonly class Composition
     }
 
     /**
+     * Groups of layer classes per layer type from page TSconfig `tx_herobuilder.layerClassGroups`
+     * — editor presentation only (headings, one-of-a-kind groups), the whitelist stays
+     * layerClasses. A group: `label`, `classes` (comma list), `exclusive = 1` (selecting one
+     * deselects the others), `background = 1` (its classes set the layer background and lock the
+     * text darkening).
+     *
+     * @param array<string, mixed> $conf the `layerClassGroups.` array (TSconfig keys with trailing dot)
+     * @return array<string, list<array{label: string, exclusive: bool, background: bool, classes: list<string>}>>
+     */
+    public static function layerClassGroupsFromTsConfig(array $conf): array
+    {
+        $byType = array_fill_keys(self::LAYER_TYPES, []);
+        foreach (self::LAYER_TYPES as $type) {
+            $groups = $conf[$type . '.'] ?? [];
+            if (!is_array($groups)) {
+                continue;
+            }
+            ksort($groups, SORT_NATURAL);
+            foreach ($groups as $group) {
+                if (!is_array($group)) {
+                    continue;
+                }
+                $classes = array_values(array_filter(array_map('trim', explode(',', (string)($group['classes'] ?? '')))));
+                if ($classes === []) {
+                    continue;
+                }
+                $byType[$type][] = [
+                    'label' => trim((string)($group['label'] ?? '')),
+                    'exclusive' => !empty($group['exclusive']),
+                    'background' => !empty($group['background']),
+                    'classes' => $classes,
+                ];
+            }
+        }
+        return $byType;
+    }
+
+    /**
      * Normalise page-TSconfig `tx_herobuilder.stages` (keys carry the TSconfig trailing dot,
      * e.g. ['lg.' => ['ratio' => '2500:480']]) into the override shape stageConfig() expects.
      *

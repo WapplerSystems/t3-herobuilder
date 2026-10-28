@@ -127,8 +127,14 @@
             <trans-unit id="editor.title"><source>Composition</source></trans-unit>
             <trans-unit id="breakpoints.label"><source>Breakpoint</source></trans-unit>
             <trans-unit id="list.title"><source>Layers</source></trans-unit>
-            <trans-unit id="panel.tabTransform"><source>Transform</source></trans-unit>
-            <trans-unit id="panel.tabStyle"><source>Style</source></trans-unit>
+            <trans-unit id="panel.tabStyle"><source>Design</source></trans-unit>
+            <trans-unit id="panel.tabContent"><source>Content</source></trans-unit>
+            <trans-unit id="panel.tabPosition"><source>Position</source></trans-unit>
+            <trans-unit id="panel.empty"><source>Select a layer on the stage or in the list.</source></trans-unit>
+            <trans-unit id="panel.visibleOn"><source>Visible on %s</source></trans-unit>
+            <trans-unit id="panel.classesOther"><source>More</source></trans-unit>
+            <trans-unit id="panel.overlayLocked"><source>A box class sets the background — darkening is off while it is selected.</source></trans-unit>
+            <trans-unit id="list.delete"><source>Delete layer</source></trans-unit>
             <trans-unit id="panel.tabAnimation"><source>Animation</source></trans-unit>
             <trans-unit id="panel.align"><source>Align</source></trans-unit>
             <trans-unit id="panel.alignV"><source>Center vertically</source></trans-unit>
@@ -147,7 +153,7 @@
             <trans-unit id="panel.artDirection"><source>Crop &amp; focus only for %s</source></trans-unit>
             <trans-unit id="panel.overlay"><source>Darkening behind text (%)</source></trans-unit>
             <trans-unit id="list.reorder"><source>Drag to reorder</source></trans-unit>
-            <trans-unit id="list.toggleVisible"><source>Toggle visibility</source></trans-unit>
+            <trans-unit id="list.toggleVisible"><source>Show / hide on %s</source></trans-unit>
             <trans-unit id="list.toggleLock"><source>Lock / unlock</source></trans-unit>
             <trans-unit id="list.duplicate"><source>Duplicate</source></trans-unit>
 

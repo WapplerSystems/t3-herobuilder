@@ -141,6 +141,9 @@ class CanvasElement extends AbstractFormElement
             'stageMode' => $stageMode,
             'stageModeField' => $contentUid !== '' ? 'data[tt_content][' . $contentUid . '][stage_mode]' : '',
             'classes' => $classes,
+            'classGroups' => Composition::layerClassGroupsFromTsConfig(
+                (array)($this->data['pageTsConfig']['tx_herobuilder.']['layerClassGroups.'] ?? [])
+            ),
             'labels' => $this->jsLabels(),
             'uid' => (int)($this->data['databaseRow']['uid'] ?? 0),
             'pid' => (int)($this->data['databaseRow']['pid'] ?? ($this->data['effectivePid'] ?? 0)),
@@ -218,8 +221,9 @@ class CanvasElement extends AbstractFormElement
         // Right sidebar: property tabs + panel body (populated by JS)
         $html[] = '<div class="herobuilder-sidebar herobuilder-sidebar-right">';
         $html[] = '<div class="herobuilder-proptabs">';
-        $html[] = '<button type="button" class="herobuilder-proptab active" data-tab="transform">' . htmlspecialchars($this->getLabel('panel.tabTransform', 'Transform')) . '</button>';
-        $html[] = '<button type="button" class="herobuilder-proptab" data-tab="style">' . htmlspecialchars($this->getLabel('panel.tabStyle', 'Style')) . '</button>';
+        $html[] = '<button type="button" class="herobuilder-proptab active" data-tab="content">' . htmlspecialchars($this->getLabel('panel.tabContent', 'Content')) . '</button>';
+        $html[] = '<button type="button" class="herobuilder-proptab" data-tab="style">' . htmlspecialchars($this->getLabel('panel.tabStyle', 'Design')) . '</button>';
+        $html[] = '<button type="button" class="herobuilder-proptab" data-tab="position">' . htmlspecialchars($this->getLabel('panel.tabPosition', 'Position')) . '</button>';
         $html[] = '<button type="button" class="herobuilder-proptab" data-tab="anim">' . htmlspecialchars($this->getLabel('panel.tabAnimation', 'Animation')) . '</button>';
         $html[] = '</div>';
         $html[] = '<div class="herobuilder-panel"></div>';
@@ -378,6 +382,7 @@ class CanvasElement extends AbstractFormElement
             'preview.replay',
             'button.copyToAll', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
             'panel.alt', 'panel.altFromFile', 'panel.altNone', 'hint.buttonNoLink', 'hint.imageLinkNoAlt',
+            'panel.empty', 'panel.visibleOn', 'panel.classesOther', 'panel.overlayLocked', 'list.delete',
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
             'template.applyHint', 'template.empty', 'template.saveError',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',

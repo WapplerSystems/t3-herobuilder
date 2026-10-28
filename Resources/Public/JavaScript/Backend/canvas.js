@@ -103,6 +103,7 @@ const ICON = {
   crop: S + '<path d="M4.5 1v10.5H15"/><path d="M1 4.5h10.5V15"/></svg>',
   chevronLeft: S + '<path d="M10 3 5 8l5 5"/></svg>',
   chevronRight: S + '<path d="M6 3l5 5-5 5"/></svg>',
+  trash: S + '<path d="M2.5 4h11"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5h6.6L12 4"/></svg>',
 };
 
 /**
@@ -171,6 +172,8 @@ export default class HerobuilderCanvas {
     }
     // Classes per layer type ({text: [...], button: [...], image: [...]}).
     this.classes = init.classes && typeof init.classes === "object" ? init.classes : {};
+    // Optional grouping for the panel (headings, exclusive groups, background groups).
+    this.classGroups = init.classGroups && typeof init.classGroups === "object" ? init.classGroups : {};
     this.labels = init.labels || {};
     this.uid = init.uid || 0;
     this.pid = init.pid || 0;
@@ -1378,6 +1381,9 @@ export default class HerobuilderCanvas {
         this.toggleVisibility(layer);
       } else if (act === "lock") {
         this.toggleLock(layer);
+      } else if (act === "delete") {
+        this.selected = layer;
+        this.deleteSelected();
       } else {
         this.select(layer);
         if (layer._el) {
@@ -2040,11 +2046,13 @@ export default class HerobuilderCanvas {
           this.layerChip(layer) +
           '<span class="hb-ll-name">' + escapeHtml(this.layerLabel(layer)) + "</span></button>" +
           '<button type="button" class="hb-ll-btn hb-ll-vis" data-act="vis" title="' +
-          escapeAttr(this.t("list.toggleVisible", "Toggle visibility")) +
+          escapeAttr(this.t("list.toggleVisible", "Show / hide on %s").replace("%s", this.activeBp.toUpperCase())) +
           '">' + (hidden ? ICON.eyeOff : ICON.eye) + "</button>" +
           '<button type="button" class="hb-ll-btn hb-ll-lock" data-act="lock" title="' +
           escapeAttr(this.t("list.toggleLock", "Lock / unlock")) +
           '">' + (locked ? ICON.lock : ICON.unlock) + "</button>" +
+          '<button type="button" class="hb-ll-btn hb-ll-del" data-act="delete" title="' +
+          escapeAttr(this.t("list.delete", "Delete layer")) + '">' + ICON.trash + "</button>" +
           "</div>"
         );
       })
@@ -2066,17 +2074,14 @@ export default class HerobuilderCanvas {
       '<button type="button" class="hb-align btn btn-sm btn-default" data-align="' + mode + '" title="' + escapeAttr(label) + '">' + icon + "</button>";
 
     panel.innerHTML =
-      // ---- Transform tab ----
-      '<div class="herobuilder-tabpane active" data-tab="transform">' +
-      '<div class="herobuilder-panel-row hb-row-geom"><label>' + escapeHtml(this.t("panel.geometry", "Position / size (%)")) + "</label>" +
-      '<div class="hb-geom">' +
-      '<label>X<input type="number" class="hb-geom-x form-control form-control-sm" step="0.01"></label>' +
-      '<label>Y<input type="number" class="hb-geom-y form-control form-control-sm" step="0.01"></label>' +
-      '<label>W<input type="number" class="hb-geom-w form-control form-control-sm" step="0.01"></label>' +
-      '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.01" placeholder="' +
-      escapeAttr(this.t("panel.heightAuto", "auto")) + '"></label>' +
-      '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="1"></label>' +
-      "</div></div>" +
+      // ---- Content tab: what the layer shows and where it links to (per type, see updatePanel) ----
+      '<div class="herobuilder-tabpane active" data-tab="content">' +
+      '<div class="herobuilder-panel-row hb-row-text"><label>' + escapeHtml(this.t("panel.text", "Text")) + "</label>" +
+      '<textarea class="hb-text form-control form-control-sm" rows="2"></textarea></div>' +
+      '<div class="herobuilder-panel-row hb-row-tag"><label>' + escapeHtml(this.t("panel.tag", "HTML element")) + "</label>" +
+      '<select class="hb-tag form-select form-select-sm">' +
+      TEXT_TAGS.map((t) => '<option value="' + t + '">' + escapeHtml(this.t("tag." + t, t)) + "</option>").join("") +
+      "</select></div>" +
       '<div class="herobuilder-panel-row hb-row-imgedit"><label>' + escapeHtml(this.t("panel.imageEdit", "Image")) + "</label>" +
       '<div class="hb-imgedit">' +
       '<button type="button" class="hb-flip-h btn btn-sm btn-default" title="' + escapeAttr(this.t("panel.flipH", "Flip horizontally")) + '">' + ICON.flipH + "</button>" +
@@ -2087,28 +2092,17 @@ export default class HerobuilderCanvas {
       "</div>" +
       '<label class="hb-art-bp-label"><input type="checkbox" class="hb-art-bp"> <span class="hb-art-bp-text"></span></label>' +
       "</div>" +
-      '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.align", "Align")) + "</label>" +
-      '<div class="hb-align-row">' +
-      alignBtn("left", ICON.alignLeft, this.t("ctx.alignLeft", "Left")) +
-      alignBtn("centerH", ICON.alignCenterH, this.t("ctx.alignCenterH", "Center horizontally")) +
-      alignBtn("right", ICON.alignRight, this.t("ctx.alignRight", "Right")) +
-      alignBtn("top", ICON.alignTop, this.t("ctx.alignTop", "Top")) +
-      alignBtn("middle", ICON.alignV, this.t("panel.alignV", "Center vertically")) +
-      alignBtn("bottom", ICON.alignBottom, this.t("ctx.alignBottom", "Bottom")) +
-      "</div></div>" +
-      '<div class="herobuilder-panel-row"><button type="button" class="t3js-herobuilder-copy btn btn-sm btn-default hb-copyall">' +
-      escapeHtml(this.t("button.copyToAll", "Copy position to all breakpoints")) + "</button></div>" +
-      '<div class="herobuilder-panel-row"><button type="button" class="hb-delete btn btn-sm btn-danger">' +
-      escapeHtml(this.t("panel.deleteLayer", "Delete layer")) + "</button></div>" +
-      "</div>" +
-      // ---- Style tab ----
-      '<div class="herobuilder-tabpane" data-tab="style">' +
-      '<div class="herobuilder-panel-row hb-row-text"><label>' + escapeHtml(this.t("panel.text", "Text")) + "</label>" +
-      '<textarea class="hb-text form-control form-control-sm" rows="2"></textarea></div>' +
-      '<div class="herobuilder-panel-row hb-row-tag"><label>' + escapeHtml(this.t("panel.tag", "HTML element")) + "</label>" +
-      '<select class="hb-tag form-select form-select-sm">' +
-      TEXT_TAGS.map((t) => '<option value="' + t + '">' + escapeHtml(this.t("tag." + t, t)) + "</option>").join("") +
+      '<div class="herobuilder-panel-row hb-row-fit"><label>' + escapeHtml(this.t("panel.fit", "Fit (scaling)")) + "</label>" +
+      '<select class="hb-fit form-select form-select-sm">' +
+      FIT_MODES.map((f) => '<option value="' + f + '">' + escapeHtml(this.t("fit." + f, f)) + "</option>").join("") +
       "</select></div>" +
+      '<div class="herobuilder-panel-row hb-row-focus"><label>' + escapeHtml(this.t("panel.focus", "Focus point (cover/contain)")) + "</label>" +
+      '<div class="hb-focus"><img class="hb-focus-img" alt=""><span class="hb-focus-dot"></span></div></div>' +
+      '<div class="herobuilder-panel-row hb-row-alt"><label>' + escapeHtml(this.t("panel.alt", "Alternative text")) + "</label>" +
+      '<input type="text" class="hb-alt form-control form-control-sm">' +
+      '<div class="hb-hint hb-hint-noalt alert alert-warning" hidden>' +
+      escapeHtml(this.t("hint.imageLinkNoAlt", "Enter an alternative text — otherwise the link has no name for screen readers.")) + "</div>" +
+      "</div>" +
       '<div class="herobuilder-panel-row hb-row-link"><label>' + escapeHtml(this.t("panel.link", "Link")) + "</label>" +
       '<div class="hb-link"><code class="hb-link-value">—</code>' +
       '<div class="hb-link-btns">' +
@@ -2118,21 +2112,40 @@ export default class HerobuilderCanvas {
       '<div class="hb-hint hb-hint-nolink alert alert-warning" hidden>' +
       escapeHtml(this.t("hint.buttonNoLink", "This button has no link and is not clickable on the website.")) + "</div>" +
       "</div>" +
-      '<div class="herobuilder-panel-row hb-row-alt"><label>' + escapeHtml(this.t("panel.alt", "Alternative text")) + "</label>" +
-      '<input type="text" class="hb-alt form-control form-control-sm">' +
-      '<div class="hb-hint hb-hint-noalt alert alert-warning" hidden>' +
-      escapeHtml(this.t("hint.imageLinkNoAlt", "Enter an alternative text — otherwise the link has no name for screen readers.")) + "</div>" +
       "</div>" +
+      // ---- Design tab: classes (grouped) and the text darkening ----
+      '<div class="herobuilder-tabpane" data-tab="style">' +
       '<div class="herobuilder-panel-row hb-row-classes"><label>' + escapeHtml(this.t("panel.classes", "Classes")) + "</label>" +
       classControl + "</div>" +
-      '<div class="herobuilder-panel-row hb-row-fit"><label>' + escapeHtml(this.t("panel.fit", "Fit (scaling)")) + "</label>" +
-      '<select class="hb-fit form-select form-select-sm">' +
-      FIT_MODES.map((f) => '<option value="' + f + '">' + escapeHtml(this.t("fit." + f, f)) + "</option>").join("") +
-      "</select></div>" +
-      '<div class="herobuilder-panel-row hb-row-focus"><label>' + escapeHtml(this.t("panel.focus", "Focus point (cover/contain)")) + "</label>" +
-      '<div class="hb-focus"><img class="hb-focus-img" alt=""><span class="hb-focus-dot"></span></div></div>' +
       '<div class="herobuilder-panel-row hb-row-overlay"><label>' + escapeHtml(this.t("panel.overlay", "Darkening behind text (%)")) + "</label>" +
-      '<div class="hb-overlay-ctl"><input type="range" class="hb-overlay" min="0" max="100" step="5"><span class="hb-overlay-val">0%</span></div></div>' +
+      '<div class="hb-overlay-ctl"><input type="range" class="hb-overlay" min="0" max="100" step="5"><span class="hb-overlay-val">0%</span></div>' +
+      '<div class="hb-hint hb-overlay-locked alert alert-info" hidden>' +
+      escapeHtml(this.t("panel.overlayLocked", "A box class sets the background — darkening is off while it is selected.")) + "</div></div>" +
+      "</div>" +
+      // ---- Position tab: geometry and visibility on the active breakpoint ----
+      '<div class="herobuilder-tabpane" data-tab="position">' +
+      '<div class="herobuilder-panel-row hb-row-geom"><label>' + escapeHtml(this.t("panel.geometry", "Position / size (%)")) + "</label>" +
+      '<div class="hb-geom">' +
+      '<label>X<input type="number" class="hb-geom-x form-control form-control-sm" step="0.01"></label>' +
+      '<label>Y<input type="number" class="hb-geom-y form-control form-control-sm" step="0.01"></label>' +
+      '<label>W<input type="number" class="hb-geom-w form-control form-control-sm" step="0.01"></label>' +
+      '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.01" placeholder="' +
+      escapeAttr(this.t("panel.heightAuto", "auto")) + '"></label>' +
+      '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="1"></label>' +
+      "</div></div>" +
+      '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.align", "Align")) + "</label>" +
+      '<div class="hb-align-row">' +
+      alignBtn("left", ICON.alignLeft, this.t("ctx.alignLeft", "Left")) +
+      alignBtn("centerH", ICON.alignCenterH, this.t("ctx.alignCenterH", "Center horizontally")) +
+      alignBtn("right", ICON.alignRight, this.t("ctx.alignRight", "Right")) +
+      alignBtn("top", ICON.alignTop, this.t("ctx.alignTop", "Top")) +
+      alignBtn("middle", ICON.alignV, this.t("panel.alignV", "Center vertically")) +
+      alignBtn("bottom", ICON.alignBottom, this.t("ctx.alignBottom", "Bottom")) +
+      "</div></div>" +
+      '<div class="herobuilder-panel-row hb-row-visible"><label class="hb-visible-label">' +
+      '<input type="checkbox" class="hb-visible"> <span class="hb-visible-text"></span></label></div>' +
+      '<div class="herobuilder-panel-row"><button type="button" class="t3js-herobuilder-copy btn btn-sm btn-default hb-copyall">' +
+      escapeHtml(this.t("button.copyToAll", "Copy position to all breakpoints")) + "</button></div>" +
       "</div>" +
       // ---- Animation tab ----
       '<div class="herobuilder-tabpane" data-tab="anim">' +
@@ -2166,6 +2179,14 @@ export default class HerobuilderCanvas {
         chip.remove();
       } else {
         chip.classList.toggle("active");
+        // One-of-a-kind group (size, alignment, …): selecting one deselects its siblings.
+        if (chip.classList.contains("active") && chip.dataset.exclusive) {
+          panel.querySelectorAll('.hb-class-chip[data-group="' + chip.dataset.group + '"]').forEach((other) => {
+            if (other !== chip) {
+              other.classList.remove("active");
+            }
+          });
+        }
       }
       this.setClasses();
     });
@@ -2186,7 +2207,7 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-anim-replay").addEventListener("click", () => this.replayPreview());
     panel.querySelector(".hb-link-choose").addEventListener("click", () => this.openLinkBrowser());
     panel.querySelector(".hb-link-clear").addEventListener("click", () => this.setLink(""));
-    panel.querySelector(".hb-delete").addEventListener("click", () => this.deleteSelected());
+    panel.querySelector(".hb-visible").addEventListener("change", () => this.selected && this.toggleVisibility(this.selected));
     // .t3js-herobuilder-copy is wired in bindToolbar().
   }
 
@@ -2239,6 +2260,18 @@ export default class HerobuilderCanvas {
     if (!this.panel) {
       return;
     }
+    // Nothing selected: a hint instead of empty tabs.
+    const tabs = this.root.querySelector(".herobuilder-proptabs");
+    if (!this.panelEmpty) {
+      this.panelEmpty = document.createElement("p");
+      this.panelEmpty.className = "hb-panel-empty text-body-secondary";
+      this.panelEmpty.textContent = this.t("panel.empty", "Select a layer on the stage or in the list.");
+      this.panel.parentNode.insertBefore(this.panelEmpty, this.panel);
+    }
+    this.panelEmpty.hidden = !!this.selected;
+    if (tabs) {
+      tabs.hidden = !this.selected;
+    }
     if (!this.selected) {
       this.panel.hidden = true;
       return;
@@ -2267,11 +2300,17 @@ export default class HerobuilderCanvas {
     this.panel.querySelector(".hb-anim-duration").value = anim.duration || "";
     this.panel.querySelector(".hb-fit").value = this.selected.fit || "fill";
     this.updateGeomFields(p);
+    const bpName = this.activeBp.toUpperCase();
+    this.panel.querySelector(".hb-visible").checked = p.visible !== false;
+    this.panel.querySelector(".hb-visible-text").textContent =
+      this.t("panel.visibleOn", "Visible on %s").replace("%s", bpName);
+    this.updateOverlayLock();
 
     // Focus point picker — only for image layers with a resolvable file.
     const info = isText ? null : this.fileInfo[this.selected.fileUid];
     const focusRow = this.panel.querySelector(".hb-row-focus");
-    if (info && info.url) {
+    // The focus point only decides something when the image is scaled with cover or contain.
+    if (info && info.url && (this.selected.fit === "cover" || this.selected.fit === "contain")) {
       focusRow.hidden = false;
       this.panel.querySelector(".hb-focus-img").src = info.url;
       this.updateFocusDot();
@@ -2303,19 +2342,55 @@ export default class HerobuilderCanvas {
    */
   renderClassChips(layer) {
     const box = this.panel.querySelector(".hb-class-chips");
-    const offered = this.classes[layer.type === "text" || layer.type === "button" ? layer.type : "image"] || [];
+    const type = layer.type === "text" || layer.type === "button" ? layer.type : "image";
+    const offered = this.classes[type] || [];
+    const groups = (this.classGroups && this.classGroups[type]) || [];
     const selected = (layer.cssClass || "").split(/\s+/).filter(Boolean);
-    const known = new Set(offered.map((c) => c.value));
-    const chip = (value, label, cls, title) =>
-      '<button type="button" class="hb-class-chip' + cls + '" data-value="' + escapeAttr(value) + '"' +
-      (title ? ' title="' + escapeAttr(title) + '"' : "") + ">" + escapeHtml(label) + "</button>";
+    const label = new Map(offered.map((c) => [c.value, c.label]));
+    const chip = (value, text, extra, attrs) =>
+      '<button type="button" class="hb-class-chip' + (selected.includes(value) ? " active" : "") + extra + '" data-value="' +
+      escapeAttr(value) + '"' + attrs + ">" + escapeHtml(text) + "</button>";
+    let html = "";
+    const placed = new Set();
+    // Configured groups first (tx_herobuilder.layerClassGroups), in their order; a group lists
+    // only classes that are offered for this type (layerClasses stays the whitelist).
+    groups.forEach((g, i) => {
+      const values = g.classes.filter((v) => label.has(v) && !placed.has(v));
+      if (!values.length) {
+        return;
+      }
+      values.forEach((v) => placed.add(v));
+      const attrs = ' data-group="' + i + '"' + (g.exclusive ? ' data-exclusive="1"' : "") + (g.background ? ' data-background="1"' : "");
+      html += '<div class="hb-class-group">' + (g.label ? '<div class="hb-class-group-label">' + escapeHtml(g.label) + "</div>" : "") +
+        '<div class="hb-class-group-chips">' + values.map((v) => chip(v, label.get(v), "", attrs)).join("") + "</div></div>";
+    });
+    const rest = offered.filter((c) => !placed.has(c.value));
+    if (rest.length) {
+      const chips = rest.map((c) => chip(c.value, c.label, "", "")).join("");
+      // Without any group configuration the list stays one plain block, as before.
+      html += placed.size
+        ? '<div class="hb-class-group"><div class="hb-class-group-label">' + escapeHtml(this.t("panel.classesOther", "More")) +
+          '</div><div class="hb-class-group-chips">' + chips + "</div></div>"
+        : chips;
+    }
+    // Stored on the layer but not offered for its type: the frontend drops them, so show them.
     const unavailable = this.t("panel.classUnavailable", "Not available for this layer type — click to remove");
-    box.innerHTML =
-      offered.map((c) => chip(c.value, c.label, selected.includes(c.value) ? " active" : "", "")).join("") +
-      selected.filter((v) => !known.has(v)).map((v) => chip(v, v, " active hb-class-chip-unavailable", unavailable)).join("") ||
+    html += selected.filter((v) => !label.has(v))
+      .map((v) => chip(v, v, " hb-class-chip-unavailable", ' title="' + escapeAttr(unavailable) + '"')).join("");
+    box.innerHTML = html ||
       '<em class="text-body-secondary">' +
         escapeHtml(this.t("panel.noClasses", "No classes configured (page TSconfig tx_herobuilder.layerClasses)")) +
         "</em>";
+  }
+
+  /** The text darkening and a background class set the same property — the class wins. */
+  updateOverlayLock() {
+    if (!this.panel || !this.selected) {
+      return;
+    }
+    const locked = !!this.panel.querySelector(".hb-class-chip.active[data-background]");
+    this.panel.querySelector(".hb-overlay").disabled = locked;
+    this.panel.querySelector(".hb-overlay-locked").hidden = !locked;
   }
 
   updateGeomFields(p) {

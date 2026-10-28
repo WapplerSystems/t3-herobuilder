@@ -624,3 +624,19 @@
     padding: .35rem .5rem;
     font-size: .8125rem;
 }
+
+/* ---- Panel: class groups, empty state, visibility, layer list delete ---------------------- */
+.hb-class-group + .hb-class-group,
+.hb-class-group + .hb-class-chip { margin-top: .5rem; }
+.hb-class-group-label {
+    margin-bottom: .2rem;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    opacity: .7;
+}
+.hb-class-group-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
+.hb-panel-empty { margin: 1rem .75rem; font-size: .875rem; }
+.hb-visible-label { display: flex; align-items: center; gap: .4rem; font-weight: normal; }
+.hb-ll-del:hover { color: var(--typo3-state-danger-color, #c83c3c); }
