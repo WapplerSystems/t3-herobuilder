@@ -368,8 +368,20 @@ plugin.tx_herobuilder.settings.framelessColPos = 5
 ```
 
 New hero elements start with a hidden header (`header_layout = 100`), so their title does not
-appear above the stage unless an editor chooses so. The extension's layout path sits at index 1
-of `lib.contentElement.layoutRootPaths`, below the theme and the site's own path.
+appear above the stage unless an editor chooses so.
+
+### Overriding the templates
+
+The extension's template, partial and layout paths sit at index 1 of `lib.contentElement`'s
+`templateRootPaths` / `partialRootPaths` / `layoutRootPaths` — below the theme (T3Bootstrap: 5)
+and the site's own paths (10). A site overrides `Hero.html` or the `Slide` / `Layer` partials
+by providing them in its own path; its own `Header/…` partials and `Default` layout apply to the
+hero as well.
+
+The site's own paths come from `styles.templates.templateRootPath` / `partialRootPath` /
+`layoutRootPath`. With site sets (TYPO3 13+) these are **site settings** of the Fluid Styled
+Content set: set them in the site's `settings.yaml`, not as TypoScript constants — a site setting
+wins over a constant of the same name, so a constant has no effect.
 
 ### Template storage folder (page TSconfig)
 
