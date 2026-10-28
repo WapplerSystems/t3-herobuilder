@@ -683,12 +683,17 @@ export default class HerobuilderCanvas {
   ensurePlacement(layer) {
     if (!layer.placements[this.activeBp]) {
       // Clone from the primary (lg, else first defined) placement so a new breakpoint override
-      // starts from the inherited layout the editor is already showing.
+      // starts from the inherited layout the editor is already showing — framing included, or
+      // merely moving a layer would drop the crop the frontend inherited from the primary.
       const primaryBp = layer.placements.lg ? "lg" : Object.keys(layer.placements)[0];
       const src = primaryBp ? layer.placements[primaryBp] : null;
-      layer.placements[this.activeBp] = src
+      const placement = src
         ? geometryOf(src)
         : { x: 20, y: 20, w: 40, h: 25, rot: 0, z: 1, visible: true };
+      if (src && src.image) {
+        placement.image = { ...src.image, crop: src.image.crop ? { ...src.image.crop } : null };
+      }
+      layer.placements[this.activeBp] = placement;
     }
     return layer.placements[this.activeBp];
   }
@@ -2251,14 +2256,31 @@ export default class HerobuilderCanvas {
 
   // ---- Art direction: crop & focus per breakpoint ------------------------
 
-  /** The breakpoint's own image framing ({crop, focusX, focusY}), or null when it inherits the layer's. */
+  /**
+   * The breakpoint's placement framing ({crop, focusX, focusY}), or null when it uses the layer's.
+   * A breakpoint without a placement of its own shows the primary one, framing included — the
+   * same cascade as CompositionProcessor::framingPerBreakpoint() in the frontend.
+   */
   imageOverride(layer, bp = this.activeBp) {
-    const p = layer && layer.placements && layer.placements[bp];
+    const placements = (layer && layer.placements) || {};
+    let p = placements[bp];
+    if (!p) {
+      const primaryBp = placements.lg ? "lg" : Object.keys(placements)[0];
+      p = primaryBp ? placements[primaryBp] : null;
+    }
     return p && p.image ? p.image : null;
   }
 
-  /** Where crop/focus edits go: the active breakpoint's own framing if it has one, else the layer. */
+  /**
+   * Where crop/focus edits go: the active breakpoint's framing if it has one, else the layer.
+   * Framing inherited from the primary placement is copied to the breakpoint first, so editing
+   * it here never changes the primary breakpoint behind the editor's back.
+   */
   imageTarget(layer) {
+    const own = layer.placements && layer.placements[this.activeBp];
+    if (!own && this.imageOverride(layer)) {
+      return this.ensurePlacement(layer).image;
+    }
     return this.imageOverride(layer) || layer;
   }
 
