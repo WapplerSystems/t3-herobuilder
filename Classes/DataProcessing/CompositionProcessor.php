@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace WapplerSystems\Herobuilder\DataProcessing;
 
+use Doctrine\DBAL\Exception as DbalException;
+use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
@@ -53,6 +55,7 @@ final class CompositionProcessor implements DataProcessorInterface
         private readonly ResourceFactory $resourceFactory,
         private readonly ConnectionPool $connectionPool,
         private readonly ImageService $imageService,
+        private readonly LoggerInterface $logger,
     ) {}
 
     public function process(
@@ -413,9 +416,16 @@ final class CompositionProcessor implements DataProcessorInterface
             return Composition::STAGE_MODE_RATIO;
         }
         if (!isset($this->stageModes[$contentUid])) {
-            $mode = $this->connectionPool->getConnectionForTable('tt_content')
-                ->select(['stage_mode'], 'tt_content', ['uid' => $contentUid])
-                ->fetchOne();
+            try {
+                $mode = $this->connectionPool->getConnectionForTable('tt_content')
+                    ->select(['stage_mode'], 'tt_content', ['uid' => $contentUid])
+                    ->fetchOne();
+            } catch (DbalException $e) {
+                // Code deployed, schema not yet (tt_content.stage_mode missing): render the stage
+                // as before the column existed instead of failing the whole page.
+                $this->logger->warning(Composition::STAGE_MODE_SCHEMA_HINT, ['exception' => $e]);
+                $mode = null;
+            }
             $this->stageModes[$contentUid] = Composition::normalizeStageMode($mode);
         }
         return $this->stageModes[$contentUid];

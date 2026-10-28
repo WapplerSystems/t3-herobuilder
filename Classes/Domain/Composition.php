@@ -95,6 +95,10 @@ final readonly class Composition
      */
     public const STAGE_MODE_HEIGHT = 'height';
 
+    /** Logged when tt_content.stage_mode cannot be read; the stage then falls back to "ratio". */
+    public const STAGE_MODE_SCHEMA_HINT = 'EXT:herobuilder cannot read tt_content.stage_mode, using "ratio".'
+        . ' Run the database analyzer or "typo3 extension:setup".';
+
     /**
      * px per rem when a fixed stage height is converted for the backend editor, which needs a px
      * box. Assumes the browser default root font size — a theme that changes `html { font-size }`

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace WapplerSystems\Herobuilder\Backend\Form\Element;
 
+use Doctrine\DBAL\Exception as DbalException;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
 use TYPO3\CMS\Core\Crypto\HashService;
@@ -310,9 +311,14 @@ class CanvasElement extends AbstractFormElement
         }
         $mode = null;
         if (ctype_digit($contentUid)) {
-            $mode = $this->connectionPool->getConnectionForTable('tt_content')
-                ->select(['stage_mode'], 'tt_content', ['uid' => (int)$contentUid])
-                ->fetchOne();
+            try {
+                $mode = $this->connectionPool->getConnectionForTable('tt_content')
+                    ->select(['stage_mode'], 'tt_content', ['uid' => (int)$contentUid])
+                    ->fetchOne();
+            } catch (DbalException $e) {
+                // AbstractNode is LoggerAware; the logger is set when the node is instantiated.
+                $this->logger?->warning(Composition::STAGE_MODE_SCHEMA_HINT, ['exception' => $e]);
+            }
         }
         return [$contentUid, Composition::normalizeStageMode($mode)];
     }
