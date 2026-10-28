@@ -81,11 +81,11 @@ final class CompositionProcessor implements DataProcessorInterface
      * (resolved FAL files, scoped per-breakpoint CSS, stages). Shared by the frontend
      * DataProcessor and the backend live-preview controller.
      *
-     * @param array<string, mixed> $row       Collage record (needs uid, pid, composition, title, link)
+     * @param array<string, mixed> $row       Collage record (needs uid, pid, composition, title)
      * @param array<string, mixed> $stagesOverride TypoScript settings.stages override
      * @param string|null $stageMode Composition::STAGE_MODE_*; null = the content element's
      *                               `stage_mode` (looked up via the row's content_uid)
-     * @return array{uid:int,title:string,link:string,scope:string,css:string,layers:array,stages:array}
+     * @return array{uid:int,title:string,scope:string,css:string,layers:array,stages:array}
      */
     public function expand(array $row, array $stagesOverride = [], ?string $stageMode = null): array
     {
@@ -180,7 +180,11 @@ final class CompositionProcessor implements DataProcessorInterface
                 'text' => $isText ? (string)($layer['text'] ?? '') : '',
                 'tag' => $type === 'text' && in_array($layer['tag'] ?? null, self::TEXT_TAGS, true) ? $layer['tag'] : 'div',
                 'file' => $file,
-                'alt' => $isText ? '' : (string)($layer['alt'] ?? ($file?->getProperty('alternative') ?? '')),
+                // An empty alt on the layer means "not set": the file's metadata applies, as the
+                // editor shows it (placeholder). Only a text entered on the layer overrides it.
+                'alt' => $isText ? '' : (trim((string)($layer['alt'] ?? '')) !== ''
+                    ? trim((string)$layer['alt'])
+                    : (string)($file?->getProperty('alternative') ?? '')),
                 'link' => (string)($layer['link'] ?? ''),
                 'crop' => $crop,
                 'image' => $image,
@@ -204,7 +208,6 @@ final class CompositionProcessor implements DataProcessorInterface
         return [
             'uid' => $uid,
             'title' => (string)($row['title'] ?? ''),
-            'link' => (string)($row['link'] ?? ''),
             'scope' => $scope,
             'css' => $css,
             'layers' => $layers,

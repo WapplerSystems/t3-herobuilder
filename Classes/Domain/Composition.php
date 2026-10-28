@@ -9,6 +9,7 @@ namespace WapplerSystems\Herobuilder\Domain;
  *
  * JSON shape:
  * {
+ *   "version": 1,
  *   "layers": [
  *     { "id": "l1", "fileUid": 1234, "alt": "…", "link": "t3://page?uid=42",
  *       "anim": { "effect": "fade-up", "delay": 200, "duration": 600 },
@@ -18,6 +19,12 @@ namespace WapplerSystems\Herobuilder\Domain;
  */
 final readonly class Composition
 {
+    /**
+     * Format version the editor writes into the JSON. Raise it with every incompatible change of
+     * the shape and add the step to migrate(); data without a version is version 1.
+     */
+    public const VERSION = 1;
+
     /** Breakpoint keys, ordered small → large (aligned with ws_t3bootstrap + a wide-viewport tier). */
     public const BREAKPOINTS = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'xxxl'];
 
@@ -121,6 +128,10 @@ final readonly class Composition
         } catch (\JsonException) {
             return new self();
         }
+        if (!is_array($data)) {
+            return new self();
+        }
+        $data = self::migrate($data);
         $layers = [];
         foreach ((array)($data['layers'] ?? []) as $layer) {
             if (!is_array($layer)) {
@@ -133,6 +144,23 @@ final readonly class Composition
             }
         }
         return new self($layers);
+    }
+
+    /**
+     * Bring stored JSON from an older format version to the current one, step by step
+     * (`if ($version < 2) { … $version = 2; }`). No step exists yet — version 1 is the first
+     * versioned format and identical to the unversioned one. JSON from a newer version is read
+     * as is, best effort.
+     *
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    public static function migrate(array $data): array
+    {
+        $version = max(1, (int)($data['version'] ?? 1));
+        // Migration steps go here, oldest first.
+        $data['version'] = max($version, self::VERSION);
+        return $data;
     }
 
     /**

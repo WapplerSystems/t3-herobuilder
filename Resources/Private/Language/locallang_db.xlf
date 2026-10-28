@@ -29,7 +29,6 @@
 
             <trans-unit id="collage"><source>Collage</source></trans-unit>
             <trans-unit id="collage.title"><source>Title (internal)</source></trans-unit>
-            <trans-unit id="collage.link"><source>Slide link (optional)</source></trans-unit>
             <trans-unit id="collage.composition"><source>Composition</source></trans-unit>
             <trans-unit id="collage.assets"><source>Image assets (pool)</source></trans-unit>
 
@@ -48,6 +47,11 @@
             <trans-unit id="draft.restore"><source>Restore</source></trans-unit>
             <trans-unit id="draft.discard"><source>Discard</source></trans-unit>
             <trans-unit id="panel.link"><source>Link</source></trans-unit>
+            <trans-unit id="panel.alt"><source>Alternative text</source></trans-unit>
+            <trans-unit id="panel.altFromFile"><source>From the file: %s</source></trans-unit>
+            <trans-unit id="panel.altNone"><source>No alternative text set</source></trans-unit>
+            <trans-unit id="hint.buttonNoLink"><source>This button has no link and is not clickable on the website.</source></trans-unit>
+            <trans-unit id="hint.imageLinkNoAlt"><source>Enter an alternative text — otherwise the link has no name for screen readers.</source></trans-unit>
             <trans-unit id="link.choose"><source>Choose link</source></trans-unit>
             <trans-unit id="link.remove"><source>Remove</source></trans-unit>
             <trans-unit id="panel.imageEdit"><source>Image</source></trans-unit>

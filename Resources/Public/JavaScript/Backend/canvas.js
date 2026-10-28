@@ -22,6 +22,9 @@ const geometryOf = (p) => {
   return { ...geometry };
 };
 
+// Format version written into the composition JSON (Composition::VERSION in PHP).
+const COMPOSITION_VERSION = 1;
+
 // Height the live preview is fitted into until the editor resizes the panel.
 const PREVIEW_MAX_HEIGHT = 420;
 
@@ -292,7 +295,7 @@ export default class HerobuilderCanvas {
     await this.loadFileInfo();
     this.render();
     // Seed the history with the initial state.
-    this._history = [JSON.stringify({ layers: this.cleanLayers() })];
+    this._history = [this.serialize()];
     this._histIndex = 0;
     this.updateHistoryButtons();
     // No save() runs during load, so the localStorage draft is still intact here —
@@ -2111,7 +2114,15 @@ export default class HerobuilderCanvas {
       '<div class="hb-link-btns">' +
       '<button type="button" class="hb-link-choose btn btn-sm btn-default">' + escapeHtml(this.t("link.choose", "Choose link")) + "</button>" +
       '<button type="button" class="hb-link-clear btn btn-sm btn-default" hidden>' + escapeHtml(this.t("link.remove", "Remove")) + "</button>" +
-      "</div></div></div>" +
+      "</div></div>" +
+      '<div class="hb-hint hb-hint-nolink alert alert-warning" hidden>' +
+      escapeHtml(this.t("hint.buttonNoLink", "This button has no link and is not clickable on the website.")) + "</div>" +
+      "</div>" +
+      '<div class="herobuilder-panel-row hb-row-alt"><label>' + escapeHtml(this.t("panel.alt", "Alternative text")) + "</label>" +
+      '<input type="text" class="hb-alt form-control form-control-sm">' +
+      '<div class="hb-hint hb-hint-noalt alert alert-warning" hidden>' +
+      escapeHtml(this.t("hint.imageLinkNoAlt", "Enter an alternative text — otherwise the link has no name for screen readers.")) + "</div>" +
+      "</div>" +
       '<div class="herobuilder-panel-row hb-row-classes"><label>' + escapeHtml(this.t("panel.classes", "Classes")) + "</label>" +
       classControl + "</div>" +
       '<div class="herobuilder-panel-row hb-row-fit"><label>' + escapeHtml(this.t("panel.fit", "Fit (scaling)")) + "</label>" +
@@ -2142,6 +2153,7 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-anim-duration").addEventListener("input", (e) => this.setAnim("duration", e.target.value));
     panel.querySelector(".hb-fit").addEventListener("change", (e) => this.setFit(e.target.value));
     panel.querySelector(".hb-text").addEventListener("input", (e) => this.setText(e.target.value));
+    panel.querySelector(".hb-alt").addEventListener("input", (e) => this.setAlt(e.target.value));
     panel.querySelector(".hb-tag").addEventListener("change", (e) => this.setTag(e.target.value));
     panel.querySelector(".hb-overlay").addEventListener("input", (e) => this.setOverlay(e.target.value));
     panel.querySelector(".hb-class-chips").addEventListener("click", (e) => {
@@ -2245,6 +2257,7 @@ export default class HerobuilderCanvas {
     // Link row: shown for all layer types (any layer may carry a TYPO3 link).
     this.panel.querySelector(".hb-link-value").textContent = this.selected.link || "—";
     this.panel.querySelector(".hb-link-clear").hidden = !this.selected.link;
+    this.updateAltAndHints();
     const ov = this.selected.overlay || 0;
     this.panel.querySelector(".hb-overlay").value = ov;
     this.panel.querySelector(".hb-overlay-val").textContent = ov + "%";
@@ -2397,6 +2410,40 @@ export default class HerobuilderCanvas {
       "&P[currentValue]=" + encodeURIComponent(current) +
       "&P[currentSelectedValues]=" + encodeURIComponent(current);
     Modal.advanced({ type: Modal.types.iframe, content: url, size: Modal.sizes.large });
+  }
+
+  /**
+   * Alternative text of an image layer: the file's metadata shows as placeholder until the layer
+   * gets its own text (as TYPO3's file references do). Plus the link hints for button and image.
+   */
+  updateAltAndHints() {
+    const layer = this.selected;
+    if (!layer || !this.panel) {
+      return;
+    }
+    const isImage = layer.type !== "text" && layer.type !== "button";
+    const info = isImage ? this.fileInfo[layer.fileUid] : null;
+    const fileAlt = (info && info.alt) || "";
+    const own = (layer.alt || "").trim();
+    const altInput = this.panel.querySelector(".hb-alt");
+    this.panel.querySelector(".hb-row-alt").hidden = !isImage;
+    if (altInput !== document.activeElement) {
+      altInput.value = layer.alt || "";
+    }
+    altInput.placeholder = fileAlt
+      ? this.t("panel.altFromFile", "From the file: %s").replace("%s", fileAlt)
+      : this.t("panel.altNone", "No alternative text set");
+    this.panel.querySelector(".hb-hint-nolink").hidden = !(layer.type === "button" && !layer.link);
+    this.panel.querySelector(".hb-hint-noalt").hidden = !(isImage && layer.link && !own && !fileAlt);
+  }
+
+  setAlt(value) {
+    if (!this.selected) {
+      return;
+    }
+    this.selected.alt = value;
+    this.updateAltAndHints();
+    this.save();
   }
 
   setLink(value) {
@@ -2976,12 +3023,17 @@ export default class HerobuilderCanvas {
     return { x, y, width, height };
   }
 
+  /** The composition as stored: format version + cleaned layers. */
+  serialize() {
+    return JSON.stringify({ version: COMPOSITION_VERSION, layers: this.cleanLayers() });
+  }
+
   cleanLayers() {
     return this.layers.map((l) => this.cleanLayer(l));
   }
 
   writeInput() {
-    this.input.value = JSON.stringify({ layers: this.cleanLayers() });
+    this.input.value = this.serialize();
     this.input.dispatchEvent(new Event("change", { bubbles: true }));
     this.schedulePreviewRefresh();
     this.scheduleDraftSave();

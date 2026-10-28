@@ -281,6 +281,22 @@ fluid in the frontend — layers keep their `%` positions, so between reference 
 proportions shift (as with any fixed-height slider). The canvas follows a change of the field
 immediately, before the record is saved.
 
+### Composition format version and links
+
+The editor writes `"version": 1` into the composition JSON (`Composition::VERSION`). JSON without
+a version is version 1. When the shape changes incompatibly, raise the constant and add the step
+to `Composition::migrate()` — stored collages and templates are then brought forward on read.
+
+Links live on layers only: one link per layer, rendered as an `<a>` around that layer — never
+nested. A link on a full-stage background layer makes the whole slide clickable while the
+buttons on top keep their own links. (A separate "slide link" field existed earlier but was never
+rendered; it is gone from the form, its database column is left in place.)
+
+Image layers take their alternative text from the file's metadata; the editor shows it as the
+placeholder of the "Alternative text" field, and a text entered there overrides it for that
+layer only. The panel warns about a button without a link (not clickable) and a linked image
+without any alternative text (a link without a name for screen readers).
+
 ### Predefined layer classes (page TSconfig)
 
 Selectable per layer in the editor **and** used as the frontend whitelist. One list per layer

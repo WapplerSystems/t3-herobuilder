@@ -70,11 +70,6 @@ return [
             'label' => $ll . 'collage.title',
             'config' => ['type' => 'input', 'size' => 40, 'eval' => 'trim'],
         ],
-        'link' => [
-            'exclude' => 1,
-            'label' => $ll . 'collage.link',
-            'config' => ['type' => 'link', 'size' => 40],
-        ],
         'composition' => [
             'exclude' => 0,
             'label' => $ll . 'collage.composition',
@@ -98,7 +93,7 @@ return [
     'types' => [
         '0' => [
             'showitem' => '
-                title, composition, link, assets,
+                title, composition, assets,
                 --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:language,
                     sys_language_uid, l10n_parent,
                 --div--;LLL:EXT:core/Resources/Private/Language/Form/locallang_tabs.xlf:access,

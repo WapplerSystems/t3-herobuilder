@@ -617,3 +617,10 @@
     opacity: .7;
     text-decoration: line-through;
 }
+
+/* Link / alternative-text hints under the link and alt fields (shown only, nothing blocked). */
+.herobuilder-panel .hb-hint {
+    margin: .4rem 0 0;
+    padding: .35rem .5rem;
+    font-size: .8125rem;
+}

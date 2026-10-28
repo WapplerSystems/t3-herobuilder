@@ -29,7 +29,6 @@
 
             <trans-unit id="collage"><source>Collage</source><target>Collage</target></trans-unit>
             <trans-unit id="collage.title"><source>Title (internal)</source><target>Titel (intern)</target></trans-unit>
-            <trans-unit id="collage.link"><source>Slide link (optional)</source><target>Slide-Link (optional)</target></trans-unit>
             <trans-unit id="collage.composition"><source>Composition</source><target>Komposition</target></trans-unit>
             <trans-unit id="collage.assets"><source>Image assets (pool)</source><target>Bild-Dateien (Pool)</target></trans-unit>
 
@@ -48,6 +47,11 @@
             <trans-unit id="draft.restore"><source>Restore</source><target>Wiederherstellen</target></trans-unit>
             <trans-unit id="draft.discard"><source>Discard</source><target>Verwerfen</target></trans-unit>
             <trans-unit id="panel.link"><source>Link</source><target>Link</target></trans-unit>
+            <trans-unit id="panel.alt"><source>Alternative text</source><target>Alternativtext</target></trans-unit>
+            <trans-unit id="panel.altFromFile"><source>From the file: %s</source><target>Aus der Datei: %s</target></trans-unit>
+            <trans-unit id="panel.altNone"><source>No alternative text set</source><target>Kein Alternativtext hinterlegt</target></trans-unit>
+            <trans-unit id="hint.buttonNoLink"><source>This button has no link and is not clickable on the website.</source><target>Dieser Button hat keinen Link und ist auf der Website nicht klickbar.</target></trans-unit>
+            <trans-unit id="hint.imageLinkNoAlt"><source>Enter an alternative text — otherwise the link has no name for screen readers.</source><target>Alternativtext eintragen – sonst hat der Link für Screenreader keinen Namen.</target></trans-unit>
             <trans-unit id="link.choose"><source>Choose link</source><target>Link wählen</target></trans-unit>
             <trans-unit id="link.remove"><source>Remove</source><target>Entfernen</target></trans-unit>
             <trans-unit id="panel.imageEdit"><source>Image</source><target>Bild</target></trans-unit>

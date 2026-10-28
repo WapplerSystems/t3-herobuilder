@@ -377,6 +377,7 @@ class CanvasElement extends AbstractFormElement
             'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'zoom.label',
             'preview.replay',
             'button.copyToAll', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
+            'panel.alt', 'panel.altFromFile', 'panel.altNone', 'hint.buttonNoLink', 'hint.imageLinkNoAlt',
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
             'template.applyHint', 'template.empty', 'template.saveError',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
