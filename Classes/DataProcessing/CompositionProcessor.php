@@ -251,12 +251,26 @@ final class CompositionProcessor implements DataProcessorInterface
 
             $srcset = [];
             $fallback = null;
+            $failed = [];
             foreach ($candidates as $width) {
                 $instructions = ['width' => $width, 'crop' => $cropArea];
                 if ($fileExtension !== '') {
                     $instructions['fileExtension'] = $fileExtension;
                 }
                 $processed = $this->imageService->applyProcessingInstructions($file, $instructions);
+                // A failed processing run silently hands back the original file — uncropped and
+                // full size. Retry in the source format first (the processor may not write the
+                // target format), then drop the width rather than list the original under it.
+                if ($fileExtension !== '' && $processed->usesOriginalFile()) {
+                    unset($instructions['fileExtension']);
+                    $processed = $this->imageService->applyProcessingInstructions($file, $instructions);
+                    $failed['format ' . $fileExtension] = true;
+                }
+                $originalIsFine = $cropArea === null && $width >= $sourceWidth && !isset($instructions['fileExtension']);
+                if ($processed->usesOriginalFile() && !$originalIsFine) {
+                    $failed['width ' . $width] = true;
+                    continue;
+                }
                 $uri = $this->imageService->getImageUri($processed);
                 if ($uri === '') {
                     return null;
@@ -267,6 +281,13 @@ final class CompositionProcessor implements DataProcessorInterface
                 }
             }
         } catch (\Throwable) {
+            return null;
+        }
+        if ($failed !== []) {
+            $this->logger->warning('EXT:herobuilder: image processing failed for "' . $file->getIdentifier() . '" ('
+                . implode(', ', array_keys($failed)) . '). Check the GFX processor settings.');
+        }
+        if ($fallback === null) {
             return null;
         }
 
@@ -391,7 +412,10 @@ final class CompositionProcessor implements DataProcessorInterface
             if ($crop === $baseCrop) {
                 continue;
             }
-            $cache[$crop] ??= $this->responsiveImage($file, $crop, $placements, $fit, $stages, $imageFormat);
+            if (!array_key_exists($crop, $cache)) {
+                // array_key_exists, not ??=: a failed crop (null) must not be processed again per breakpoint.
+                $cache[$crop] = $this->responsiveImage($file, $crop, $placements, $fit, $stages, $imageFormat);
+            }
             if ($cache[$crop] === null) {
                 continue;
             }
