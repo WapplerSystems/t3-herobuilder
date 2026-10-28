@@ -2237,7 +2237,7 @@ export default class HerobuilderCanvas {
    * height (keeping its width) so the layer box matches the cropped image, whatever the fit.
    * Full-bleed placements are left alone (see below).
    */
-  adjustBoxToCrop(layer) {
+  adjustBoxToCrop(layer, onlyBp = null) {
     const info = this.fileInfo[layer.fileUid];
     if (!info) {
       return;
@@ -2247,10 +2247,13 @@ export default class HerobuilderCanvas {
     // stage (a background) keeps its box — it must go on filling the stage after a crop.
     // A breakpoint with its own framing only follows its own crop; the others follow the
     // layer's. So a crop made "only for XS" never reshapes the desktop boxes.
+    // `onlyBp` limits it to one breakpoint — the one whose framing just changed on its own.
     const own = this.imageOverride(layer);
-    const bps = own
-      ? [this.activeBp]
-      : Object.keys(layer.placements || {}).filter((bp) => !layer.placements[bp].image);
+    const bps = onlyBp
+      ? [onlyBp]
+      : own
+        ? [this.activeBp]
+        : Object.keys(layer.placements || {}).filter((bp) => !layer.placements[bp].image);
     bps.forEach((bp) => {
       const p = layer.placements[bp];
       const crop = this.effCrop(layer, bp);
@@ -2318,7 +2321,8 @@ export default class HerobuilderCanvas {
       p.image = { crop: crop ? { ...crop } : null, focusX: focus.x, focusY: focus.y };
     } else {
       delete p.image;
-      this.adjustBoxToCrop(layer);
+      // Only this breakpoint changed its framing; the other breakpoints keep their boxes.
+      this.adjustBoxToCrop(layer, this.activeBp);
     }
     this.save();
     this.render();
