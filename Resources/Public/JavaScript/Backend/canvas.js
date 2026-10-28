@@ -121,6 +121,14 @@ export function fitRegion(boxW, boxH, regionAspect, fit, focusX = 50, focusY = 5
   return { w, h, left: (boxW - w) * focusX / 100, top: (boxH - h) * focusY / 100 };
 }
 
+/**
+ * True for a text/button layer without a height of its own on this placement: its box follows
+ * the text, as in the frontend (CompositionProcessor::declarations() omits the height).
+ */
+export function isAutoHeight(layer, p) {
+  return !!layer && (layer.type === "text" || layer.type === "button") && !(p && p.h);
+}
+
 /** True when a placement covers the whole stage — a background that must keep filling it. */
 export function isFullBleed(p) {
   return !!p && (p.x ?? 0) <= 0 && (p.y ?? 0) <= 0
@@ -734,9 +742,12 @@ export default class HerobuilderCanvas {
   }
 
   align(mode) {
-    this.withSelectedPlacement((p) => {
+    this.withSelectedPlacement((p, layer) => {
       const w = p.w ?? 0;
-      const h = p.h ?? 0;
+      // Auto height: use the rendered height (in % of the stage), without storing it.
+      const h = isAutoHeight(layer, p) && layer._el
+        ? (layer._el.offsetHeight / (this.stageEl.clientHeight || 1)) * 100
+        : p.h ?? 0;
       if (mode === "left") p.x = 0;
       else if (mode === "centerH") p.x = round((100 - w) / 2);
       else if (mode === "right") p.x = round(100 - w);
@@ -997,12 +1008,13 @@ export default class HerobuilderCanvas {
       el.textContent = layer.text || (layer.type === "button" ? "Button" : "Text");
       const typeClass = layer.type === "button" ? "herobuilder-layer-button" : "herobuilder-layer-text";
       el.className = "herobuilder-layer " + typeClass + (layer.cssClass ? " " + layer.cssClass : "");
-      el.style.height = (p.h ?? 15) + "%";
+      // No height = the box follows the text (frontend omits it too); only a fixed height clips.
+      el.style.height = p.h ? p.h + "%" : "auto";
       el.style.boxSizing = "border-box";
       el.style.display = "flex";
       el.style.flexDirection = "column";
       el.style.justifyContent = "center";
-      el.style.overflow = "hidden";
+      el.style.overflow = p.h ? "hidden" : "visible";
       el.style.textAlign = "center";
       const overlay = layer.overlay || 0;
       if (overlay > 0) {
@@ -1045,12 +1057,15 @@ export default class HerobuilderCanvas {
     }
     const sw = this.stageEl.clientWidth || 1;
     const sh = this.stageEl.clientHeight || 1;
+    // An auto-height text/button only gets width handles: its height follows the text.
+    const autoHeight = isAutoHeight(layer, this.placementFor(layer));
     this.moveable = new window.Moveable(this.stageEl, {
       target: layer._el,
       draggable: true,
       resizable: true,
       rotatable: true,
-      keepRatio: true,
+      keepRatio: !autoHeight,
+      renderDirections: autoHeight ? ["w", "e"] : ["nw", "n", "ne", "w", "e", "sw", "s", "se"],
       origin: false,
       // Snapping to stage edges/center and to other layers, with visible guide lines.
       snappable: this.snapActive(),
@@ -1158,7 +1173,7 @@ export default class HerobuilderCanvas {
    * lands within two px of an edge or the centre can only have got there by snapping, so it is
    * quantized onto the exact value.
    */
-  snapEdges(p, sw, sh) {
+  snapEdges(p, sw, sh, h = p.h) {
     if (!this.snapActive()) {
       return;
     }
@@ -1172,10 +1187,10 @@ export default class HerobuilderCanvas {
     }
     if (near(p.y, 0, 2, sh)) {
       p.y = 0;
-    } else if (p.h && near(p.y + p.h, 100, 2, sh)) {
-      p.y = round(100 - p.h);
-    } else if (p.h && near(p.y + p.h / 2, 50, 2, sh)) {
-      p.y = round(50 - p.h / 2);
+    } else if (h && near(p.y + h, 100, 2, sh)) {
+      p.y = round(100 - h);
+    } else if (h && near(p.y + h / 2, 50, 2, sh)) {
+      p.y = round(50 - h / 2);
     }
   }
 
@@ -1193,19 +1208,26 @@ export default class HerobuilderCanvas {
     const sw = this.stageEl.clientWidth || 1;
     const sh = this.stageEl.clientHeight || 1;
     const p = this.ensurePlacement(layer);
+    // Moving, rotating or widening must not turn "height follows the text" into a fixed height
+    // measured with the editor's fonts.
+    const autoHeight = isAutoHeight(layer, p);
     p.x = round((el.offsetLeft / sw) * 100);
     p.y = round((el.offsetTop / sh) * 100);
     p.w = round((el.offsetWidth / sw) * 100);
-    p.h = round((el.offsetHeight / sh) * 100);
+    if (autoHeight) {
+      el.style.height = "auto";
+    } else {
+      p.h = round((el.offsetHeight / sh) * 100);
+    }
     p.rot = round(this.readRotation(el));
-    this.snapEdges(p, sw, sh);
+    this.snapEdges(p, sw, sh, autoHeight ? (el.offsetHeight / sh) * 100 : p.h);
     p.z = p.z || 1;
     p.visible = p.visible !== false;
     layer.placements[this.activeBp] = p;
     el.style.left = p.x + "%";
     el.style.top = p.y + "%";
     el.style.width = p.w + "%";
-    el.style.height = p.h + "%";
+    el.style.height = autoHeight ? "auto" : p.h + "%";
     if (this.moveable) {
       this.moveable.updateRect();
     }
@@ -1273,7 +1295,7 @@ export default class HerobuilderCanvas {
       anim: {},
       placements: {},
     };
-    layer.placements[this.activeBp] = { x: 20, y: 40, w: 60, h: 15, rot: 0, z: maxZ + 1, visible: true };
+    layer.placements[this.activeBp] = { x: 20, y: 40, w: 60, h: 0, rot: 0, z: maxZ + 1, visible: true };
     this.layers.push(layer);
     this.render();
     this.select(layer);
@@ -1291,7 +1313,7 @@ export default class HerobuilderCanvas {
       anim: {},
       placements: {},
     };
-    layer.placements[this.activeBp] = { x: 20, y: 55, w: 20, h: 8, rot: 0, z: maxZ + 1, visible: true };
+    layer.placements[this.activeBp] = { x: 20, y: 55, w: 20, h: 0, rot: 0, z: maxZ + 1, visible: true };
     this.layers.push(layer);
     this.render();
     this.select(layer);
@@ -1863,7 +1885,8 @@ export default class HerobuilderCanvas {
       '<label>X<input type="number" class="hb-geom-x form-control form-control-sm" step="0.01"></label>' +
       '<label>Y<input type="number" class="hb-geom-y form-control form-control-sm" step="0.01"></label>' +
       '<label>W<input type="number" class="hb-geom-w form-control form-control-sm" step="0.01"></label>' +
-      '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.01"></label>' +
+      '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.01" placeholder="' +
+      escapeAttr(this.t("panel.heightAuto", "auto")) + '"></label>' +
       '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="1"></label>' +
       "</div></div>" +
       '<div class="herobuilder-panel-row hb-row-imgedit"><label>' + escapeHtml(this.t("panel.imageEdit", "Image")) + "</label>" +
@@ -2080,7 +2103,8 @@ export default class HerobuilderCanvas {
       const el = this.panel.querySelector(sel);
       // Don't clobber the field the user is currently typing in.
       if (el && el !== document.activeElement) {
-        el.value = p[field] ?? (field === "rot" ? 0 : "");
+        // Height 0 means "follows the content" — shown as the empty field's "auto" placeholder.
+        el.value = field === "h" && !p.h ? "" : p[field] ?? (field === "rot" ? 0 : "");
       }
     });
   }
@@ -2089,15 +2113,23 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    const p = this.ensurePlacement(this.selected);
+    const layer = this.selected;
+    const p = this.ensurePlacement(layer);
+    const wasAuto = isAutoHeight(layer, p);
     p[field] = round(parseFloat(value) || 0);
-    if (this.selected._el) {
-      this.applyGeomToEl(this.selected._el, p);
+    if (field === "h" && wasAuto !== isAutoHeight(layer, p)) {
+      // Switching between "auto" and a fixed height changes clipping and the resize handles.
+      this.render();
+      this.select(layer);
+    } else {
+      if (layer._el) {
+        this.applyGeomToEl(layer._el, p);
+      }
+      if (this.moveable) {
+        this.moveable.updateRect();
+      }
+      this.renderLayerList();
     }
-    if (this.moveable) {
-      this.moveable.updateRect();
-    }
-    this.renderLayerList();
     this.save();
   }
 
@@ -2105,8 +2137,10 @@ export default class HerobuilderCanvas {
     el.style.left = (p.x ?? 0) + "%";
     el.style.top = (p.y ?? 0) + "%";
     el.style.width = (p.w ?? 0) + "%";
-    if (p.h != null) {
+    if (p.h) {
       el.style.height = p.h + "%";
+    } else if (p.h != null) {
+      el.style.height = "auto";
     }
     el.style.transform = "rotate(" + (p.rot || 0) + "deg)";
     el.style.zIndex = String(p.z || 1);

@@ -372,7 +372,7 @@ class CanvasElement extends AbstractFormElement
             'ctx.align', 'ctx.alignLeft', 'ctx.alignCenterH', 'ctx.alignRight', 'ctx.alignTop',
             'ctx.alignMiddle', 'ctx.alignBottom', 'ctx.fillStage', 'ctx.fillStagePlain',
             'ctx.copyToAll', 'ctx.toFront', 'ctx.toBack',
-            'panel.geometry', 'panel.focus', 'panel.overlay', 'panel.align', 'panel.alignV', 'ctx.alignLeft', 'ctx.alignCenterH',
+            'panel.geometry', 'panel.heightAuto', 'panel.focus', 'panel.overlay', 'panel.align', 'panel.alignV', 'ctx.alignLeft', 'ctx.alignCenterH',
             'ctx.alignRight', 'list.reorder', 'list.toggleVisible', 'list.toggleLock',
             'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'zoom.label',
             'preview.replay',

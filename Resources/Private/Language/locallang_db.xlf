@@ -128,6 +128,7 @@
             <trans-unit id="panel.align"><source>Align</source></trans-unit>
             <trans-unit id="panel.alignV"><source>Center vertically</source></trans-unit>
             <trans-unit id="panel.geometry"><source>Position / size (%)</source></trans-unit>
+            <trans-unit id="panel.heightAuto"><source>auto</source></trans-unit>
             <trans-unit id="panel.focus"><source>Focus point (cover/contain)</source></trans-unit>
             <trans-unit id="panel.tag"><source>HTML element</source></trans-unit>
             <trans-unit id="tag.div"><source>div (no meaning)</source></trans-unit>
