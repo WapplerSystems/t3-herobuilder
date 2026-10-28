@@ -139,6 +139,7 @@ class CanvasElement extends AbstractFormElement
             'stages' => $stages,
             'stagesByMode' => $stagesByMode,
             'stageMode' => $stageMode,
+            'recordTstamp' => (int)($this->data['databaseRow']['tstamp'] ?? 0),
             'stageModeField' => $contentUid !== '' ? 'data[tt_content][' . $contentUid . '][stage_mode]' : '',
             'classes' => $classes,
             'classGroups' => Composition::layerClassGroupsFromTsConfig(
@@ -382,7 +383,7 @@ class CanvasElement extends AbstractFormElement
             'preview.replay',
             'button.copyToAll', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
             'panel.alt', 'panel.altFromFile', 'panel.altNone', 'hint.buttonNoLink', 'hint.imageLinkNoAlt',
-            'panel.empty', 'panel.visibleOn', 'panel.classesOther', 'panel.overlayLocked', 'list.delete',
+            'panel.empty', 'panel.visibleOn', 'panel.classesOther', 'panel.overlayLocked', 'list.delete', 'list.typeText', 'list.typeButton',
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
             'template.applyHint', 'template.empty', 'template.saveError',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',

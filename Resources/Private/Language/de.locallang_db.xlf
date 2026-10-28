@@ -135,6 +135,8 @@
             <trans-unit id="panel.classesOther"><source>More</source><target>Weitere</target></trans-unit>
             <trans-unit id="panel.overlayLocked"><source>A box class sets the background — darkening is off while it is selected.</source><target>Eine Box-Klasse bestimmt den Hintergrund – die Abdunkelung ist dann aus.</target></trans-unit>
             <trans-unit id="list.delete"><source>Delete layer</source><target>Ebene löschen</target></trans-unit>
+            <trans-unit id="list.typeText"><source>Text</source><target>Text</target></trans-unit>
+            <trans-unit id="list.typeButton"><source>Button</source><target>Button</target></trans-unit>
             <trans-unit id="panel.tabAnimation"><source>Animation</source><target>Animation</target></trans-unit>
             <trans-unit id="panel.align"><source>Align</source><target>Ausrichten</target></trans-unit>
             <trans-unit id="panel.alignV"><source>Center vertically</source><target>Vertikal zentrieren</target></trans-unit>

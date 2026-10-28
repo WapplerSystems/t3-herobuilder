@@ -22,6 +22,9 @@ const geometryOf = (p) => {
   return { ...geometry };
 };
 
+// Unsaved-changes drafts older than this are dropped silently on open.
+const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
 // Format version written into the composition JSON (Composition::VERSION in PHP).
 const COMPOSITION_VERSION = 1;
 
@@ -103,6 +106,7 @@ const ICON = {
   crop: S + '<path d="M4.5 1v10.5H15"/><path d="M1 4.5h10.5V15"/></svg>',
   chevronLeft: S + '<path d="M10 3 5 8l5 5"/></svg>',
   chevronRight: S + '<path d="M6 3l5 5-5 5"/></svg>',
+  button: S + '<rect x="1.5" y="4.5" width="13" height="7" rx="2"/><path d="M5 8h6"/></svg>',
   trash: S + '<path d="M2.5 4h11"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5h6.6L12 4"/></svg>',
 };
 
@@ -187,6 +191,8 @@ export default class HerobuilderCanvas {
     this.linkWizardUrl = init.linkWizardUrl || null;
     this.linkProxy = init.linkProxyName ? this.root.querySelector('[data-formengine-input-name="' + init.linkProxyName + '"]') : null;
     this.templatePid = init.templatePid || 0;
+    // Last save of the collage record (s) — a draft older than it is outdated.
+    this.recordTstamp = parseInt(init.recordTstamp, 10) || 0;
     this.templateListUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_template_list || null;
     this.templateSaveUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_template_save || null;
     this.exportUrl = window.TYPO3?.settings?.ajaxUrls?.herobuilder_export || null;
@@ -272,10 +278,9 @@ export default class HerobuilderCanvas {
     if (!this.stagesByMode || !this.stagesByMode[mode] || mode === this.stageMode) {
       return;
     }
-    const atBase = Math.abs(this.zoom - this.baseZoomValue()) < 0.01;
     this.stageMode = mode;
     this.stages = this.stagesByMode[mode];
-    this.zoom = atBase ? this.baseZoomValue() : Math.max(this.zoom, this.minZoomValue());
+    this.zoom = this._zoomAuto ? this.openingZoom() : Math.max(this.zoom, this.minZoomValue());
     this.deselect();
     this.updateBpTitles();
     this.updatePreviewWidth();
@@ -296,6 +301,8 @@ export default class HerobuilderCanvas {
   async init() {
     await this.ensureMoveable();
     await this.loadFileInfo();
+    this.zoom = this.openingZoom();
+    this._zoomAuto = true;
     this.render();
     // Seed the history with the initial state.
     this._history = [this.serialize()];
@@ -433,12 +440,11 @@ export default class HerobuilderCanvas {
     if (!this.breakpoints.includes(bp) || bp === this.activeBp) {
       return;
     }
-    // An untouched zoom re-bases to the new breakpoint (so xs shows its 390px device width
-    // again after lg was scaled up to reach the height floor); a zoom the editor set by hand
-    // is kept, only lifted if the new breakpoint's floor demands it.
-    const atBase = Math.abs(this.zoom - this.baseZoomValue()) < 0.01;
+    // An untouched zoom re-opens for the new breakpoint (so xs shows its 390px device width
+    // again after lg was fitted to the column); a zoom the editor set by hand is kept, only
+    // lifted if the new breakpoint's floor demands it.
     this.activeBp = bp;
-    this.zoom = atBase ? this.baseZoomValue() : Math.max(this.zoom, this.minZoomValue());
+    this.zoom = this._zoomAuto ? this.openingZoom() : Math.max(this.zoom, this.minZoomValue());
     this.deselect();
     this.highlightActiveBp();
     this.updatePreviewWidth();
@@ -637,7 +643,17 @@ export default class HerobuilderCanvas {
     this.updateZoomControl();
   }
 
+  /**
+   * The zoom a breakpoint opens at: "fit width" when its stage is wider than the column (e.g. LG
+   * inside a content element's form), otherwise the base zoom (100 %, or the height floor).
+   */
+  openingZoom() {
+    return Math.max(this.minZoomValue(), Math.min(this.baseZoomValue(), this.fitZoomValue()));
+  }
+
   setZoom(z) {
+    // Any zoom chosen by the editor (picker, wheel, keys, fit button) is kept across breakpoints.
+    this._zoomAuto = false;
     this.zoom = Math.min(6, Math.max(MIN_ZOOM, z));
     this.applyStageSize();
     if (this.moveable) {
@@ -1988,11 +2004,18 @@ export default class HerobuilderCanvas {
   }
 
   layerChip(layer) {
-    const info = layer.type === "text" ? null : this.fileInfo[layer.fileUid];
+    // Text and button show their type; an image its thumbnail (or a type icon without file).
+    if (layer.type === "text") {
+      return '<span class="hb-ll-chip hb-ll-chip-type" title="' + escapeAttr(this.t("list.typeText", "Text")) + '">T</span>';
+    }
+    if (layer.type === "button") {
+      return '<span class="hb-ll-chip hb-ll-chip-type" title="' + escapeAttr(this.t("list.typeButton", "Button")) + '">' + ICON.button + "</span>";
+    }
+    const info = this.fileInfo[layer.fileUid];
     if (info && info.url) {
       return '<span class="hb-ll-chip" style="background-image:url(' + escapeAttr(info.url) + ')"></span>';
     }
-    return '<span class="hb-ll-chip" style="background:' + chipColor(layer.id || "") + '"></span>';
+    return '<span class="hb-ll-chip hb-ll-chip-type">' + ICON.crop + "</span>";
   }
 
   layerLabel(layer) {
@@ -2036,6 +2059,7 @@ export default class HerobuilderCanvas {
           '<div class="hb-ll-item' +
           (active ? " active" : "") +
           (hidden ? " hb-ll-hidden" : "") +
+          (locked ? " hb-ll-locked" : "") +
           '" draggable="true" data-id="' +
           escapeAttr(layer.id) +
           '"><span class="hb-ll-grip" title="' +
@@ -3246,6 +3270,13 @@ export default class HerobuilderCanvas {
       this.clearDraft();
       return;
     }
+    // A crash-recovery draft goes stale: after DRAFT_MAX_AGE_MS, or once the record was saved
+    // after it (by anyone) — restoring it would then overwrite the newer saved state.
+    const ts = Number(draft.ts) || 0;
+    if (Date.now() - ts > DRAFT_MAX_AGE_MS || (this.recordTstamp && this.recordTstamp * 1000 > ts)) {
+      this.clearDraft();
+      return;
+    }
     // Draft already matches what is in the DB → it was persisted, drop it silently.
     if (this.normalizeJson(draft.json) === this.normalizeJson(this._serverValue)) {
       this.clearDraft();
@@ -3436,11 +3467,3 @@ function escapeAttr(s) {
   return escapeHtml(s).replace(/'/g, "&#39;");
 }
 
-// Stable-ish color from a layer id (for text/no-thumbnail chips).
-function chipColor(id) {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) {
-    h = (h * 31 + id.charCodeAt(i)) % 360;
-  }
-  return "hsl(" + h + ",55%,55%)";
-}

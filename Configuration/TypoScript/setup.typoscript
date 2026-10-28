@@ -1,10 +1,11 @@
 tt_content.herobuilder =< lib.contentElement
 tt_content.herobuilder {
     templateName = Hero
-    templateRootPaths.10 = {$plugin.tx_herobuilder.view.templateRootPath}
-    partialRootPaths.10 = {$plugin.tx_herobuilder.view.partialRootPath}
-    # Index 1: below the theme (5) and the site's own path (10), which keep providing "Default";
-    # this path only adds HeroPlain.
+    # Index 1: below the theme (5) and the site's own paths (10, styles.templates.*), so a site can
+    # override Hero.html or the partials, and its own Header/… partials and Default layout apply
+    # to the hero too. The extension's paths only add what nobody else provides.
+    templateRootPaths.1 = {$plugin.tx_herobuilder.view.templateRootPath}
+    partialRootPaths.1 = {$plugin.tx_herobuilder.view.partialRootPath}
     layoutRootPaths.1 = {$plugin.tx_herobuilder.view.layoutRootPath}
 
     # The theme's Default layout, or HeroPlain in a full-bleed hero column (settings.framelessColPos).

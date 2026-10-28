@@ -135,6 +135,8 @@
             <trans-unit id="panel.classesOther"><source>More</source></trans-unit>
             <trans-unit id="panel.overlayLocked"><source>A box class sets the background — darkening is off while it is selected.</source></trans-unit>
             <trans-unit id="list.delete"><source>Delete layer</source></trans-unit>
+            <trans-unit id="list.typeText"><source>Text</source></trans-unit>
+            <trans-unit id="list.typeButton"><source>Button</source></trans-unit>
             <trans-unit id="panel.tabAnimation"><source>Animation</source></trans-unit>
             <trans-unit id="panel.align"><source>Align</source></trans-unit>
             <trans-unit id="panel.alignV"><source>Center vertically</source></trans-unit>

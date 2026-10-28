@@ -39,12 +39,15 @@ final class HeroBuilderPreviewRenderer extends StandardContentPreviewRenderer
             $composition = Composition::fromJson((string)($collage['composition'] ?? ''));
             $thumbs = [];
             foreach ($composition->layers as $layer) {
-                if (($layer['type'] ?? 'image') === 'text') {
+                $type = $layer['type'] ?? 'image';
+                if ($type === 'text' || $type === 'button') {
+                    // A button has no file — it used to fall through to the image branch and vanish.
                     $text = trim((string)($layer['text'] ?? ''));
-                    $text = $text !== '' ? mb_strimwidth($text, 0, 24, '…') : 'Text';
+                    $text = $text !== '' ? mb_strimwidth($text, 0, 24, '…') : ($type === 'button' ? 'Button' : 'Text');
                     $thumbs[] = '<span style="display:inline-block;height:34px;line-height:34px;padding:0 8px;'
                         . 'margin:2px;border:1px solid #ccc;border-radius:2px;background:#f5f5f5;'
-                        . 'font-size:.85em;vertical-align:top;">T: ' . htmlspecialchars($text) . '</span>';
+                        . 'font-size:.85em;vertical-align:top;">' . ($type === 'button' ? 'B: ' : 'T: ')
+                        . htmlspecialchars($text) . '</span>';
                     continue;
                 }
                 try {

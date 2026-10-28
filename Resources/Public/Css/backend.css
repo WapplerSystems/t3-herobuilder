@@ -640,3 +640,21 @@
 .hb-panel-empty { margin: 1rem .75rem; font-size: .875rem; }
 .hb-visible-label { display: flex; align-items: center; gap: .4rem; font-weight: normal; }
 .hb-ll-del:hover { color: var(--typo3-state-danger-color, #c83c3c); }
+
+/* Layer list: the row actions show on hover, keyboard focus and for the selected row, so the name
+   gets the width. A hidden or locked layer keeps that icon visible — it is a state, not an action. */
+.hb-ll-item .hb-ll-btn { display: none; }
+.hb-ll-item:hover .hb-ll-btn,
+.hb-ll-item:focus-within .hb-ll-btn,
+.hb-ll-item.active .hb-ll-btn,
+.hb-ll-item.hb-ll-hidden .hb-ll-vis,
+.hb-ll-item.hb-ll-locked .hb-ll-lock { display: inline-flex; }
+/* Type icon for text and button layers (images show their thumbnail). */
+.hb-ll-chip-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: .8rem;
+    background: var(--typo3-component-hover-bg, rgba(0, 0, 0, .06));
+}
