@@ -7,8 +7,8 @@ namespace WapplerSystems\Herobuilder\Backend\Form\Element;
 use Doctrine\DBAL\Exception as DbalException;
 use TYPO3\CMS\Backend\Form\Element\AbstractFormElement;
 use TYPO3\CMS\Backend\Routing\UriBuilder;
+use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Crypto\HashService;
-use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Imaging\IconFactory;
 use TYPO3\CMS\Core\Imaging\IconSize;
 use TYPO3\CMS\Core\Page\JavaScriptModuleInstruction;
@@ -53,7 +53,6 @@ class CanvasElement extends AbstractFormElement
     public function __construct(
         private readonly HashService $hashService,
         private readonly IconFactory $iconFactory,
-        private readonly ConnectionPool $connectionPool,
     ) {}
 
     public function render(): array
@@ -312,9 +311,10 @@ class CanvasElement extends AbstractFormElement
         $mode = null;
         if (ctype_digit($contentUid)) {
             try {
-                $mode = $this->connectionPool->getConnectionForTable('tt_content')
-                    ->select(['stage_mode'], 'tt_content', ['uid' => (int)$contentUid])
-                    ->fetchOne();
+                // getRecordWSOL, not Connection::select(): the latter applies the frontend
+                // restrictions (a hidden content element — the usual state of a hero being
+                // prepared — was not found and fell back to "ratio") and ignores workspaces.
+                $mode = BackendUtility::getRecordWSOL('tt_content', (int)$contentUid, ['stage_mode'])['stage_mode'] ?? null;
             } catch (DbalException $e) {
                 // AbstractNode is LoggerAware; the logger is set when the node is instantiated.
                 $this->logger?->warning(Composition::STAGE_MODE_SCHEMA_HINT, ['exception' => $e]);

@@ -7,10 +7,14 @@ namespace WapplerSystems\Herobuilder\DataProcessing;
 use Doctrine\DBAL\Exception as DbalException;
 use Psr\Log\LoggerInterface;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
+use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\Domain\Repository\PageRepository;
 use TYPO3\CMS\Core\Imaging\ImageManipulation\CropVariantCollection;
 use TYPO3\CMS\Core\Resource\File;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Service\ImageService;
 use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\ContentObject\DataProcessorInterface;
@@ -441,9 +445,7 @@ final class CompositionProcessor implements DataProcessorInterface
         }
         if (!isset($this->stageModes[$contentUid])) {
             try {
-                $mode = $this->connectionPool->getConnectionForTable('tt_content')
-                    ->select(['stage_mode'], 'tt_content', ['uid' => $contentUid])
-                    ->fetchOne();
+                $mode = $this->readStageMode($contentUid);
             } catch (DbalException $e) {
                 // Code deployed, schema not yet (tt_content.stage_mode missing): render the stage
                 // as before the column existed instead of failing the whole page.
@@ -453,6 +455,29 @@ final class CompositionProcessor implements DataProcessorInterface
             $this->stageModes[$contentUid] = Composition::normalizeStageMode($mode);
         }
         return $this->stageModes[$contentUid];
+    }
+
+    /**
+     * stage_mode of the content element as the current context sees it: only deleted records are
+     * excluded (a hidden element is still rendered in preview and must not fall back to "ratio"),
+     * and the workspace version of the current context is overlaid (frontend preview and the
+     * backend live preview alike).
+     */
+    private function readStageMode(int $contentUid): ?string
+    {
+        $queryBuilder = $this->connectionPool->getQueryBuilderForTable('tt_content');
+        $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $row = $queryBuilder
+            ->select('uid', 'pid', 't3ver_oid', 't3ver_wsid', 't3ver_state', 'stage_mode')
+            ->from('tt_content')
+            ->where($queryBuilder->expr()->eq('uid', $queryBuilder->createNamedParameter($contentUid, Connection::PARAM_INT)))
+            ->executeQuery()
+            ->fetchAssociative();
+        if (!is_array($row)) {
+            return null;
+        }
+        GeneralUtility::makeInstance(PageRepository::class)->versionOL('tt_content', $row, false, true);
+        return is_array($row) ? ($row['stage_mode'] ?? null) : null;
     }
 
     /**
