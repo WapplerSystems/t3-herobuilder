@@ -355,6 +355,22 @@ tx_herobuilder.layerClassGroups.text {
 }
 ```
 
+### Frame and spacing (TypoScript constant)
+
+The hero renders inside the theme's `Default` content layout — frame with anchor id, spacing,
+container, header, background — like any other content element. In a theme's full-bleed hero
+area that frame would box the hero in, so list those columns in a constant; there the hero
+renders bare (layout `HeroPlain`):
+
+```typoscript
+# T3Bootstrap's hero area is colPos 5. Empty (default): every hero uses the Default layout.
+plugin.tx_herobuilder.settings.framelessColPos = 5
+```
+
+New hero elements start with a hidden header (`header_layout = 100`), so their title does not
+appear above the stage unless an editor chooses so. The extension's layout path sits at index 1
+of `lib.contentElement.layoutRootPaths`, below the theme and the site's own path.
+
 ### Template storage folder (page TSconfig)
 
 Where “Save as template” stores `tx_herobuilder_template` records. Templates are global (listed

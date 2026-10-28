@@ -3,7 +3,18 @@ tt_content.herobuilder {
     templateName = Hero
     templateRootPaths.10 = {$plugin.tx_herobuilder.view.templateRootPath}
     partialRootPaths.10 = {$plugin.tx_herobuilder.view.partialRootPath}
-    layoutRootPaths.10 = {$plugin.tx_herobuilder.view.layoutRootPath}
+    # Index 1: below the theme (5) and the site's own path (10), which keep providing "Default";
+    # this path only adds HeroPlain.
+    layoutRootPaths.1 = {$plugin.tx_herobuilder.view.layoutRootPath}
+
+    # The theme's Default layout, or HeroPlain in a full-bleed hero column (settings.framelessColPos).
+    variables.heroLayout = TEXT
+    variables.heroLayout {
+        value = Default
+        override = HeroPlain
+        override.if.value = {$plugin.tx_herobuilder.settings.framelessColPos}
+        override.if.isInList.field = colPos
+    }
 
     dataProcessing {
         # Load collages (slides) of this content element, ordered.

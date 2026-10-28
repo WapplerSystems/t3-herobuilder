@@ -5,6 +5,10 @@ plugin.tx_herobuilder {
         layoutRootPath = EXT:herobuilder/Resources/Private/Layouts/
     }
     settings {
+        # Columns (colPos, comma list) whose hero renders without the theme's frame, container,
+        # spacing and header — a full-bleed hero area. Empty: every hero uses the Default layout.
+        # T3Bootstrap's hero area is colPos 5.
+        framelessColPos =
         # Fixed stage aspect ratio per breakpoint (see plan). Format W:H.
         stages {
             xs.ratio = 9:16

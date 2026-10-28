@@ -139,5 +139,10 @@ $GLOBALS['TCA']['tt_content']['types'][$ctype] = [
         'bodytext' => [
             'config' => ['type' => 'text', 'enableRichtext' => false],
         ],
+        // The header mostly names the hero for editors; outside a frameless hero column the Default
+        // layout would render it above the stage. New heroes start with it hidden.
+        'header_layout' => [
+            'config' => ['default' => '100'],
+        ],
     ],
 ];
