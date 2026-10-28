@@ -610,3 +610,10 @@
     padding: 0 !important;
 }
 .herobuilder.hb-canvas-live:not(.hb-bp-anim) .herobuilder-layer > * { visibility: hidden; }
+
+/* A class stored on the layer but not offered for its type — the frontend drops it. */
+.hb-class-chip.hb-class-chip-unavailable {
+    border-style: dashed;
+    opacity: .7;
+    text-decoration: line-through;
+}

@@ -166,7 +166,8 @@ export default class HerobuilderCanvas {
       this.stageMode = modeField.value;
       this.stages = this.stagesByMode[this.stageMode];
     }
-    this.classes = Array.isArray(init.classes) ? init.classes : [];
+    // Classes per layer type ({text: [...], button: [...], image: [...]}).
+    this.classes = init.classes && typeof init.classes === "object" ? init.classes : {};
     this.labels = init.labels || {};
     this.uid = init.uid || 0;
     this.pid = init.pid || 0;
@@ -2055,15 +2056,8 @@ export default class HerobuilderCanvas {
     panel.hidden = true;
     this.panel = panel;
 
-    const classControl = this.classes.length
-      ? '<div class="hb-class-chips">' +
-        this.classes
-          .map((c) => '<button type="button" class="hb-class-chip" data-value="' + escapeAttr(c.value) + '">' + escapeHtml(c.label) + "</button>")
-          .join("") +
-        "</div>"
-      : '<em class="text-body-secondary">' +
-        escapeHtml(this.t("panel.noClasses", "No classes configured (page TSconfig tx_herobuilder.layerClasses)")) +
-        "</em>";
+    // Filled per selected layer (its type's classes) by renderClassChips().
+    const classControl = '<div class="hb-class-chips"></div>';
     const animNone = escapeHtml(this.t("panel.animNone", "— none —"));
     const alignBtn = (mode, icon, label) =>
       '<button type="button" class="hb-align btn btn-sm btn-default" data-align="' + mode + '" title="' + escapeAttr(label) + '">' + icon + "</button>";
@@ -2150,12 +2144,19 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-text").addEventListener("input", (e) => this.setText(e.target.value));
     panel.querySelector(".hb-tag").addEventListener("change", (e) => this.setTag(e.target.value));
     panel.querySelector(".hb-overlay").addEventListener("input", (e) => this.setOverlay(e.target.value));
-    panel.querySelectorAll(".hb-class-chip").forEach((chip) =>
-      chip.addEventListener("click", () => {
+    panel.querySelector(".hb-class-chips").addEventListener("click", (e) => {
+      const chip = e.target.closest(".hb-class-chip");
+      if (!chip) {
+        return;
+      }
+      if (chip.classList.contains("hb-class-chip-unavailable")) {
+        // Stored but not offered for this layer type: a click removes it for good.
+        chip.remove();
+      } else {
         chip.classList.toggle("active");
-        this.setClasses();
-      })
-    );
+      }
+      this.setClasses();
+    });
     this.bindFocusPicker(panel.querySelector(".hb-focus"));
     [
       ["x", ".hb-geom-x"], ["y", ".hb-geom-y"], ["w", ".hb-geom-w"],
@@ -2247,10 +2248,7 @@ export default class HerobuilderCanvas {
     const ov = this.selected.overlay || 0;
     this.panel.querySelector(".hb-overlay").value = ov;
     this.panel.querySelector(".hb-overlay-val").textContent = ov + "%";
-    const selected = (this.selected.cssClass || "").split(/\s+/).filter(Boolean);
-    this.panel.querySelectorAll(".hb-class-chip").forEach((chip) => {
-      chip.classList.toggle("active", selected.includes(chip.dataset.value));
-    });
+    this.renderClassChips(this.selected);
     this.panel.querySelector(".hb-anim-effect").value = anim.effect || "";
     this.panel.querySelector(".hb-anim-delay").value = anim.delay || "";
     this.panel.querySelector(".hb-anim-duration").value = anim.duration || "";
@@ -2283,6 +2281,28 @@ export default class HerobuilderCanvas {
     } else {
       imgEditRow.hidden = true;
     }
+  }
+
+  /**
+   * The class chips of a layer's type. Classes stored on the layer but not offered for its type
+   * (config changed, or set before classes were per type) show as "not available": the frontend
+   * drops them, so the editor must not hide them either.
+   */
+  renderClassChips(layer) {
+    const box = this.panel.querySelector(".hb-class-chips");
+    const offered = this.classes[layer.type === "text" || layer.type === "button" ? layer.type : "image"] || [];
+    const selected = (layer.cssClass || "").split(/\s+/).filter(Boolean);
+    const known = new Set(offered.map((c) => c.value));
+    const chip = (value, label, cls, title) =>
+      '<button type="button" class="hb-class-chip' + cls + '" data-value="' + escapeAttr(value) + '"' +
+      (title ? ' title="' + escapeAttr(title) + '"' : "") + ">" + escapeHtml(label) + "</button>";
+    const unavailable = this.t("panel.classUnavailable", "Not available for this layer type — click to remove");
+    box.innerHTML =
+      offered.map((c) => chip(c.value, c.label, selected.includes(c.value) ? " active" : "", "")).join("") +
+      selected.filter((v) => !known.has(v)).map((v) => chip(v, v, " active hb-class-chip-unavailable", unavailable)).join("") ||
+      '<em class="text-body-secondary">' +
+        escapeHtml(this.t("panel.noClasses", "No classes configured (page TSconfig tx_herobuilder.layerClasses)")) +
+        "</em>";
   }
 
   updateGeomFields(p) {

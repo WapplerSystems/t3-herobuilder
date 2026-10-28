@@ -95,6 +95,7 @@
             <trans-unit id="panel.visible"><source>Visible on this breakpoint</source></trans-unit>
             <trans-unit id="panel.deleteLayer"><source>Delete layer</source></trans-unit>
             <trans-unit id="panel.noClasses"><source>No classes configured (page TSconfig tx_herobuilder.layerClasses)</source></trans-unit>
+            <trans-unit id="panel.classUnavailable"><source>Not available for this layer type — click to remove</source></trans-unit>
             <trans-unit id="panel.animNone"><source>— none —</source></trans-unit>
 
             <trans-unit id="fit.fill"><source>Fill (distorted, fills box)</source></trans-unit>

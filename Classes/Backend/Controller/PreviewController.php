@@ -107,8 +107,8 @@ final class PreviewController
     {
         // aos.css hides every [data-aos] element until AOS animates it — without AOS (canvas
         // mode) it must not be loaded, or the layers stay invisible.
-        $files = $canvas ? [] : [$this->webPath('EXT:herobuilder/Resources/Public/Css/aos.css')];
-        $files[] = $this->webPath('EXT:herobuilder/Resources/Public/Css/hero.css');
+        $files = $canvas ? [] : [$this->versioned('EXT:herobuilder/Resources/Public/Css/aos.css')];
+        $files[] = $this->versioned('EXT:herobuilder/Resources/Public/Css/hero.css');
 
         $configured = BackendUtility::getPagesTSconfig($pid)['tx_herobuilder.']['previewCss.'] ?? [];
         foreach ((array)$configured as $entry) {
@@ -125,13 +125,23 @@ final class PreviewController
                 ? GeneralUtility::getFileAbsFileName($entry)
                 : GeneralUtility::getFileAbsFileName(ltrim($entry, '/'));
             if ($abs !== '' && is_file($abs)) {
-                $files[] = str_starts_with($entry, 'EXT:')
+                $files[] = (str_starts_with($entry, 'EXT:')
                     ? $this->webPath($entry)
-                    : '/' . ltrim($entry, '/');
+                    : '/' . ltrim($entry, '/')) . '?' . filemtime($abs);
             }
         }
 
         return $files;
+    }
+
+    /**
+     * Web path of an EXT: stylesheet with its modification time appended, so the editor's browser
+     * does not keep a cached copy after the file changed (the frontend's asset URLs do the same).
+     */
+    private function versioned(string $extPath): string
+    {
+        $abs = GeneralUtility::getFileAbsFileName($extPath);
+        return $this->webPath($extPath) . ($abs !== '' && is_file($abs) ? '?' . filemtime($abs) : '');
     }
 
     /**

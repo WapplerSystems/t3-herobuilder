@@ -142,6 +142,44 @@ final readonly class Composition
      * @param array<string, mixed> $override TypoScript settings.stages (e.g. ['lg' => ['ratio' => '21:9']])
      * @return array<string, array{ratio: string, ratioCss: string, width: int}>
      */
+    /** Layer types that get their own class list (tx_herobuilder.layerClasses.<type>). */
+    public const LAYER_TYPES = ['text', 'button', 'image'];
+
+    /**
+     * Layer classes per layer type from page TSconfig `tx_herobuilder.layerClasses`.
+     * Entries under `text { … }`, `button { … }`, `image { … }` apply to that type; flat entries
+     * (the original format) apply to every type. Key = CSS class, value = editor label.
+     * Single source for the editor's selection and the frontend whitelist.
+     *
+     * @param array<string, mixed> $conf the `layerClasses.` array (TSconfig keys with trailing dot)
+     * @return array<string, array<string, string>> type => [class => label]
+     */
+    public static function layerClassesFromTsConfig(array $conf): array
+    {
+        $byType = array_fill_keys(self::LAYER_TYPES, []);
+        $add = static function (array &$list, mixed $class, mixed $label): void {
+            $class = trim((string)$class);
+            // One class token per entry; any utility syntax (md:…, w-1/2) is fine, markup is not.
+            if ($class === '' || !is_string($label) || preg_match('/[\s"\'<>]/', $class) === 1) {
+                return;
+            }
+            $list[$class] = trim($label) !== '' ? trim($label) : $class;
+        };
+        foreach ($conf as $key => $value) {
+            $type = is_array($value) ? rtrim((string)$key, '.') : '';
+            if (in_array($type, self::LAYER_TYPES, true)) {
+                foreach ($value as $class => $label) {
+                    $add($byType[$type], $class, $label);
+                }
+            } elseif (!is_array($value)) {
+                foreach (self::LAYER_TYPES as $t) {
+                    $add($byType[$t], $key, $value);
+                }
+            }
+        }
+        return $byType;
+    }
+
     /**
      * Normalise page-TSconfig `tx_herobuilder.stages` (keys carry the TSconfig trailing dot,
      * e.g. ['lg.' => ['ratio' => '2500:480']]) into the override shape stageConfig() expects.

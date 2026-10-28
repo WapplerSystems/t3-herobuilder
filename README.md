@@ -283,22 +283,35 @@ immediately, before the record is saved.
 
 ### Predefined layer classes (page TSconfig)
 
-Selectable per layer in the editor **and** used as the frontend whitelist. Override per site.
+Selectable per layer in the editor **and** used as the frontend whitelist. One list per layer
+type — the editor only offers a layer the classes of its type, and the frontend only renders a
+class on a layer of that type. Override or extend per site.
 
 ```tsconfig
 tx_herobuilder.layerClasses {
-    display-1       = Display 1 (XXL)
-    fw-bold         = Bold
-    text-white      = White
-    text-bg-primary = Box: primary
-    text-center     = Centered
-    btn             = Button base
-    btn-primary     = Button: primary
-    # …
+    text {
+        display-1       = Display 1 (XXL)
+        fw-bold         = Bold
+        text-bg-primary = Box: primary
+        # …
+    }
+    button {
+        btn         = Button base
+        btn-primary = Button: primary
+        # …
+    }
+    image {
+        rounded-3 = Rounded
+        shadow    = Shadow
+    }
+    # Entries directly under layerClasses (the original flat format) apply to every type.
 }
 ```
 
-The shipped set includes `btn`/`btn-*` classes so button layers can be styled.
+The shipped set covers Bootstrap text utilities, `btn`/`btn-*` for buttons and a few image
+utilities. A class stored on a layer that is not (or no longer) offered for its type shows as
+"not available" in the editor and is not rendered. Class names may use any utility syntax
+(`md:text-lg`, `w-1/2`); whitespace, quotes and `<>` are rejected.
 
 ### Template storage folder (page TSconfig)
 

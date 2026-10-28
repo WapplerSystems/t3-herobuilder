@@ -176,7 +176,7 @@ final class CompositionProcessor implements DataProcessorInterface
                 'z' => $this->primaryZ((array)($layer['placements'] ?? [])),
                 'type' => $isText ? $type : 'image',
                 'cssClass' => $cssClass,
-                'userClass' => $this->filterClasses((string)($layer['cssClass'] ?? ''), $allowedClasses),
+                'userClass' => $this->filterClasses((string)($layer['cssClass'] ?? ''), $allowedClasses[$isText ? $type : 'image'] ?? []),
                 'text' => $isText ? (string)($layer['text'] ?? '') : '',
                 'tag' => $type === 'text' && in_array($layer['tag'] ?? null, self::TEXT_TAGS, true) ? $layer['tag'] : 'div',
                 'file' => $file,
@@ -603,17 +603,19 @@ final class CompositionProcessor implements DataProcessorInterface
      *
      * @return array<string, true>
      */
+    /**
+     * Allowed layer classes per layer type (page TSconfig `tx_herobuilder.layerClasses`, see
+     * Composition::layerClassesFromTsConfig()) — a class only renders on a layer of its type.
+     *
+     * @return array<string, array<string, true>> type => [class => true]
+     */
     private function allowedClasses(int $pid): array
     {
         $conf = BackendUtility::getPagesTSconfig($pid)['tx_herobuilder.']['layerClasses.'] ?? [];
-        $allowed = [];
-        foreach ((array)$conf as $class => $label) {
-            $class = trim((string)$class);
-            if ($class !== '') {
-                $allowed[$class] = true;
-            }
-        }
-        return $allowed;
+        return array_map(
+            static fn(array $classes): array => array_fill_keys(array_keys($classes), true),
+            Composition::layerClassesFromTsConfig(is_array($conf) ? $conf : [])
+        );
     }
 
     /**

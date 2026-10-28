@@ -367,7 +367,7 @@ class CanvasElement extends AbstractFormElement
         $keys = [
             'panel.text', 'panel.tag', 'tag.div', 'tag.p', 'tag.h1', 'tag.h2', 'tag.h3', 'tag.h4', 'tag.h5', 'tag.h6',
             'panel.classes', 'panel.animation', 'panel.delay', 'panel.duration',
-            'panel.fit', 'panel.visible', 'panel.deleteLayer', 'panel.noClasses', 'panel.animNone',
+            'panel.fit', 'panel.visible', 'panel.deleteLayer', 'panel.noClasses', 'panel.classUnavailable', 'panel.animNone',
             'fit.fill', 'fit.cover', 'fit.contain', 'list.empty', 'list.hidden', 'prompt.fileUid',
             'ctx.align', 'ctx.alignLeft', 'ctx.alignCenterH', 'ctx.alignRight', 'ctx.alignTop',
             'ctx.alignMiddle', 'ctx.alignBottom', 'ctx.fillStage', 'ctx.fillStagePlain',
@@ -395,22 +395,21 @@ class CanvasElement extends AbstractFormElement
     }
 
     /**
-     * Predefined layer CSS classes from page TSconfig `tx_herobuilder.layerClasses`
-     * (key = CSS class, value = editor label). Same source the frontend validates against.
+     * Predefined layer CSS classes per layer type from page TSconfig `tx_herobuilder.layerClasses`
+     * (see Composition::layerClassesFromTsConfig()). Same source the frontend validates against.
      *
-     * @return array<int, array{value: string, label: string}>
+     * @return array<string, list<array{value: string, label: string}>> type => classes
      */
     private function layerClasses(): array
     {
         $conf = $this->data['pageTsConfig']['tx_herobuilder.']['layerClasses.'] ?? [];
-        $classes = [];
-        foreach ((array)$conf as $value => $label) {
-            $value = trim((string)$value);
-            if ($value === '' || !is_string($label)) {
-                continue;
+        $byType = [];
+        foreach (Composition::layerClassesFromTsConfig(is_array($conf) ? $conf : []) as $type => $classes) {
+            $byType[$type] = [];
+            foreach ($classes as $value => $label) {
+                $byType[$type][] = ['value' => (string)$value, 'label' => $label];
             }
-            $classes[] = ['value' => $value, 'label' => trim($label) !== '' ? trim($label) : $value];
         }
-        return $classes;
+        return $byType;
     }
 }
