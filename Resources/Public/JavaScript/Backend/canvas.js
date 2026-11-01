@@ -1,6 +1,7 @@
 import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 import Modal from "@typo3/backend/modal.js";
 import Notification from "@typo3/backend/notification.js";
+import { FormEngineLinkBrowserSetLinkEvent } from "@typo3/backend/event/form-engine-link-browser-set-link-event.js";
 
 const AOS_EFFECTS = [
   "", "fade-up", "fade-down", "fade-left", "fade-right",
@@ -362,7 +363,7 @@ export default class HerobuilderCanvas {
     this.root.querySelector(".t3js-herobuilder-save-template")?.addEventListener("click", () => this.saveTemplate());
     this.root.querySelector(".t3js-herobuilder-export")?.addEventListener("click", () => this.openExport());
     this.root.querySelector(".t3js-herobuilder-preview")?.addEventListener("click", () => this.togglePreview());
-    // The TYPO3 Link Browser writes the selected link into the proxy input (change event).
+    // Programmatic writes into the proxy input (change event) still update the layer link.
     if (this.linkProxy) {
       this.linkProxy.addEventListener("change", () => this.setLink(this.linkProxy.value));
     }
@@ -2501,14 +2502,23 @@ export default class HerobuilderCanvas {
       return;
     }
     // Prime the proxy with the current value, then open the TYPO3 Link Browser (like the
-    // core link field does). On selection the browser writes back into the proxy (change).
-    const current = this.selected.link || "";
+    // core link field does). Since TYPO3 14 the browser no longer writes into the field: it
+    // dispatches a set-link event on its iframe, which bubbles up to the modal.
+    const layer = this.selected;
+    const current = layer.link || "";
     this.linkProxy.value = current;
     const url =
       this.linkWizardUrl +
       "&P[currentValue]=" + encodeURIComponent(current) +
       "&P[currentSelectedValues]=" + encodeURIComponent(current);
-    Modal.advanced({ type: Modal.types.iframe, content: url, size: Modal.sizes.large });
+    const modal = Modal.advanced({ type: Modal.types.iframe, content: url, size: Modal.sizes.large });
+    modal.addEventListener(FormEngineLinkBrowserSetLinkEvent.eventName, (e) => {
+      if (this.selected !== layer) {
+        this.select(layer);
+      }
+      this.setLink(e.value);
+      modal.hideModal();
+    });
   }
 
   /**
