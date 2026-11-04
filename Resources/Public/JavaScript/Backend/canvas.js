@@ -2156,7 +2156,7 @@ export default class HerobuilderCanvas {
       '<label>W<input type="number" class="hb-geom-w form-control form-control-sm" step="0.01"></label>' +
       '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.01" placeholder="' +
       escapeAttr(this.t("panel.heightAuto", "auto")) + '"></label>' +
-      '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="1"></label>' +
+      '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="0.01"></label>' +
       "</div></div>" +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.align", "Align")) + "</label>" +
       '<div class="hb-align-row">' +
@@ -2234,6 +2234,20 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-link-clear").addEventListener("click", () => this.setLink(""));
     panel.querySelector(".hb-visible").addEventListener("change", () => this.selected && this.toggleVisibility(this.selected));
     // .t3js-herobuilder-copy is wired in bindToolbar().
+    this.detachControlsFromForm();
+  }
+
+  /**
+   * The editor's own controls (panel, zoom) are UI, not record fields, but they sit inside
+   * FormEngine's form. FormEngine saves via requestSubmit(), so one of them holding a value the
+   * browser deems invalid (e.g. a dragged rotation of 28.79° in a whole-degree field) silently
+   * aborts every save — the field is usually in a folded panel section, so no bubble shows.
+   * Pointing `form` at a non-existent id removes them from the form and its validation.
+   */
+  detachControlsFromForm() {
+    this.root.querySelectorAll("input:not([name]), select:not([name]), textarea:not([name])").forEach((el) => {
+      el.setAttribute("form", "herobuilder-editor-ui");
+    });
   }
 
   // Collapsible left/right sidebars — the editor is cramped, so let editors reclaim the
