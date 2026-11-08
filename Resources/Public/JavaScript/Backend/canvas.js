@@ -148,6 +148,7 @@ const ICON = {
   chevronRight: S + '<path d="M6 3l5 5-5 5"/></svg>',
   button: S + '<rect x="1.5" y="4.5" width="13" height="7" rx="2"/><path d="M5 8h6"/></svg>',
   trash: S + '<path d="M2.5 4h11"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5h6.6L12 4"/></svg>',
+  duplicate: S + '<rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 3.5V3a.5.5 0 0 0-.5-.5H3a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5h.5"/></svg>',
 };
 
 /**
@@ -868,6 +869,7 @@ export default class HerobuilderCanvas {
       item("front", this.t("ctx.toFront", "Bring to front")) +
       item("back", this.t("ctx.toBack", "Send to back")) +
       '<div class="hb-ctx-sep"></div>' +
+      item("duplicate", this.t("list.duplicate", "Duplicate") + " (Ctrl+D)") +
       item("delete", this.t("panel.deleteLayer", "Delete layer"));
     document.body.appendChild(menu);
     this.ctxMenu = menu;
@@ -886,6 +888,10 @@ export default class HerobuilderCanvas {
       }
       this.runContextAction(btn.dataset.act);
       this.closeContextMenu();
+      // The menu lives outside the editor: hand the focus back to the stage, or keyboard
+      // shortcuts (Ctrl+D, Ctrl+Z, Del, arrows) would stop working — and Ctrl+D would reach the
+      // browser (bookmark) instead.
+      this.stageEl.focus({ preventScroll: true });
     });
     this._ctxClose = (ev) => {
       if (!menu.contains(ev.target)) {
@@ -929,6 +935,8 @@ export default class HerobuilderCanvas {
       this.matchLarger();
     } else if (act === "front" || act === "back") {
       this.moveZ(act);
+    } else if (act === "duplicate") {
+      this.duplicateSelected();
     } else if (act === "delete") {
       this.deleteSelected();
     }
@@ -1538,9 +1546,14 @@ export default class HerobuilderCanvas {
         this.toggleVisibility(layer);
       } else if (act === "lock") {
         this.toggleLock(layer);
+      } else if (act === "duplicate") {
+        this.duplicateLayer(layer);
+        // The list is re-rendered, the clicked button is gone: keep the shortcuts working.
+        this.stageEl.focus({ preventScroll: true });
       } else if (act === "delete") {
         this.selected = layer;
         this.deleteSelected();
+        this.stageEl.focus({ preventScroll: true });
       } else {
         this.select(layer);
         if (layer._el) {
@@ -2262,6 +2275,8 @@ export default class HerobuilderCanvas {
           '<button type="button" class="hb-ll-btn hb-ll-lock" data-act="lock" title="' +
           escapeAttr(this.t("list.toggleLock", "Lock / unlock")) +
           '">' + (locked ? ICON.lock : ICON.unlock) + "</button>" +
+          '<button type="button" class="hb-ll-btn hb-ll-dup" data-act="duplicate" title="' +
+          escapeAttr(this.t("list.duplicate", "Duplicate") + " (Ctrl+D)") + '">' + ICON.duplicate + "</button>" +
           '<button type="button" class="hb-ll-btn hb-ll-del" data-act="delete" title="' +
           escapeAttr(this.t("list.delete", "Delete layer")) + '">' + ICON.trash + "</button>" +
           "</div>"
@@ -3688,7 +3703,8 @@ export default class HerobuilderCanvas {
 
   duplicateLayer(layer) {
     const clone = JSON.parse(JSON.stringify(this.cleanLayer(layer)));
-    clone.id = (clone.type === "text" ? "t" : "l") + this.layers.length + "_" + Date.now();
+    // Same id prefixes as newly added layers (t = text, b = button, l = image).
+    clone.id = ({ text: "t", button: "b" }[clone.type] || "l") + this.layers.length + "_" + Date.now();
     Object.values(clone.placements).forEach((p) => {
       p.x = round(Math.min(95, (p.x || 0) + 3));
       p.y = round(Math.min(95, (p.y || 0) + 3));

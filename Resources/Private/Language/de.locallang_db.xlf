@@ -28,6 +28,7 @@
             <trans-unit id="tt_content.slider_effect.parallax"><source>Parallax (layers drift by depth)</source><target>Parallaxe (Ebenen versetzt nach Tiefe)</target></trans-unit>
 
             <trans-unit id="collage"><source>Collage</source><target>Collage</target></trans-unit>
+            <trans-unit id="collage.duplicate"><source>Duplicate slide (saves the form)</source><target>Folie duplizieren (speichert das Formular)</target></trans-unit>
             <trans-unit id="collage.title"><source>Title (internal)</source><target>Titel (intern)</target></trans-unit>
             <trans-unit id="collage.composition"><source>Composition</source><target>Komposition</target></trans-unit>
             <trans-unit id="collage.assets"><source>Image assets (pool)</source><target>Bild-Dateien (Pool)</target></trans-unit>

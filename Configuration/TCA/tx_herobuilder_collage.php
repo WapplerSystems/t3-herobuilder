@@ -15,6 +15,11 @@ return [
         'delete' => 'deleted',
         'versioningWS' => true,
         'hideTable' => true,
+        // "Duplicate slide" (AddDuplicateSlideControl): the copy starts hidden and is named
+        // "… (copy 1)". Only for the record copied itself — collages copied along with their
+        // content element keep their state and title (DataHandler applies both to $first only).
+        'hideAtCopy' => true,
+        'prependAtCopy' => $llCore . 'LGL.prependAtCopy',
         'default_sortby' => 'sorting ASC',
         'enablecolumns' => [
             'disabled' => 'hidden',

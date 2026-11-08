@@ -659,10 +659,13 @@
 .hb-visible-label { display: flex; align-items: center; gap: .4rem; font-weight: normal; }
 .hb-ll-del:hover { color: var(--typo3-text-color-danger, #c83c3c); }
 
-/* Layer list: the row actions show on hover, keyboard focus and for the selected row, so the name
-   gets the width. A hidden or locked layer keeps that icon visible — it is a state, not an action. */
+/* Layer list: the row actions show on the selected row and on keyboard focus — not on hover. A
+   hover reveal shifted the name while the pointer was on its way, so a click aimed at the name
+   landed on an action button that had just slid under it (and with four actions the names of all
+   rows would shrink to a few letters if their room were reserved). Selecting a row first, then
+   acting on it, keeps every row's name at full width. A hidden or locked layer keeps that icon
+   visible — it is a state, not an action. */
 .hb-ll-item .hb-ll-btn { display: none; }
-.hb-ll-item:hover .hb-ll-btn,
 .hb-ll-item:focus-within .hb-ll-btn,
 .hb-ll-item.active .hb-ll-btn,
 .hb-ll-item.hb-ll-hidden .hb-ll-vis,
