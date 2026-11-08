@@ -98,7 +98,7 @@ const MIN_ZOOM = 0.1;
 // Styles for the templates gallery, injected into the modal (which lives in the TOP
 // document, where the field's backend.css is not present).
 const GALLERY_CSS = `
-.herobuilder-tpl-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.6rem;padding:.25rem;}
+.herobuilder-tpl-gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.6rem;padding:.25rem;}
 .herobuilder-tpl-gallery .hb-tpl-card{display:flex;flex-direction:column;gap:.35rem;padding:.3rem;border:2px solid #ddd;border-radius:6px;background:#fff;cursor:pointer;text-align:left;}
 .herobuilder-tpl-gallery .hb-tpl-card:hover{border-color:#0b64c6;}
 .herobuilder-tpl-gallery .hb-tpl-card.active{border-color:#0b64c6;box-shadow:0 0 0 3px rgba(11,100,198,.25);}
@@ -107,11 +107,11 @@ const GALLERY_CSS = `
 .herobuilder-tpl-gallery .hb-tpl-name{font-size:.78rem;font-weight:600;line-height:1.2;}
 .herobuilder-tpl-gallery .hb-tpl-empty{grid-column:1/-1;color:#6c757d;}
 .herobuilder-tpl-gallery .hb-tpl-hint{grid-column:1/-1;margin:.5rem 0 0;font-size:.8rem;color:#6c757d;}
-.herobuilder-tpl-gallery .hb-tpl-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem;}
-.herobuilder-tpl-gallery .hb-tpl-act{border:1px solid #ccc;border-radius:4px;background:#fff;color:#333;padding:0 .4rem;font-size:.72rem;line-height:1.5;cursor:pointer;}
-.herobuilder-tpl-gallery .hb-tpl-act:hover,.herobuilder-tpl-gallery .hb-tpl-act:focus-visible{border-color:#0b64c6;color:#0b64c6;}
-.herobuilder-tpl-gallery .hb-tpl-act.hb-tpl-del:hover,.herobuilder-tpl-gallery .hb-tpl-act.hb-tpl-del:focus-visible{border-color:#c83c3c;color:#c83c3c;}
-.herobuilder-tpl-gallery .hb-tpl-badge{font-size:.7rem;color:#6c757d;border:1px dashed #bbb;border-radius:4px;padding:0 .35rem;line-height:1.5;}
+.herobuilder-tpl-gallery .hb-tpl-actions{display:flex;flex-wrap:wrap;align-items:stretch;gap:.35rem;margin-top:.15rem;}
+.herobuilder-tpl-gallery .hb-tpl-act{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;gap:.35rem;white-space:nowrap;}
+.herobuilder-tpl-gallery .hb-tpl-act svg{width:14px;height:14px;flex:0 0 auto;}
+.herobuilder-tpl-gallery .hb-tpl-act.hb-tpl-del:hover,.herobuilder-tpl-gallery .hb-tpl-act.hb-tpl-del:focus-visible{color:var(--typo3-text-color-danger,#c83c3c);border-color:currentColor;}
+.herobuilder-tpl-gallery .hb-tpl-badge{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;padding:.25rem .5rem;font-size:.75rem;color:#6c757d;border:1px dashed #bbb;border-radius:4px;}
 `;
 
 // Crop editor styles, injected into the TYPO3 modal (top document, no field backend.css).
@@ -153,6 +153,7 @@ const ICON = {
   chevronRight: S + '<path d="M6 3l5 5-5 5"/></svg>',
   button: S + '<rect x="1.5" y="4.5" width="13" height="7" rx="2"/><path d="M5 8h6"/></svg>',
   trash: S + '<path d="M2.5 4h11"/><path d="M6 4V2.5h4V4"/><path d="M4 4l.7 9.5h6.6L12 4"/></svg>',
+  rename: S + '<path d="M10.5 2.5l3 3L6 13H3v-3z"/><path d="M9 4l3 3"/></svg>',
   duplicate: S + '<rect x="5.5" y="5.5" width="8" height="8" rx="1"/><path d="M10.5 3.5V3a.5.5 0 0 0-.5-.5H3a.5.5 0 0 0-.5.5v7a.5.5 0 0 0 .5.5h.5"/></svg>',
 };
 
@@ -2158,11 +2159,18 @@ export default class HerobuilderCanvas {
         );
       }
     };
-    const actionButton = (label, cls, onClick) => {
+    // Standard TYPO3 backend buttons (the modal lives in the top document, which has the backend
+    // styles), inline SVG icon + label. Not <typo3-backend-icon>: created here in the editor's
+    // iframe and moved into the top document, a Lit element fails ("Sharing constructed
+    // stylesheets in multiple documents is not allowed") and shows no icon.
+    const actionButton = (label, cls, onClick, icon) => {
       const b = document.createElement("button");
       b.type = "button";
-      b.className = "hb-tpl-act " + cls;
-      b.textContent = label;
+      b.className = "btn btn-default btn-sm hb-tpl-act " + cls;
+      b.innerHTML = icon;
+      const text = document.createElement("span");
+      text.textContent = label;
+      b.append(text);
       // An action must not select the card (or, by double click, apply it).
       b.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -2207,8 +2215,8 @@ export default class HerobuilderCanvas {
         const actions = document.createElement("span");
         actions.className = "hb-tpl-actions";
         actions.appendChild(actionButton(this.t("template.duplicate", "Duplicate"), "hb-tpl-dup", () =>
-          run("herobuilder_template_duplicate", { key: tpl.key, pid: String(this.pid) }, "template.duplicated", "Template duplicated")
-        ));
+          run("herobuilder_template_duplicate", { key: tpl.key, pid: String(this.pid) }, "template.duplicated", "Template duplicated"),
+        ICON.duplicate));
         if (tpl.readonly) {
           const badge = document.createElement("span");
           badge.className = "hb-tpl-badge";
@@ -2221,7 +2229,7 @@ export default class HerobuilderCanvas {
             if (title && title !== tpl.title) {
               run("herobuilder_template_rename", { uid: String(tpl.uid), title }, "template.renamed", "Template renamed");
             }
-          }));
+          }, ICON.rename));
           actions.appendChild(actionButton(this.t("template.delete", "Delete"), "hb-tpl-del", async () => {
             const ok = await this.confirmAction(
               this.t("template.delete", "Delete"),
@@ -2231,7 +2239,7 @@ export default class HerobuilderCanvas {
             if (ok) {
               run("herobuilder_template_delete", { uid: String(tpl.uid) }, "template.deleted", "Template deleted");
             }
-          }));
+          }, ICON.trash));
         }
         card.append(thumb, name, actions);
         card.addEventListener("click", () => {
