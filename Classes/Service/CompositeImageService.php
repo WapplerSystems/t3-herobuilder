@@ -25,9 +25,10 @@ final class CompositeImageService
 
     /**
      * Part of the cache key: raise it whenever the drawing changes, so images rendered by an older
-     * version are not served again (files are cached by composition only). 2 = auto-height text.
+     * version are not served again (files are cached by composition only). 2 = auto-height text,
+     * 3 = mobile-first placement cascade.
      */
-    private const RENDER_VERSION = 2;
+    private const RENDER_VERSION = 3;
 
     public function __construct(
         private readonly ResourceFactory $resourceFactory,
@@ -121,9 +122,9 @@ final class CompositeImageService
         $out = [];
         foreach ($layers as $layer) {
             $placements = (array)($layer['placements'] ?? []);
-            // Same cascade as the frontend: a breakpoint without its own placement uses the
-            // primary one (lg, else the first defined).
-            $p = $placements[$breakpoint] ?? $placements['lg'] ?? (reset($placements) ?: null);
+            // Same cascade as the frontend (mobile first, Composition::effectivePlacement()).
+            $p = Composition::effectivePlacement($placements, $breakpoint)
+                ?? (Composition::effectivePlacement($placements, 'lg'));
             if (!is_array($p) || ($p['visible'] ?? true) === false) {
                 continue;
             }

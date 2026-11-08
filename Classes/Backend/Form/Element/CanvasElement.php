@@ -102,11 +102,10 @@ class CanvasElement extends AbstractFormElement
             false
         );
 
-        // The editor opens on the primary breakpoint (the one layers inherit from) — same
-        // choice canvas.js makes, so the markup below already matches the first render.
-        $activeBp = in_array('lg', Composition::BREAKPOINTS, true)
-            ? 'lg'
-            : Composition::BREAKPOINTS[0];
+        // Mobile first: the editor opens on the smallest breakpoint, the base every larger one
+        // inherits from — same choice canvas.js makes, so the markup below already matches the
+        // first render.
+        $activeBp = Composition::BREAKPOINTS[0];
 
         // Breakpoint switcher: plain toggle buttons, NOT tabs — canvas.js animates the stage
         // and every layer over to the geometry stored for the picked breakpoint.
@@ -379,12 +378,12 @@ class CanvasElement extends AbstractFormElement
             'fit.fill', 'fit.cover', 'fit.contain', 'list.empty', 'list.hidden', 'prompt.fileUid',
             'ctx.align', 'ctx.alignLeft', 'ctx.alignCenterH', 'ctx.alignRight', 'ctx.alignTop',
             'ctx.alignMiddle', 'ctx.alignBottom', 'ctx.fillStage', 'ctx.fillStagePlain',
-            'ctx.copyToAll', 'ctx.toFront', 'ctx.toBack',
+            'ctx.matchLarger', 'bp.own', 'bp.inherited', 'bp.reset', 'ctx.toFront', 'ctx.toBack',
             'panel.geometry', 'panel.heightAuto', 'panel.focus', 'panel.overlay', 'panel.align', 'panel.alignV', 'ctx.alignLeft', 'ctx.alignCenterH',
             'ctx.alignRight', 'list.reorder', 'list.toggleVisible', 'list.toggleLock',
             'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'zoom.label',
             'preview.replay',
-            'button.copyToAll', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
+            'button.matchLarger', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
             'panel.alt', 'panel.altFromFile', 'panel.altNone', 'hint.buttonNoLink', 'hint.imageLinkNoAlt',
             'panel.empty', 'panel.visibleOn', 'panel.classesOther', 'panel.overlayLocked', 'list.delete', 'list.typeText', 'list.typeButton',
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',

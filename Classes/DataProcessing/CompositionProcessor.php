@@ -316,11 +316,10 @@ final class CompositionProcessor implements DataProcessorInterface
         if ($placements === []) {
             return '100vw';
         }
-        // Same cascade as layerCss(): a breakpoint without its own placement uses the primary one.
-        $primaryBp = isset($placements['lg']) ? 'lg' : (string)array_key_first($placements);
+        // Same cascade as layerCss() (mobile first, Composition::effectivePlacement()).
         $entries = [];
         foreach (array_reverse(Composition::BREAKPOINTS) as $bp) {
-            $p = $placements[$bp] ?? $placements[$primaryBp];
+            $p = Composition::effectivePlacement($placements, $bp) ?? [];
             $size = $this->paintedWidth($p, $fit, $aspect, $stages[$bp] ?? null);
             if (preg_match('/min-width:\s*([\d.]+px)/', Composition::BREAKPOINT_MEDIA[$bp], $m)) {
                 $entries[] = '(min-width: ' . $m[1] . ') ' . $size;
@@ -367,7 +366,7 @@ final class CompositionProcessor implements DataProcessorInterface
     /**
      * Effective framing per breakpoint: crop string + focus. A breakpoint takes its placement's
      * own `image` ({crop, focusX, focusY}) when set, otherwise the layer's. A breakpoint without a
-     * placement shows the primary placement (same cascade as layerCss()), so it frames like that one.
+     * placement shows the one it inherits (same cascade as layerCss()), so it frames like that one.
      *
      * @param array<string, mixed> $layer
      * @param array<string, array<string, mixed>> $placements
@@ -375,10 +374,9 @@ final class CompositionProcessor implements DataProcessorInterface
      */
     private function framingPerBreakpoint(array $layer, array $placements): array
     {
-        $primaryBp = isset($placements['lg']) ? 'lg' : (string)array_key_first($placements);
         $out = [];
         foreach (Composition::BREAKPOINTS as $bp) {
-            $p = $placements[$bp] ?? ($placements[$primaryBp] ?? []);
+            $p = Composition::effectivePlacement($placements, $bp) ?? [];
             $src = is_array($p['image'] ?? null) ? $p['image'] : $layer;
             $out[$bp] = [
                 'crop' => $this->cropString($src['crop'] ?? null),
@@ -514,29 +512,44 @@ final class CompositionProcessor implements DataProcessorInterface
     }
 
     /**
-     * Base rule from the primary placement (lg, else first defined), then per-breakpoint overrides.
+     * Mobile-first cascade, resolved here (Composition::effectivePlacement()): every breakpoint
+     * gets the placement it inherits. The base rule carries lg's effective placement; a breakpoint
+     * gets a media rule when it has a placement of its own or inherits something else than lg.
+     * (Layers stored with every breakpoint — all existing content — therefore render exactly as
+     * before.) xxl's query is open-ended (≥1400) and also matches xxxl widths, so whenever xxl
+     * has a rule xxxl states its own as well.
      *
      * @param array<string, array<string, mixed>> $placements
      */
     private function layerCss(string $sel, array $placements): string
     {
-        if ($placements === []) {
+        $base = Composition::effectivePlacement($placements, 'lg');
+        if ($base === null) {
             return '';
         }
-        $primaryBp = isset($placements['lg']) ? 'lg' : (string)array_key_first($placements);
-        $css = $sel . '{position:absolute;' . $this->declarations($placements[$primaryBp]) . '}';
+        $baseDecl = $this->declarations($base);
+        $css = $sel . '{position:absolute;' . $baseDecl . '}';
 
+        $emitted = [];
         foreach (Composition::BREAKPOINTS as $bp) {
-            if (!isset($placements[$bp]) || $bp === $primaryBp) {
+            if ($bp === 'lg') {
                 continue;
             }
-            $css .= '@media ' . Composition::BREAKPOINT_MEDIA[$bp] . '{' . $sel . '{' . $this->declarations($placements[$bp]) . '}}';
+            $decl = $this->declarations(Composition::effectivePlacement($placements, $bp) ?? $base);
+            $needed = is_array($placements[$bp] ?? null)
+                || $decl !== $baseDecl
+                || ($bp === 'xxxl' && isset($emitted['xxl']));
+            if (!$needed) {
+                continue;
+            }
+            $emitted[$bp] = true;
+            $css .= '@media ' . Composition::BREAKPOINT_MEDIA[$bp] . '{' . $sel . '{' . $decl . '}}';
         }
         return $css;
     }
 
     /**
-     * z-index of the layer's primary placement (lg, else the first defined) — the single value the
+     * z-index of the placement in effect at lg (mobile-first cascade) — the single value the
      * depth ranking is built from. Per-breakpoint z overrides are ignored on purpose: the ranking
      * feeds CSS custom properties, which cannot be re-ordered per media query without emitting a
      * full second rule set for every breakpoint.
@@ -545,11 +558,8 @@ final class CompositionProcessor implements DataProcessorInterface
      */
     private function primaryZ(array $placements): int
     {
-        if ($placements === []) {
-            return 0;
-        }
-        $primaryBp = isset($placements['lg']) ? 'lg' : (string)array_key_first($placements);
-        return (int)($placements[$primaryBp]['z'] ?? 1);
+        $p = Composition::effectivePlacement($placements, 'lg');
+        return $p === null ? 0 : (int)($p['z'] ?? 1);
     }
 
     /**

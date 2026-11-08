@@ -24,6 +24,31 @@ const geometryOf = (p) => {
   return { ...geometry };
 };
 
+/**
+ * Mobile-first cascade — mirror of Composition::placementSource() in PHP: the breakpoint whose
+ * placement applies at `bp`: `bp` itself when it has its own, else the nearest SMALLER one with a
+ * placement (like CSS min-width rules), else — only for layers whose smallest placement sits
+ * above `bp`, e.g. stored with lg only — the nearest larger one. `order` = breakpoints small → large.
+ */
+const placementSource = (placements, bp, order) => {
+  const own = placements || {};
+  const index = order.indexOf(bp);
+  if (index < 0) {
+    return null;
+  }
+  for (let i = index; i >= 0; i--) {
+    if (own[order[i]]) {
+      return order[i];
+    }
+  }
+  for (let i = index + 1; i < order.length; i++) {
+    if (own[order[i]]) {
+      return order[i];
+    }
+  }
+  return null;
+};
+
 // Unsaved-changes drafts older than this are dropped silently on open.
 const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -202,9 +227,7 @@ export default class HerobuilderCanvas {
     this.name = init.name || "";
     // PHP pre-renders the stage + pressed button for this breakpoint, so honour its choice —
     // otherwise the very first render would already have to jump to another stage size.
-    this.activeBp = this.breakpoints.includes(init.activeBp)
-      ? init.activeBp
-      : (this.breakpoints.includes("lg") ? "lg" : this.breakpoints[0]);
+    this.activeBp = this.breakpoints.includes(init.activeBp) ? init.activeBp : this.breakpoints[0];
     // Open at the breakpoint's base view (100%, or scaled up to clear minStageHeight).
     this.zoom = this.baseZoomValue();
     // Loaded <img> nodes are reused across re-renders (keyed by layer id) so rebuilding the
@@ -359,7 +382,7 @@ export default class HerobuilderCanvas {
       magnetBtn.addEventListener("click", () => this.toggleMagnet());
       this.syncMagnetButton();
     }
-    this.root.querySelector(".t3js-herobuilder-copy")?.addEventListener("click", () => this.copyToAll());
+    this.root.querySelector(".t3js-herobuilder-copy")?.addEventListener("click", () => this.matchLarger());
     this.root.querySelector(".t3js-herobuilder-templates")?.addEventListener("click", () => this.openTemplates());
     this.root.querySelector(".t3js-herobuilder-save-template")?.addEventListener("click", () => this.saveTemplate());
     this.root.querySelector(".t3js-herobuilder-export")?.addEventListener("click", () => this.openExport());
@@ -505,6 +528,7 @@ export default class HerobuilderCanvas {
       b.classList.toggle("active", active);
       b.setAttribute("aria-pressed", active ? "true" : "false");
     });
+    this.updateBpMarkers();
   }
 
   stageRatioCss(bp) {
@@ -741,11 +765,11 @@ export default class HerobuilderCanvas {
 
   ensurePlacement(layer) {
     if (!layer.placements[this.activeBp]) {
-      // Clone from the primary (lg, else first defined) placement so a new breakpoint override
-      // starts from the inherited layout the editor is already showing — framing included, or
-      // merely moving a layer would drop the crop the frontend inherited from the primary.
-      const primaryBp = layer.placements.lg ? "lg" : Object.keys(layer.placements)[0];
-      const src = primaryBp ? layer.placements[primaryBp] : null;
+      // Clone from the inherited placement (mobile-first cascade) so a new breakpoint override
+      // starts from the layout the editor is already showing — framing included, or merely
+      // moving a layer would drop the crop the frontend inherited.
+      const from = placementSource(layer.placements, this.activeBp, this.breakpoints);
+      const src = from ? layer.placements[from] : null;
       const placement = src
         ? geometryOf(src)
         : { x: 20, y: 20, w: 40, h: 25, rot: 0, z: 1, visible: true };
@@ -753,6 +777,10 @@ export default class HerobuilderCanvas {
         placement.image = { ...src.image, crop: src.image.crop ? { ...src.image.crop } : null };
       }
       layer.placements[this.activeBp] = placement;
+      // The breakpoint just got a position of its own — tab dot + "inherited from" follow.
+      if (layer === this.selected) {
+        this.updateBpSource();
+      }
     }
     return layer.placements[this.activeBp];
   }
@@ -822,7 +850,7 @@ export default class HerobuilderCanvas {
       item("bottom", this.t("ctx.alignBottom", "Bottom")) +
       '<div class="hb-ctx-sep"></div>' +
       item("fill", isText ? this.t("ctx.fillStagePlain", "Fill stage") : this.t("ctx.fillStage", "Fill stage (cover)")) +
-      item("copyAll", this.t("ctx.copyToAll", "Copy position to all breakpoints")) +
+      item("copyAll", this.t("ctx.matchLarger", "Match larger breakpoints")) +
       '<div class="hb-ctx-sep"></div>' +
       item("front", this.t("ctx.toFront", "Bring to front")) +
       item("back", this.t("ctx.toBack", "Send to back")) +
@@ -885,7 +913,7 @@ export default class HerobuilderCanvas {
     } else if (act === "fill") {
       this.fillStage();
     } else if (act === "copyAll") {
-      this.copyToAll();
+      this.matchLarger();
     } else if (act === "front" || act === "back") {
       this.moveZ(act);
     } else if (act === "delete") {
@@ -898,11 +926,11 @@ export default class HerobuilderCanvas {
     if (layer.placements[this.activeBp]) {
       return layer.placements[this.activeBp];
     }
-    // Mirror the frontend cascade: a breakpoint without its own placement inherits the primary
-    // (lg, else the first defined) one for display, so switching tabs is WYSIWYG. Returned
-    // read-only — writers go through ensurePlacement(), which clones before editing.
-    const primaryBp = layer.placements.lg ? "lg" : Object.keys(layer.placements)[0];
-    return primaryBp ? layer.placements[primaryBp] : null;
+    // Mirror the frontend cascade (mobile first): a breakpoint without its own placement shows
+    // the one it inherits, so switching tabs is WYSIWYG. Returned read-only — writers go through
+    // ensurePlacement(), which clones before editing.
+    const from = placementSource(layer.placements, this.activeBp, this.breakpoints);
+    return from ? layer.placements[from] : null;
   }
 
   render() {
@@ -1317,26 +1345,47 @@ export default class HerobuilderCanvas {
       anim: {},
       placements: {},
     };
-    layer.placements[this.activeBp] = { ...this.newImageBox(this.fileInfo[uid]), rot: 0, z: maxZ + 1, visible: true };
+    this.placeNewLayer(layer, maxZ + 1,
+      this.newImageBox(this.fileInfo[uid], this.baseBp(), 80),
+      this.newImageBox(this.fileInfo[uid]));
     this.layers.push(layer);
     this.render();
     this.select(layer);
     this.save();
   }
 
+  /** Smallest breakpoint — the base of the mobile-first cascade (xs). */
+  baseBp() {
+    return this.breakpoints[0];
+  }
+
   /**
-   * Box for a newly added image on the active breakpoint: 40% of the stage width, shaped like
-   * the file so the handles sit on the image (no empty margins), at most 80% of the stage high,
-   * centred. Without known dimensions (e.g. an SVG without size) the old 40×25 box is used.
+   * Placements of a new layer, mobile first: a base on the smallest breakpoint, sized for a
+   * phone, which every larger breakpoint inherits — plus, when it is added while a larger
+   * breakpoint is shown, a placement of its own there, where the editor sees it.
    */
-  newImageBox(info) {
+  placeNewLayer(layer, z, baseBox, activeBox) {
+    const base = this.baseBp();
+    layer.placements[base] = { ...baseBox, rot: 0, z, visible: true };
+    if (this.activeBp !== base) {
+      layer.placements[this.activeBp] = { ...activeBox, rot: 0, z, visible: true };
+    }
+  }
+
+  /**
+   * Box for a newly added image: `width`% of the stage width (40 on the active breakpoint, 80 for
+   * the phone base), shaped like the file so the handles sit on the image (no empty margins), at
+   * most 80% of the stage high, centred. Without known dimensions (e.g. an SVG without size) a
+   * width × 25 box is used.
+   */
+  newImageBox(info, bp = this.activeBp, width = 40) {
     const r2 = (v) => Math.round(v * 100) / 100;
     const aspect = info && info.width > 0 && info.height > 0 ? info.width / info.height : 0;
-    let w = 40;
+    let w = width;
     let h = 25;
     if (aspect > 0) {
       // Percentages refer to different axes: h% = w% × (stage width / stage height) / aspect.
-      const stage = this.stageRatio(this.activeBp);
+      const stage = this.stageRatio(bp);
       h = (w * stage) / aspect;
       if (h > 80) {
         h = 80;
@@ -1357,7 +1406,7 @@ export default class HerobuilderCanvas {
       anim: {},
       placements: {},
     };
-    layer.placements[this.activeBp] = { x: 20, y: 40, w: 60, h: 0, rot: 0, z: maxZ + 1, visible: true };
+    this.placeNewLayer(layer, maxZ + 1, { x: 10, y: 40, w: 80, h: 0 }, { x: 20, y: 40, w: 60, h: 0 });
     this.layers.push(layer);
     this.render();
     this.select(layer);
@@ -1375,31 +1424,83 @@ export default class HerobuilderCanvas {
       anim: {},
       placements: {},
     };
-    layer.placements[this.activeBp] = { x: 20, y: 55, w: 20, h: 0, rot: 0, z: maxZ + 1, visible: true };
+    this.placeNewLayer(layer, maxZ + 1, { x: 20, y: 55, w: 60, h: 0 }, { x: 20, y: 55, w: 20, h: 0 });
     this.layers.push(layer);
     this.render();
     this.select(layer);
     this.save();
   }
 
-  copyToAll() {
+  /**
+   * "Match larger breakpoints": every breakpoint above the active one drops its own position and
+   * inherits the active one again (mobile-first cascade). A breakpoint with its own image framing
+   * (crop/focus) keeps that and only takes over the geometry. The active breakpoint gets a
+   * placement of its own first when it only inherits — otherwise removing a larger one could
+   * remove the very placement it inherits from (layers stored with lg only).
+   */
+  matchLarger() {
     const targets = this.selected ? [this.selected] : this.layers;
+    const larger = this.breakpoints.slice(this.breakpoints.indexOf(this.activeBp) + 1);
     targets.forEach((layer) => {
-      const src = this.placementFor(layer);
-      if (src) {
-        this.breakpoints.forEach((bp) => {
-          if (bp !== this.activeBp) {
-            // Position only: a breakpoint keeps its own image framing (crop/focus).
-            const own = layer.placements[bp] && layer.placements[bp].image;
-            layer.placements[bp] = geometryOf(src);
-            if (own) {
-              layer.placements[bp].image = own;
-            }
-          }
-        });
+      if (!larger.some((bp) => layer.placements[bp])) {
+        return;
       }
+      const src = this.ensurePlacement(layer);
+      larger.forEach((bp) => {
+        const own = layer.placements[bp] && layer.placements[bp].image;
+        if (own) {
+          layer.placements[bp] = { ...geometryOf(src), image: own };
+        } else {
+          delete layer.placements[bp];
+        }
+      });
     });
     this.save();
+    this.render();
+    if (this.selected) {
+      this.select(this.selected);
+    }
+  }
+
+  /** Drop the active breakpoint's own placement of the selected layer: it inherits again. */
+  resetBreakpoint() {
+    const layer = this.selected;
+    if (!layer || !layer.placements[this.activeBp] || Object.keys(layer.placements).length < 2) {
+      return;
+    }
+    delete layer.placements[this.activeBp];
+    this.save();
+    this.render();
+    this.select(layer);
+  }
+
+  /**
+   * Where the active breakpoint's position of the selected layer comes from (mobile-first
+   * cascade): "own" or "inherited from …", the reset button, and the dots on the breakpoint bar.
+   */
+  updateBpSource() {
+    this.updateBpMarkers();
+    const text = this.panel && this.panel.querySelector(".hb-bpsource-text");
+    if (!text || !this.selected) {
+      return;
+    }
+    const placements = this.selected.placements || {};
+    const own = !!placements[this.activeBp];
+    const from = placementSource(placements, this.activeBp, this.breakpoints);
+    text.textContent = own
+      ? this.t("bp.own", "Own position on %s").replace("%s", this.activeBp.toUpperCase())
+      : this.t("bp.inherited", "Inherited from %s").replace("%s", (from || "").toUpperCase());
+    const resetBtn = this.panel.querySelector(".hb-bp-reset");
+    resetBtn.hidden = !own;
+    resetBtn.disabled = Object.keys(placements).length < 2;
+  }
+
+  /** Dot on every breakpoint button where the selected layer has a placement of its own. */
+  updateBpMarkers() {
+    const own = (this.selected && this.selected.placements) || {};
+    this.root.querySelectorAll(".t3js-herobuilder-bp").forEach((b) => {
+      b.classList.toggle("has-own", !!own[b.dataset.breakpoint]);
+    });
   }
 
   // ---- Layer list (find/select existing elements) ------------------------
@@ -2225,8 +2326,11 @@ export default class HerobuilderCanvas {
       "</div></div>" +
       '<div class="herobuilder-panel-row hb-row-visible"><label class="hb-visible-label">' +
       '<input type="checkbox" class="hb-visible"> <span class="hb-visible-text"></span></label></div>' +
+      '<div class="herobuilder-panel-row hb-row-bpsource"><span class="hb-bpsource-text"></span>' +
+      '<button type="button" class="hb-bp-reset btn btn-sm btn-default">' +
+      escapeHtml(this.t("bp.reset", "Reset (inherit)")) + "</button></div>" +
       '<div class="herobuilder-panel-row"><button type="button" class="t3js-herobuilder-copy btn btn-sm btn-default hb-copyall">' +
-      escapeHtml(this.t("button.copyToAll", "Copy position to all breakpoints")) + "</button></div>" +
+      escapeHtml(this.t("button.matchLarger", "Match larger breakpoints")) + "</button></div>" +
       "</div>" +
       // ---- Animation tab ----
       '<div class="herobuilder-tabpane" data-tab="anim">' +
@@ -2286,6 +2390,7 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-autotrim").addEventListener("click", () => this.autoTrimSelected());
     panel.querySelector(".hb-crop-reset").addEventListener("click", () => this.resetCrop());
     panel.querySelector(".hb-anim-replay").addEventListener("click", () => this.replayPreview(true));
+    panel.querySelector(".hb-bp-reset").addEventListener("click", () => this.resetBreakpoint());
     panel.querySelector(".hb-link-choose").addEventListener("click", () => this.openLinkBrowser());
     panel.querySelector(".hb-link-clear").addEventListener("click", () => this.setLink(""));
     panel.querySelector(".hb-visible").addEventListener("change", () => this.selected && this.toggleVisibility(this.selected));
@@ -2352,6 +2457,7 @@ export default class HerobuilderCanvas {
 
   updatePanel() {
     this.renderLayerList();
+    this.updateBpMarkers();
     if (!this.panel) {
       return;
     }
@@ -2399,6 +2505,7 @@ export default class HerobuilderCanvas {
     this.panel.querySelector(".hb-visible").checked = p.visible !== false;
     this.panel.querySelector(".hb-visible-text").textContent =
       this.t("panel.visibleOn", "Visible on %s").replace("%s", bpName);
+    this.updateBpSource();
     this.updateOverlayLock();
 
     // Focus point picker — only for image layers with a resolvable file.
@@ -2755,23 +2862,20 @@ export default class HerobuilderCanvas {
 
   /**
    * The breakpoint's placement framing ({crop, focusX, focusY}), or null when it uses the layer's.
-   * A breakpoint without a placement of its own shows the primary one, framing included — the
-   * same cascade as CompositionProcessor::framingPerBreakpoint() in the frontend.
+   * A breakpoint without a placement of its own shows the one it inherits, framing included —
+   * the same cascade as CompositionProcessor::framingPerBreakpoint() in the frontend.
    */
   imageOverride(layer, bp = this.activeBp) {
     const placements = (layer && layer.placements) || {};
-    let p = placements[bp];
-    if (!p) {
-      const primaryBp = placements.lg ? "lg" : Object.keys(placements)[0];
-      p = primaryBp ? placements[primaryBp] : null;
-    }
+    const from = placementSource(placements, bp, this.breakpoints);
+    const p = from ? placements[from] : null;
     return p && p.image ? p.image : null;
   }
 
   /**
    * Where crop/focus edits go: the active breakpoint's framing if it has one, else the layer.
-   * Framing inherited from the primary placement is copied to the breakpoint first, so editing
-   * it here never changes the primary breakpoint behind the editor's back.
+   * Framing inherited from another breakpoint is copied to this one first, so editing it here
+   * never changes the breakpoint it was inherited from behind the editor's back.
    */
   imageTarget(layer) {
     const own = layer.placements && layer.placements[this.activeBp];

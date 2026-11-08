@@ -68,7 +68,7 @@
             <trans-unit id="crop.apply"><source>Apply</source><target>Übernehmen</target></trans-unit>
             <trans-unit id="sidebar.collapse"><source>Collapse panel</source><target>Bereich einklappen</target></trans-unit>
             <trans-unit id="sidebar.expand"><source>Expand panel</source><target>Bereich ausklappen</target></trans-unit>
-            <trans-unit id="button.copyToAll"><source>Copy position to all breakpoints</source><target>Position auf alle Breakpoints übertragen</target></trans-unit>
+            <trans-unit id="button.matchLarger"><source>Match larger breakpoints</source><target>Größere Breakpoints angleichen</target></trans-unit>
             <trans-unit id="button.preview"><source>Live preview</source><target>Live-Vorschau</target></trans-unit>
             <trans-unit id="button.templates"><source>Templates</source><target>Vorlagen</target></trans-unit>
             <trans-unit id="button.saveTemplate"><source>Save as template</source><target>Als Vorlage speichern</target></trans-unit>
@@ -120,7 +120,10 @@
             <trans-unit id="ctx.alignBottom"><source>Bottom</source><target>Unten</target></trans-unit>
             <trans-unit id="ctx.fillStage"><source>Fill stage (cover)</source><target>Bühne ausfüllen (Cover)</target></trans-unit>
             <trans-unit id="ctx.fillStagePlain"><source>Fill stage</source><target>Bühne ausfüllen</target></trans-unit>
-            <trans-unit id="ctx.copyToAll"><source>Copy position to all breakpoints</source><target>Position auf alle Breakpoints übertragen</target></trans-unit>
+            <trans-unit id="ctx.matchLarger"><source>Match larger breakpoints</source><target>Größere Breakpoints angleichen</target></trans-unit>
+            <trans-unit id="bp.own"><source>Own position on %s</source><target>Eigene Position auf %s</target></trans-unit>
+            <trans-unit id="bp.inherited"><source>Inherited from %s</source><target>Geerbt von %s</target></trans-unit>
+            <trans-unit id="bp.reset"><source>Reset (inherit)</source><target>Zurücksetzen (erben)</target></trans-unit>
             <trans-unit id="ctx.toFront"><source>Bring to front</source><target>In den Vordergrund</target></trans-unit>
             <trans-unit id="ctx.toBack"><source>Send to back</source><target>In den Hintergrund</target></trans-unit>
 

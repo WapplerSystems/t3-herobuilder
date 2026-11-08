@@ -164,6 +164,48 @@ final readonly class Composition
     }
 
     /**
+     * Mobile-first cascade: the breakpoint whose placement applies at $bp — $bp itself when it
+     * has its own, else the nearest SMALLER breakpoint with one (like CSS min-width rules), else —
+     * only for layers whose smallest own placement sits above $bp, e.g. stored with lg only — the
+     * nearest larger one. Null when the layer has no placement at all.
+     *
+     * Single source for every consumer (frontend CSS, srcset sizes, art direction, image export);
+     * canvas.js resolvePlacement() mirrors it for the editor.
+     *
+     * @param array<string, mixed> $placements
+     */
+    public static function placementSource(array $placements, string $bp): ?string
+    {
+        $index = array_search($bp, self::BREAKPOINTS, true);
+        if ($index === false) {
+            return null;
+        }
+        for ($i = $index; $i >= 0; $i--) {
+            if (is_array($placements[self::BREAKPOINTS[$i]] ?? null)) {
+                return self::BREAKPOINTS[$i];
+            }
+        }
+        for ($i = $index + 1, $n = count(self::BREAKPOINTS); $i < $n; $i++) {
+            if (is_array($placements[self::BREAKPOINTS[$i]] ?? null)) {
+                return self::BREAKPOINTS[$i];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The placement that applies at $bp (see placementSource()), or null.
+     *
+     * @param array<string, mixed> $placements
+     * @return array<string, mixed>|null
+     */
+    public static function effectivePlacement(array $placements, string $bp): ?array
+    {
+        $source = self::placementSource($placements, $bp);
+        return $source === null ? null : $placements[$source];
+    }
+
+    /**
      * Merge configured stage ratios over the defaults and normalise to a
      * per-breakpoint array of ['ratio' => '21:9', 'ratioCss' => '21 / 9'].
      *
