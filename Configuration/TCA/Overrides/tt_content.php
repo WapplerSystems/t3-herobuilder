@@ -39,7 +39,8 @@ $newColumns = [
             'foreign_sortby' => 'sorting',
             'maxitems' => 50,
             'appearance' => [
-                'collapseAll' => true,
+                // No collapseAll: TYPO3 then reopens the slide the editor had open (per user, uc
+                // inlineView) — after saving too. expandSingle keeps one slide open at a time.
                 'expandSingle' => true,
                 'useSortable' => true,
                 'levelLinksPosition' => 'top',

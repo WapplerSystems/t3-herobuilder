@@ -2,6 +2,7 @@ import AjaxRequest from "@typo3/core/ajax/ajax-request.js";
 import Modal from "@typo3/backend/modal.js";
 import Notification from "@typo3/backend/notification.js";
 import { FormEngineLinkBrowserSetLinkEvent } from "@typo3/backend/event/form-engine-link-browser-set-link-event.js";
+import { AjaxDispatcher } from "@typo3/backend/form-engine/inline-relation/ajax-dispatcher.js";
 
 const AOS_EFFECTS = [
   "", "fade-up", "fade-down", "fade-left", "fade-right",
@@ -360,7 +361,93 @@ export default class HerobuilderCanvas {
     this.bindKeyboard();
     this.listenForAssetInserts();
     this.listenForStageMode();
-    this.init();
+    // A slide TYPO3 reopened next to the one the editor last worked on is closed again, and
+    // starts only once it is opened: hidden, it would measure its column as 0 px wide.
+    if (this.keepSingleSlideOpen()) {
+      this.init();
+    }
+  }
+
+  /**
+   * One slide open at a time (the inline field has expandSingle). TYPO3 remembers open slides
+   * per user (uc inlineView), but opening a slide sends "open B" and "close A" as two parallel
+   * requests that both rewrite the user's settings — the last one wins, so after a save A and B
+   * could both come back open. Which slide the editor opened last is kept in this tab
+   * (sessionStorage, no race); any other slide that comes back open closes itself and tells
+   * TYPO3 once.
+   *
+   * @return {boolean} false when this slide closed itself (init() then runs when it is opened)
+   */
+  keepSingleSlideOpen() {
+    const record = this.root.closest("[data-object-id]");
+    const container = record && record.closest("typo3-formengine-container-inline");
+    if (!record || !container || container.dataset.expandSingle !== "true") {
+      return true;
+    }
+    const key = "herobuilder:open:" + container.dataset.objectGroup;
+    const remember = (id) => {
+      try {
+        sessionStorage.setItem(key, id);
+      } catch (e) {
+        /* storage unavailable */
+      }
+    };
+    const fieldsOf = (rec) => container.querySelector('[id="' + rec.dataset.objectId + '_fields"]');
+    const ownRecord = (el) => {
+      const rec = el && el.closest ? el.closest("[data-object-id]") : null;
+      return rec && rec.closest("typo3-formengine-container-inline") === container ? rec : null;
+    };
+    if (container.dataset.hbOpenWatch !== "1") {
+      container.dataset.hbOpenWatch = "1";
+      container.addEventListener("shown.bs.collapse", (e) => {
+        const rec = ownRecord(e.target);
+        if (rec && fieldsOf(rec) === e.target) {
+          remember(rec.dataset.objectId);
+        }
+      });
+    }
+    const open = [...container.querySelectorAll("[data-object-id]")].filter((rec) =>
+      ownRecord(rec) === rec && /^\d+$/.test(rec.dataset.objectUid || "") && fieldsOf(rec)?.classList.contains("show"));
+    if (open.length < 2) {
+      if (open[0] === record) {
+        remember(record.dataset.objectId);
+      }
+      return true;
+    }
+    let last = null;
+    try {
+      last = sessionStorage.getItem(key);
+    } catch (e) {
+      last = null;
+    }
+    const keep = open.find((rec) => rec.dataset.objectId === last) || open[0];
+    if (keep === record) {
+      remember(record.dataset.objectId);
+      return true;
+    }
+    // Close without Bootstrap's animation and events (those would send core's request again).
+    const fields = fieldsOf(record);
+    fields.classList.remove("show");
+    const button = record.querySelector(":scope > .panel-heading .panel-button");
+    if (button) {
+      button.classList.add("collapsed");
+      button.setAttribute("aria-expanded", "false");
+    }
+    fields.addEventListener("shown.bs.collapse", (e) => {
+      if (e.target === fields) {
+        this.init();
+      }
+    }, { once: true });
+    try {
+      const dispatcher = new AjaxDispatcher(container.dataset.objectGroup);
+      dispatcher.send(
+        dispatcher.newRequest(dispatcher.getEndpoint("record_inline_expandcollapse")),
+        [record.dataset.objectId, "", record.dataset.objectUid]
+      );
+    } catch (e) {
+      // Not stored: it is closed again on the next load.
+    }
+    return false;
   }
 
   /** Follow the content element's stage mode field (delegated: inline forms load lazily). */
@@ -406,13 +493,78 @@ export default class HerobuilderCanvas {
     this.zoom = this.openingZoom();
     this._zoomAuto = true;
     this.render();
-    // Seed the history with the initial state.
-    this._history = [this.serialize()];
+    // Seed the history with the initial state. Also the saved state as the editor writes it
+    // (field order, defaults) — the raw DB value never compares equal to that.
+    this._savedSerialized = this.serialize();
+    this._history = [this._savedSerialized];
     this._histIndex = 0;
     this.updateHistoryButtons();
+    this.restoreView();
     // No save() runs during load, so the localStorage draft is still intact here —
     // offer it before anything can overwrite it.
+    this.sweepDrafts();
     this.maybeOfferDraft();
+  }
+
+  // ---- View state across a save (sessionStorage) ---------------------------
+  //
+  // Saving reloads the form. Breakpoint, live preview, selected layer and property tab come
+  // back for this slide in this browser tab — view state, not a preference: a new tab starts
+  // fresh. A new slide (NEW… id) gets a real uid on save, its key would never be read again.
+
+  viewKey() {
+    return this.name && !this.name.includes("[NEW") ? "herobuilder:view:" + this.name : null;
+  }
+
+  saveView() {
+    const key = this.viewKey();
+    if (!key || !this._viewReady) {
+      return;
+    }
+    const tab = this.root.querySelector(".herobuilder-proptab.active");
+    try {
+      sessionStorage.setItem(key, JSON.stringify({
+        bp: this.activeBp,
+        preview: !!this.previewOpen,
+        layer: this.selected ? this.selected.id : null,
+        tab: tab ? tab.dataset.tab : null,
+      }));
+    } catch (e) {
+      // Storage unavailable: the editor simply opens fresh after a save.
+    }
+  }
+
+  restoreView() {
+    const key = this.viewKey();
+    let view = null;
+    try {
+      view = key ? JSON.parse(sessionStorage.getItem(key) || "null") : null;
+    } catch (e) {
+      view = null;
+    }
+    if (view && typeof view === "object") {
+      if (view.bp && view.bp !== this.activeBp && this.breakpoints.includes(view.bp)) {
+        // Straight there, no morph animation: this is the state the editor left, not a switch.
+        this.activeBp = view.bp;
+        this.zoom = this.openingZoom();
+        this.highlightActiveBp();
+        this.updatePreviewWidth();
+        this.render();
+      }
+      const tab = view.tab && this.root.querySelector('.herobuilder-proptab[data-tab="' + view.tab + '"]');
+      if (tab) {
+        tab.click();
+      }
+      const layer = view.layer && this.layers.find((l) => l.id === view.layer);
+      if (layer) {
+        this.select(layer);
+      }
+      if (view.preview && !this.previewOpen) {
+        this.togglePreview();
+      }
+    }
+    this._viewReady = true;
+    this.saveView();
   }
 
   /**
@@ -2007,6 +2159,7 @@ export default class HerobuilderCanvas {
       this.updatePreviewWidth();
       this.refreshPreview();
     }
+    this.saveView();
   }
 
   updatePreviewWidth() {
@@ -2970,11 +3123,13 @@ export default class HerobuilderCanvas {
         this.panel.querySelectorAll(".herobuilder-tabpane").forEach((pane) => {
           pane.classList.toggle("active", pane.dataset.tab === tab.dataset.tab);
         });
+        this.saveView();
       });
     });
   }
 
   updatePanel() {
+    this.saveView();
     this.renderLayerList();
     this.updateBpMarkers();
     if (!this.panel) {
@@ -4172,7 +4327,39 @@ export default class HerobuilderCanvas {
   // than the persisted record. This is a single-snapshot draft, NOT the undo stack.
 
   draftKey() {
-    return this.name ? "herobuilder:draft:" + this.name : null;
+    // None for a new slide: its NEW… id is random per form load, so a draft under it could never
+    // be offered again — it would only pile up in the browser.
+    return this.name && !this.name.includes("[NEW") ? "herobuilder:draft:" + this.name : null;
+  }
+
+  /**
+   * Drop drafts nobody will ever open again — of new slides (written before draftKey() skipped
+   * them), and older than DRAFT_MAX_AGE_MS, which otherwise only expire when their own slide is
+   * reopened (never, for a deleted one).
+   */
+  sweepDrafts() {
+    try {
+      const prefix = "herobuilder:draft:";
+      const stale = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith(prefix)) {
+          continue;
+        }
+        let ts = 0;
+        try {
+          ts = Number(JSON.parse(localStorage.getItem(key)).ts) || 0;
+        } catch (e) {
+          ts = 0;
+        }
+        if (key.includes("[NEW") || Date.now() - ts > DRAFT_MAX_AGE_MS) {
+          stale.push(key);
+        }
+      }
+      stale.forEach((key) => localStorage.removeItem(key));
+    } catch (e) {
+      /* storage unavailable */
+    }
   }
 
   // Normalise for comparison so key-order differences don't cause false "unsaved" hits.
@@ -4182,6 +4369,13 @@ export default class HerobuilderCanvas {
     } catch (e) {
       return String(str || "");
     }
+  }
+
+  /** True when `json` is the saved record — as stored, or as the editor serializes it. */
+  isSavedState(json) {
+    const value = this.normalizeJson(json);
+    return value === this.normalizeJson(this._serverValue)
+      || (this._savedSerialized !== undefined && value === this.normalizeJson(this._savedSerialized));
   }
 
   scheduleDraftSave() {
@@ -4196,6 +4390,11 @@ export default class HerobuilderCanvas {
   saveDraft() {
     const key = this.draftKey();
     if (!key) {
+      return;
+    }
+    // Back at the saved state (e.g. everything undone): nothing to recover.
+    if (this.isSavedState(this.input.value)) {
+      this.clearDraft();
       return;
     }
     try {
@@ -4250,7 +4449,7 @@ export default class HerobuilderCanvas {
       return;
     }
     // Draft already matches what is in the DB → it was persisted, drop it silently.
-    if (this.normalizeJson(draft.json) === this.normalizeJson(this._serverValue)) {
+    if (this.isSavedState(draft.json)) {
       this.clearDraft();
       return;
     }
