@@ -83,12 +83,60 @@
     });
   }
 
+  /**
+   * Replay the entrance animations of a slide each time it is shown.
+   *
+   * AOS decides "in view" once at page load. The hidden slides count as in view too, so all their
+   * layers get `aos-animate` at t=0 and finish invisibly — slide 2+ never animated, slide 1 only
+   * on the first load. On `slide` the incoming layers go back to their start state (without a
+   * transition, so nothing visibly fades out), on `slid` — once the slide is in place — they get
+   * `aos-animate` again and run with their own delay/duration.
+   */
+  function initEntranceReplay(el) {
+    var selector = '[data-aos]:not([data-aos=""])';
+
+    el.addEventListener("slide.bs.carousel", function (e) {
+      var slide = e.relatedTarget;
+      if (!slide) {
+        return;
+      }
+      var layers = slide.querySelectorAll(selector);
+      if (!layers.length) {
+        return;
+      }
+      layers.forEach(function (layer) {
+        layer.style.transition = "none";
+        layer.classList.remove("aos-animate");
+      });
+      void slide.offsetWidth; // commit the start state before transitions come back
+      layers.forEach(function (layer) {
+        layer.style.transition = "";
+      });
+    });
+
+    el.addEventListener("slid.bs.carousel", function (e) {
+      var slide = e.relatedTarget;
+      if (!slide) {
+        return;
+      }
+      slide.querySelectorAll(selector).forEach(function (layer) {
+        layer.classList.add("aos-animate");
+      });
+    });
+  }
+
   function init() {
-    if (window.AOS && typeof window.AOS.init === "function") {
+    var aos = !!(window.AOS && typeof window.AOS.init === "function");
+    if (aos) {
       // disable: no entrance animations for visitors who asked for reduced motion.
       window.AOS.init({ once: true, duration: 600, easing: "ease-out-cubic", disable: reducedMotion });
     }
-    document.querySelectorAll(".herobuilder-carousel").forEach(initCarousel);
+    document.querySelectorAll(".herobuilder-carousel").forEach(function (el) {
+      if (aos && !reducedMotion) {
+        initEntranceReplay(el);
+      }
+      initCarousel(el);
+    });
   }
 
   if (document.readyState === "loading") {
