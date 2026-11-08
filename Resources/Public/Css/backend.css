@@ -567,7 +567,11 @@
     cursor: pointer;
 }
 .herobuilder-ctxmenu .hb-ctx-item:hover { background: var(--typo3-component-primary-color, #0b64c6); color: #fff; }
-.herobuilder-ctxmenu .hb-ctx-item[data-act="delete"]:hover { background: var(--typo3-state-danger-color, #c83c3c); }
+/* --typo3-state-danger-color is the TEXT colour on a danger background (near white in v14), not a red. */
+.herobuilder-ctxmenu .hb-ctx-item[data-act="delete"]:hover {
+    background: var(--typo3-state-danger-bg, #c83c3c);
+    color: var(--typo3-state-danger-color, #fff);
+}
 .herobuilder-ctxmenu .hb-ctx-sep { height: 1px; margin: .25rem 0; background: var(--typo3-component-border-color, #e0e0e0); }
 
 /* Snapping toggle: `active` = stored preference, `hb-magnet-suspended` = Alt held down right
@@ -639,7 +643,7 @@
 .hb-class-group-chips { display: flex; flex-wrap: wrap; gap: .3rem; }
 .hb-panel-empty { margin: 1rem .75rem; font-size: .875rem; }
 .hb-visible-label { display: flex; align-items: center; gap: .4rem; font-weight: normal; }
-.hb-ll-del:hover { color: var(--typo3-state-danger-color, #c83c3c); }
+.hb-ll-del:hover { color: var(--typo3-text-color-danger, #c83c3c); }
 
 /* Layer list: the row actions show on hover, keyboard focus and for the selected row, so the name
    gets the width. A hidden or locked layer keeps that icon visible — it is a state, not an action. */
