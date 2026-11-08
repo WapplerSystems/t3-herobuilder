@@ -223,6 +223,8 @@ export default class HerobuilderCanvas {
     }
     // Classes per layer type ({text: [...], button: [...], image: [...]}).
     this.classes = init.classes && typeof init.classes === "object" ? init.classes : {};
+    // Classes a new text / button starts with (TSconfig defaultLayerClasses, already whitelisted).
+    this.defaultClasses = { text: "", button: "btn btn-primary", ...(init.defaultClasses || {}) };
     // Optional grouping for the panel (headings, exclusive groups, background groups).
     this.classGroups = init.classGroups && typeof init.classGroups === "object" ? init.classGroups : {};
     this.labels = init.labels || {};
@@ -1359,7 +1361,6 @@ export default class HerobuilderCanvas {
 
   async addLayerForFile(uid) {
     await this.fetchFileInfo([uid]);
-    const maxZ = this.layers.reduce((m, l) => Math.max(m, (this.placementFor(l) || {}).z || 0), 0);
     const layer = {
       id: "l" + this.layers.length + "_" + uid,
       type: "image",
@@ -1372,10 +1373,13 @@ export default class HerobuilderCanvas {
       anim: {},
       placements: {},
     };
-    this.placeNewLayer(layer, maxZ + 1,
+    // Below the text and buttons (a new image must not cover them), above the images so far.
+    this.placeNewLayer(layer, (bp) => this.imageZ(bp),
       this.newImageBox(this.fileInfo[uid], this.baseBp(), 80),
       this.newImageBox(this.fileInfo[uid]));
-    this.layers.push(layer);
+    const firstText = this.layers.findIndex((l) => l.type === "text" || l.type === "button");
+    // On equal z the earlier layer paints below (stackOrder()): insert in front of the text.
+    this.layers.splice(firstText < 0 ? this.layers.length : firstText, 0, layer);
     this.render();
     this.select(layer);
     this.save();
@@ -1393,10 +1397,52 @@ export default class HerobuilderCanvas {
    */
   placeNewLayer(layer, z, baseBox, activeBox) {
     const base = this.baseBp();
-    layer.placements[base] = { ...baseBox, rot: 0, z, visible: true };
+    const zAt = (bp) => (typeof z === "function" ? z(bp) : z);
+    layer.placements[base] = { ...this.freeSpot(baseBox, base), rot: 0, z: zAt(base), visible: true };
     if (this.activeBp !== base) {
-      layer.placements[this.activeBp] = { ...activeBox, rot: 0, z, visible: true };
+      layer.placements[this.activeBp] = { ...this.freeSpot(activeBox, this.activeBp), rot: 0, z: zAt(this.activeBp), visible: true };
     }
+  }
+
+  /** The placement in effect for `layer` at `bp` (mobile-first cascade), or null. */
+  placementAt(layer, bp) {
+    const from = placementSource(layer.placements, bp, this.breakpoints);
+    return from ? layer.placements[from] : null;
+  }
+
+  /** Highest z at `bp` + 1 — on top of everything. */
+  topZ(bp) {
+    return this.layers.reduce((m, l) => Math.max(m, (this.placementAt(l, bp) || {}).z || 0), 0) + 1;
+  }
+
+  /**
+   * z for a new image at `bp`: that of the lowest text/button layer (the image is inserted in
+   * front of them, so on the tie it paints below), or on top when there is no text yet.
+   */
+  imageZ(bp) {
+    const zs = this.layers
+      .filter((l) => l.type === "text" || l.type === "button")
+      .map((l) => (this.placementAt(l, bp) || {}).z)
+      .filter((v) => typeof v === "number");
+    return zs.length ? Math.min(...zs) : this.topZ(bp);
+  }
+
+  /**
+   * Start box of a new layer, moved by 4 % right and down while another layer already starts
+   * at that spot on `bp` — several new layers no longer pile up exactly on top of each other.
+   */
+  freeSpot(box, bp) {
+    const out = { ...box };
+    const taken = (b) => this.layers.some((l) => {
+      const p = this.placementAt(l, bp);
+      // Within 3 % counts as the same spot: a start a step away still reads as "on top of it".
+      return p && Math.abs((p.x || 0) - b.x) < 3 && Math.abs((p.y || 0) - b.y) < 3;
+    });
+    for (let i = 0; i < 8 && taken(out); i++) {
+      out.x = round(Math.min(out.x + 4, Math.max(0, 100 - (out.w || 0))));
+      out.y = round(Math.min(out.y + 4, 95));
+    }
+    return out;
   }
 
   /**
@@ -1423,17 +1469,16 @@ export default class HerobuilderCanvas {
   }
 
   addTextLayer() {
-    const maxZ = this.layers.reduce((m, l) => Math.max(m, (this.placementFor(l) || {}).z || 0), 0);
     const layer = {
       id: "t" + this.layers.length + "_" + Date.now(),
       type: "text",
-      text: "Text",
-      cssClass: "",
+      text: this.t("layer.newText", "New text"),
+      cssClass: this.defaultClasses.text,
       link: "",
       anim: {},
       placements: {},
     };
-    this.placeNewLayer(layer, maxZ + 1, { x: 10, y: 40, w: 80, h: 0 }, { x: 20, y: 40, w: 60, h: 0 });
+    this.placeNewLayer(layer, (bp) => this.topZ(bp), { x: 10, y: 40, w: 80, h: 0 }, { x: 20, y: 40, w: 60, h: 0 });
     this.layers.push(layer);
     this.render();
     this.select(layer);
@@ -1441,17 +1486,16 @@ export default class HerobuilderCanvas {
   }
 
   addButtonLayer() {
-    const maxZ = this.layers.reduce((m, l) => Math.max(m, (this.placementFor(l) || {}).z || 0), 0);
     const layer = {
       id: "b" + this.layers.length + "_" + Date.now(),
       type: "button",
-      text: "Button",
-      cssClass: "btn btn-primary",
+      text: this.t("layer.newButton", "Learn more"),
+      cssClass: this.defaultClasses.button,
       link: "",
       anim: {},
       placements: {},
     };
-    this.placeNewLayer(layer, maxZ + 1, { x: 20, y: 55, w: 60, h: 0 }, { x: 20, y: 55, w: 20, h: 0 });
+    this.placeNewLayer(layer, (bp) => this.topZ(bp), { x: 20, y: 55, w: 60, h: 0 }, { x: 20, y: 55, w: 20, h: 0 });
     this.layers.push(layer);
     this.render();
     this.select(layer);

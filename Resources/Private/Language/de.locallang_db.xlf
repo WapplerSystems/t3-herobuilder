@@ -89,6 +89,8 @@
             <trans-unit id="template.saveError"><source>Could not save template</source><target>Vorlage konnte nicht gespeichert werden</target></trans-unit>
             <trans-unit id="template.applyHint"><source>Applying replaces the layers of the current slide.</source><target>Übernehmen ersetzt die Ebenen der aktuellen Folie.</target></trans-unit>
             <trans-unit id="template.empty"><source>No templates yet — save one from a composition.</source><target>Noch keine Vorlagen — speichere eine aus einer Komposition.</target></trans-unit>
+            <trans-unit id="layer.newText"><source>New text</source><target>Neuer Text</target></trans-unit>
+            <trans-unit id="layer.newButton"><source>Learn more</source><target>Mehr erfahren</target></trans-unit>
             <trans-unit id="copySuffix"><source>(copy %s)</source><target>(Kopie %s)</target></trans-unit>
             <trans-unit id="template.duplicate"><source>Duplicate</source><target>Duplizieren</target></trans-unit>
             <trans-unit id="template.duplicated"><source>Template duplicated</source><target>Vorlage dupliziert</target></trans-unit>

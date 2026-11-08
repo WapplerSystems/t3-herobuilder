@@ -142,6 +142,7 @@ class CanvasElement extends AbstractFormElement
             'recordTstamp' => (int)($this->data['databaseRow']['tstamp'] ?? 0),
             'stageModeField' => $contentUid !== '' ? 'data[tt_content][' . $contentUid . '][stage_mode]' : '',
             'classes' => $classes,
+            'defaultClasses' => $this->defaultLayerClasses($classes),
             'classGroups' => Composition::layerClassGroupsFromTsConfig(
                 (array)($this->data['pageTsConfig']['tx_herobuilder.']['layerClassGroups.'] ?? [])
             ),
@@ -393,6 +394,7 @@ class CanvasElement extends AbstractFormElement
             'button.templates', 'button.saveTemplate', 'template.duplicate', 'template.duplicated', 'template.rename',
             'template.renamed', 'template.delete', 'template.deleteConfirm', 'template.deleted', 'template.actionError',
             'template.preset', 'template.presetHint', 'template.cancel', 'template.save',
+            'layer.newText', 'layer.newButton',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
             'draft.available', 'draft.restore', 'draft.discard',
             'panel.imageEdit', 'panel.flipH', 'panel.flipV', 'panel.crop', 'panel.cropReset',
@@ -406,6 +408,37 @@ class CanvasElement extends AbstractFormElement
             $labels[$key] = $this->getLabel($key, $key);
         }
         return $labels;
+    }
+
+    /**
+     * Classes a new text / button layer starts with: page TSconfig
+     * `tx_herobuilder.defaultLayerClasses.text|button` (space-separated). Only classes offered for
+     * that layer type in layerClasses are kept — the same whitelist the frontend applies — so a
+     * typo cannot put an unknown class on every new layer. Without configuration: text none,
+     * button `btn btn-primary` (as before).
+     *
+     * @param array<string, list<array{value: string, label: string}>> $classes
+     * @return array{text: string, button: string}
+     */
+    private function defaultLayerClasses(array $classes): array
+    {
+        $conf = $this->data['pageTsConfig']['tx_herobuilder.']['defaultLayerClasses.'] ?? [];
+        $fallback = ['text' => '', 'button' => 'btn btn-primary'];
+        $out = [];
+        foreach ($fallback as $type => $default) {
+            $configured = is_array($conf) && isset($conf[$type]) ? (string)$conf[$type] : null;
+            if ($configured === null) {
+                $out[$type] = $default;
+                continue;
+            }
+            $allowed = array_column($classes[$type] ?? [], 'value');
+            $tokens = preg_split('/\s+/', trim($configured)) ?: [];
+            $out[$type] = implode(' ', array_values(array_unique(array_filter(
+                $tokens,
+                static fn(string $c): bool => $c !== '' && in_array($c, $allowed, true)
+            ))));
+        }
+        return $out;
     }
 
     /**
