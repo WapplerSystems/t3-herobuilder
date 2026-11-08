@@ -8,10 +8,11 @@ const AOS_EFFECTS = [
   "zoom-in", "zoom-out", "flip-left", "flip-up", "slide-up",
 ];
 
-// Per-layer image scaling (CSS object-fit). "fill" stretches (legacy default); "cover"/"contain"
-// keep the aspect ratio — cover for full-bleed backgrounds, contain for logos/text.
+// Per-layer image scaling (CSS object-fit). "cover"/"contain" keep the aspect ratio — cover for
+// full-bleed backgrounds, contain for logos/text; "fill" stretches (legacy default for layers
+// stored without a fit, listed last). New image layers get "contain".
 // Labels are resolved via i18n (this.t("fit.<value>")) at render time.
-const FIT_MODES = ["fill", "cover", "contain"];
+const FIT_MODES = ["contain", "cover", "fill"];
 
 // HTML element of a text layer. Purely semantic: hero.css resets the heading/paragraph styles,
 // the look still comes from the classes. Mirrors CompositionProcessor::TEXT_TAGS.
@@ -1310,14 +1311,39 @@ export default class HerobuilderCanvas {
       fileUid: uid,
       alt: "",
       link: "",
+      // "contain" keeps the image's proportions on every breakpoint — the inherited % box has
+      // another shape on a differently shaped stage, and "fill" would stretch it there.
+      fit: "contain",
       anim: {},
       placements: {},
     };
-    layer.placements[this.activeBp] = { x: 30, y: 30, w: 40, h: 25, rot: 0, z: maxZ + 1, visible: true };
+    layer.placements[this.activeBp] = { ...this.newImageBox(this.fileInfo[uid]), rot: 0, z: maxZ + 1, visible: true };
     this.layers.push(layer);
     this.render();
     this.select(layer);
     this.save();
+  }
+
+  /**
+   * Box for a newly added image on the active breakpoint: 40% of the stage width, shaped like
+   * the file so the handles sit on the image (no empty margins), at most 80% of the stage high,
+   * centred. Without known dimensions (e.g. an SVG without size) the old 40×25 box is used.
+   */
+  newImageBox(info) {
+    const r2 = (v) => Math.round(v * 100) / 100;
+    const aspect = info && info.width > 0 && info.height > 0 ? info.width / info.height : 0;
+    let w = 40;
+    let h = 25;
+    if (aspect > 0) {
+      // Percentages refer to different axes: h% = w% × (stage width / stage height) / aspect.
+      const stage = this.stageRatio(this.activeBp);
+      h = (w * stage) / aspect;
+      if (h > 80) {
+        h = 80;
+        w = (h * aspect) / stage;
+      }
+    }
+    return { x: r2((100 - w) / 2), y: r2((100 - h) / 2), w: r2(w), h: r2(h) };
   }
 
   addTextLayer() {
