@@ -413,7 +413,7 @@ class CanvasElement extends AbstractFormElement
             'button.magnet', 'magnet.hint', 'magnet.on', 'magnet.off', 'magnet.suspended', 'magnet.altHint',
             'help.button', 'help.title', 'help.showHints', 'help.showHintsNote', 'help.close',
             'help.fit', 'hint.fitDistort', 'help.height', 'help.visible', 'help.overlay', 'help.anim', 'help.slide',
-            'list.lockHint',
+            'list.lockHint', 'list.slideHint',
             'help.s.stage.title', 'help.s.stage.text', 'help.s.layers.title', 'help.s.layers.text',
             'help.s.images.title', 'help.s.images.text', 'help.s.position.title', 'help.s.position.text',
             'help.s.design.title', 'help.s.design.text', 'help.s.anim.title', 'help.s.anim.text',

@@ -214,7 +214,7 @@
             <trans-unit id="help.visible"><source>Like the position: also applies to the larger breakpoints without a position of their own.</source></trans-unit>
             <trans-unit id="help.overlay"><source>Unticked, the inherited value applies. Ticked, this value applies from %s upwards until a larger breakpoint has its own.</source></trans-unit>
             <trans-unit id="help.anim"><source>Plays on the website when the slide appears. Watch it with “Replay animation” in the live preview.</source></trans-unit>
-            <trans-unit id="help.slide"><source>These settings apply to the whole slide. They show when no layer is selected.</source></trans-unit>
+            <trans-unit id="help.slide"><source>These settings apply to the whole slide. They show when no layer is selected: click “Slide” in the layer list, press Esc or click next to the stage.</source></trans-unit>
             <trans-unit id="list.lockHint"><source>Locked: cannot be moved or clicked on the stage, clicks go to the layer below. Still selectable here in the list. Meant for backgrounds.</source></trans-unit>
             <trans-unit id="help.s.stage.title"><source>Stage and breakpoints</source></trans-unit>
             <trans-unit id="help.s.stage.text"><source>The bar above the stage picks the breakpoint, from XS (smartphone) to XL (large screen). You build from small to large: what is set on XS also applies to every larger breakpoint until one gets values of its own. A dot on a breakpoint shows where the selected layer has its own values; “Reset (inherit)” on the Position tab removes them again.</source></trans-unit>
@@ -229,12 +229,13 @@
             <trans-unit id="help.s.anim.title"><source>Animation and preview</source></trans-unit>
             <trans-unit id="help.s.anim.text"><source>An animation plays on the website when the slide appears. “Live preview” shows the slide as the website renders it; “Replay animation” plays it there again.</source></trans-unit>
             <trans-unit id="help.s.slide.title"><source>Slide and background</source></trans-unit>
-            <trans-unit id="help.s.slide.text"><source>With no layer selected, the right column shows the slide's settings: a background colour or gradient. To deselect, click a free spot on the stage.</source></trans-unit>
+            <trans-unit id="help.s.slide.text"><source>With no layer selected, the right column shows the slide's settings: a background colour or gradient. To get there, click “Slide” at the top of the layer list, press Esc, or click a free spot on or next to the stage — the list entry also works when an image covers the whole stage.</source></trans-unit>
             <trans-unit id="help.s.templates.title"><source>Templates</source></trans-unit>
             <trans-unit id="help.s.templates.text"><source>“Templates” puts a finished design on the slide and replaces its layers. “Save as template” keeps the current slide for later. Shipped templates can be duplicated and the copy changed.</source></trans-unit>
             <trans-unit id="help.s.keys.title"><source>Keyboard</source></trans-unit>
-            <trans-unit id="help.s.keys.text"><source>Ctrl+Z / Ctrl+Y undo / redo · Ctrl+D duplicate · Del delete · arrow keys move · Ctrl+plus / minus / 0 zoom · hold Space and drag to pan the view.</source></trans-unit>
+            <trans-unit id="help.s.keys.text"><source>Ctrl+Z / Ctrl+Y undo / redo · Ctrl+D duplicate · Del delete · arrow keys move · Esc deselect (back to the slide) · Ctrl+plus / minus / 0 zoom · hold Space and drag to pan the view.</source></trans-unit>
             <trans-unit id="collage.assets.description"><source>Images uploaded for this slide. An image layer shows one file from here. Deleting a layer leaves its file in the pool.</source></trans-unit>
+            <trans-unit id="list.slideHint"><source>Settings of the whole slide (background). Also: Esc, or a click next to the stage.</source></trans-unit>
         </body>
     </file>
 </xliff>

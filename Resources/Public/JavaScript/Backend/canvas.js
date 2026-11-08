@@ -476,6 +476,28 @@ export default class HerobuilderCanvas {
       }
     });
     this.stageEl.addEventListener("contextmenu", (e) => this.onContextMenu(e));
+
+    // A click on the grey area around the stage deselects too. Only when the press STARTED
+    // there: a drag or resize that ends outside the stage also produces a click on this area.
+    const wrap = this.root.querySelector(".herobuilder-stage-wrap");
+    const canvas = this.root.querySelector(".herobuilder-canvas");
+    const isBackdrop = (t) => t === wrap || t === canvas;
+    let pressedOnBackdrop = false;
+    [wrap, canvas].forEach((el) => {
+      if (!el) {
+        return;
+      }
+      el.addEventListener("pointerdown", (e) => {
+        pressedOnBackdrop = e.button === 0 && !this._spaceDown && isBackdrop(e.target);
+      });
+      el.addEventListener("click", (e) => {
+        if (pressedOnBackdrop && isBackdrop(e.target) && this.selected) {
+          this.deselect();
+          this.stageEl.focus({ preventScroll: true });
+        }
+        pressedOnBackdrop = false;
+      });
+    });
   }
 
   onContextMenu(e) {
@@ -964,6 +986,9 @@ export default class HerobuilderCanvas {
     };
     this._ctxKey = (ev) => {
       if (ev.key === "Escape") {
+        // Only close the menu — the editor's own Esc (deselect) must not fire as well.
+        ev.preventDefault();
+        ev.stopPropagation();
         this.closeContextMenu();
       }
     };
@@ -1737,6 +1762,22 @@ export default class HerobuilderCanvas {
     // Mount point is provided by the PHP skeleton (left sidebar).
     const list = this.root.querySelector(".herobuilder-layerlist");
     this.layerList = list;
+
+    // Fixed "Slide" entry above the layers: selects nothing, so the right column shows the slide
+    // settings. Needed when a layer covers the whole stage and there is no free spot to click.
+    const slide = document.createElement("div");
+    slide.className = "hb-ll-item hb-ll-slide";
+    slide.innerHTML =
+      '<button type="button" class="hb-ll-sel" title="' +
+      escapeAttr(this.t("list.slideHint", "Settings of the whole slide (background). Also: Esc, or a click next to the stage.")) + '">' +
+      '<span class="hb-ll-chip hb-ll-chip-slide"></span>' +
+      '<span class="hb-ll-name">' + escapeHtml(this.t("slide.title", "Slide")) + "</span></button>";
+    slide.querySelector(".hb-ll-sel").addEventListener("click", () => {
+      this.deselect();
+      this.stageEl.focus({ preventScroll: true });
+    });
+    list.parentNode.insertBefore(slide, list);
+    this.slideEntry = slide;
 
     list.addEventListener("click", (e) => {
       const item = e.target.closest(".hb-ll-item");
@@ -2629,6 +2670,18 @@ export default class HerobuilderCanvas {
     return '<span class="hb-ll-chip hb-ll-chip-type">' + ICON.crop + "</span>";
   }
 
+  /** The "Slide" entry: active while no layer is selected, its chip shows the background. */
+  updateSlideEntry() {
+    if (!this.slideEntry) {
+      return;
+    }
+    this.slideEntry.classList.toggle("active", !this.selected);
+    const chip = this.slideEntry.querySelector(".hb-ll-chip-slide");
+    const bg = this.background;
+    chip.classList.toggle("is-none", !bg);
+    chip.style.background = bg ? backgroundCssValue(bg) : "";
+  }
+
   layerLabel(layer) {
     if (layer.type === "text" || layer.type === "button") {
       const t = (layer.text || "").trim();
@@ -2652,6 +2705,7 @@ export default class HerobuilderCanvas {
     if (!this.layerList) {
       return;
     }
+    this.updateSlideEntry();
     const ordered = this.stackOrder();
     if (!ordered.length) {
       this.layerList.innerHTML =
@@ -3429,6 +3483,7 @@ export default class HerobuilderCanvas {
     const swatch = q(".hb-bg-swatch");
     swatch.classList.toggle("is-none", !bg);
     swatch.style.background = backgroundCssValue(bg);
+    this.updateSlideEntry();
   }
 
   /** Slider, colour, "own from …" and where the value comes from, for the active breakpoint. */
@@ -4343,6 +4398,10 @@ export default class HerobuilderCanvas {
         this._spaceDown = true;
         this.root.querySelector(".herobuilder-stage-wrap")?.classList.add("hb-pan-ready");
         e.preventDefault();
+      } else if (!inField && e.key === "Escape" && this.selected) {
+        // Back to the slide — the only way out when a layer covers the whole stage.
+        e.preventDefault();
+        this.deselect();
       } else if (!inField && (e.key === "Delete" || e.key === "Backspace")) {
         if (this.selected) {
           e.preventDefault();
