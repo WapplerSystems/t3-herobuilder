@@ -193,6 +193,43 @@ final readonly class Composition
         return null;
     }
 
+    /** Darkening colour when a layer sets none (existing text darkenings were always black). */
+    public const OVERLAY_COLOR_DEFAULT = '#000000';
+
+    /** A `#rrggbb` colour (lower-cased), or null for anything else — never reaches CSS unchecked. */
+    public static function normalizeColor(mixed $color): ?string
+    {
+        return is_string($color) && preg_match('/^#[0-9a-f]{6}$/i', $color) ? strtolower($color) : null;
+    }
+
+    /**
+     * Darkening of a layer at $bp: `strength` (0–100 %) and `color`. The layer's own
+     * `overlay`/`overlayColor` is the base for every breakpoint; `overlays[<bp>]` changes it from
+     * that breakpoint upwards (mobile first) — the nearest one at or below $bp wins. Kept apart
+     * from the placements on purpose: "darker from lg on" must not pin lg's position.
+     *
+     * @param array<string, mixed> $layer
+     * @return array{strength: float, color: string}
+     */
+    public static function effectiveOverlay(array $layer, string $bp): array
+    {
+        $baseColor = self::normalizeColor($layer['overlayColor'] ?? null) ?? self::OVERLAY_COLOR_DEFAULT;
+        $value = ['strength' => $layer['overlay'] ?? 0, 'color' => $baseColor];
+        $overlays = is_array($layer['overlays'] ?? null) ? $layer['overlays'] : [];
+        $index = array_search($bp, self::BREAKPOINTS, true);
+        for ($i = $index === false ? -1 : $index; $i >= 0; $i--) {
+            $own = $overlays[self::BREAKPOINTS[$i]] ?? null;
+            if (is_array($own)) {
+                $value = ['strength' => $own['strength'] ?? 0, 'color' => self::normalizeColor($own['color'] ?? null) ?? $baseColor];
+                break;
+            }
+        }
+        return [
+            'strength' => max(0.0, min(100.0, (float)$value['strength'])),
+            'color' => $value['color'],
+        ];
+    }
+
     /**
      * The placement that applies at $bp (see placementSource()), or null.
      *

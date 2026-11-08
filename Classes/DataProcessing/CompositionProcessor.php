@@ -162,14 +162,12 @@ final class CompositionProcessor implements DataProcessorInterface
                 if ($image !== null) {
                     $image['sources'] = $this->artSources($file, $crop, $framing, $placements, $fit, $stages, $imageFormat);
                 }
+                // Darkening over the image (colour + strength, per breakpoint).
+                $css .= $this->overlayCss('.' . $scope . ' .' . $cssClass . '::after', $layer, false);
             } else {
                 // Darkening scrim behind text for readability over busy backgrounds.
-                $overlay = $this->clampPercent($layer['overlay'] ?? 0);
-                if ($overlay > 0) {
-                    $alpha = rtrim(rtrim(number_format($overlay / 100, 3, '.', ''), '0'), '.');
-                    // Scoped (0,2,0) so it outweighs hero.css's box reset for heading/paragraph layers.
-                    $css .= '.' . $scope . ' .' . $cssClass . '{background-color:rgba(0,0,0,' . $alpha . ');padding:.35em .6em;}';
-                }
+                // Scoped (0,2,0) so it outweighs hero.css's box reset for heading/paragraph layers.
+                $css .= $this->overlayCss('.' . $scope . ' .' . $cssClass, $layer, true);
             }
             $layers[] = [
                 'id' => (string)($layer['id'] ?? $cssClass),
@@ -509,6 +507,43 @@ final class CompositionProcessor implements DataProcessorInterface
             return 'aspect-ratio:auto;height:' . $stage['height'] . ';';
         }
         return 'aspect-ratio:' . ($stage['ratioCss'] ?? '16 / 9') . ';height:auto;';
+    }
+
+    /**
+     * Darkening of a layer (Composition::effectiveOverlay()): behind a text layer as its
+     * background, over an image layer as a ::after sheet inside the layer box (it never covers
+     * the layers above, and lets clicks through). One rule when every breakpoint has the same
+     * value — exactly the former text-darkening output — otherwise one rule per breakpoint that
+     * darkens, with non-overlapping media ranges so a breakpoint without darkening stays clear.
+     *
+     * @param array<string, mixed> $layer
+     */
+    private function overlayCss(string $selector, array $layer, bool $isText): string
+    {
+        $decl = [];
+        foreach (Composition::BREAKPOINTS as $bp) {
+            ['strength' => $strength, 'color' => $color] = Composition::effectiveOverlay($layer, $bp);
+            if ($strength <= 0) {
+                $decl[$bp] = '';
+                continue;
+            }
+            $alpha = rtrim(rtrim(number_format($strength / 100, 3, '.', ''), '0'), '.');
+            $rgba = 'rgba(' . implode(',', array_map('hexdec', str_split(substr($color, 1), 2))) . ',' . $alpha . ')';
+            $decl[$bp] = $isText
+                ? 'background-color:' . $rgba . ';padding:.35em .6em;'
+                : 'content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background-color:' . $rgba . ';';
+        }
+        if (count(array_unique($decl)) === 1) {
+            $only = reset($decl);
+            return $only === '' ? '' : $selector . '{' . $only . '}';
+        }
+        $css = '';
+        foreach ($decl as $bp => $d) {
+            if ($d !== '') {
+                $css .= '@media ' . Composition::BREAKPOINT_MEDIA_EXCLUSIVE[$bp] . '{' . $selector . '{' . $d . '}}';
+            }
+        }
+        return $css;
     }
 
     /**

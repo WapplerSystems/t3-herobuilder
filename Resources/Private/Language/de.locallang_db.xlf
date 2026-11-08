@@ -157,6 +157,11 @@
             <trans-unit id="tag.h6"><source>h6</source><target>h6</target></trans-unit>
             <trans-unit id="panel.artDirection"><source>Crop &amp; focus only for %s</source><target>Zuschnitt &amp; Fokus nur für %s</target></trans-unit>
             <trans-unit id="panel.overlay"><source>Darkening behind text (%)</source><target>Abdunkelung hinter Text (%)</target></trans-unit>
+            <trans-unit id="panel.overlayImage"><source>Darkening over the image (%)</source><target>Abdunkelung über dem Bild (%)</target></trans-unit>
+            <trans-unit id="panel.overlayColor"><source>Colour</source><target>Farbe</target></trans-unit>
+            <trans-unit id="overlay.own"><source>Own darkening from %s on</source><target>Ab %s eigene Abdunkelung</target></trans-unit>
+            <trans-unit id="overlay.inherited"><source>Inherited from %s</source><target>Geerbt von %s</target></trans-unit>
+            <trans-unit id="overlay.base"><source>Applies to all breakpoints</source><target>Gilt für alle Breakpoints</target></trans-unit>
             <trans-unit id="list.reorder"><source>Drag to reorder</source><target>Zum Umsortieren ziehen</target></trans-unit>
             <trans-unit id="list.toggleVisible"><source>Show / hide on %s</source><target>Auf %s ein-/ausblenden</target></trans-unit>
             <trans-unit id="list.toggleLock"><source>Lock / unlock</source><target>Sperren / entsperren</target></trans-unit>

@@ -49,6 +49,15 @@ const placementSource = (placements, bp, order) => {
   return null;
 };
 
+// Darkening colour: `#rrggbb` (lower-cased) or null — mirror of Composition::normalizeColor().
+const OVERLAY_COLOR_DEFAULT = "#000000";
+const normalizeColor = (c) => (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c) ? c.toLowerCase() : null);
+const overlayRgba = (o) => {
+  const hex = o.color.slice(1);
+  const rgb = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return "rgba(" + rgb.join(",") + "," + o.strength / 100 + ")";
+};
+
 // A plain object, or a fresh {} — stored JSON may carry an empty object as [] (PHP round trip),
 // and named properties set on an array are dropped by JSON.stringify.
 const asObject = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
@@ -1078,9 +1087,9 @@ export default class HerobuilderCanvas {
       el.style.justifyContent = "center";
       el.style.overflow = p.h ? "hidden" : "visible";
       el.style.textAlign = "center";
-      const overlay = layer.overlay || 0;
-      if (overlay > 0) {
-        el.style.backgroundColor = "rgba(0,0,0," + overlay / 100 + ")";
+      const overlay = this.effectiveOverlay(layer);
+      if (overlay.strength > 0) {
+        el.style.backgroundColor = overlayRgba(overlay);
         el.style.padding = ".35em .6em";
       }
     } else {
@@ -2319,8 +2328,12 @@ export default class HerobuilderCanvas {
       '<div class="herobuilder-tabpane" data-tab="style">' +
       '<div class="herobuilder-panel-row hb-row-classes"><label>' + escapeHtml(this.t("panel.classes", "Classes")) + "</label>" +
       classControl + "</div>" +
-      '<div class="herobuilder-panel-row hb-row-overlay"><label>' + escapeHtml(this.t("panel.overlay", "Darkening behind text (%)")) + "</label>" +
-      '<div class="hb-overlay-ctl"><input type="range" class="hb-overlay" min="0" max="100" step="5"><span class="hb-overlay-val">0%</span></div>' +
+      '<div class="herobuilder-panel-row hb-row-overlay"><label class="hb-overlay-label"></label>' +
+      '<div class="hb-overlay-ctl"><input type="range" class="hb-overlay" min="0" max="100" step="5"><span class="hb-overlay-val">0%</span>' +
+      '<input type="color" class="hb-overlay-color form-control form-control-color" title="' +
+      escapeHtml(this.t("panel.overlayColor", "Colour")) + '" aria-label="' + escapeHtml(this.t("panel.overlayColor", "Colour")) + '"></div>' +
+      '<div class="hb-overlay-source"><label class="hb-overlay-own-label"><input type="checkbox" class="hb-overlay-own"> ' +
+      '<span class="hb-overlay-own-text"></span></label><span class="hb-overlay-source-text"></span></div>' +
       '<div class="hb-hint hb-overlay-locked alert alert-info" hidden>' +
       escapeHtml(this.t("panel.overlayLocked", "A box class sets the background — darkening is off while it is selected.")) + "</div></div>" +
       "</div>" +
@@ -2374,6 +2387,8 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-alt").addEventListener("input", (e) => this.setAlt(e.target.value));
     panel.querySelector(".hb-tag").addEventListener("change", (e) => this.setTag(e.target.value));
     panel.querySelector(".hb-overlay").addEventListener("input", (e) => this.setOverlay(e.target.value));
+    panel.querySelector(".hb-overlay-color").addEventListener("input", (e) => this.setOverlay(null, e.target.value));
+    panel.querySelector(".hb-overlay-own").addEventListener("change", (e) => this.setOverlayOwn(e.target.checked));
     panel.querySelector(".hb-class-chips").addEventListener("click", (e) => {
       const chip = e.target.closest(".hb-class-chip");
       if (!chip) {
@@ -2503,7 +2518,7 @@ export default class HerobuilderCanvas {
     const anim = this.selected.anim || {};
     const p = this.placementFor(this.selected) || {};
     this.panel.querySelector(".hb-row-text").hidden = !isText;
-    this.panel.querySelector(".hb-row-overlay").hidden = type !== "text";
+    this.panel.querySelector(".hb-row-overlay").hidden = type !== "text" && type !== "image";
     this.panel.querySelector(".hb-row-tag").hidden = type !== "text";
     this.panel.querySelector(".hb-tag").value = TEXT_TAGS.includes(this.selected.tag) ? this.selected.tag : "div";
     this.panel.querySelector(".hb-row-fit").hidden = isText;
@@ -2512,9 +2527,7 @@ export default class HerobuilderCanvas {
     this.panel.querySelector(".hb-link-value").textContent = this.selected.link || "—";
     this.panel.querySelector(".hb-link-clear").hidden = !this.selected.link;
     this.updateAltAndHints();
-    const ov = this.selected.overlay || 0;
-    this.panel.querySelector(".hb-overlay").value = ov;
-    this.panel.querySelector(".hb-overlay-val").textContent = ov + "%";
+    this.updateOverlayFields();
     this.renderClassChips(this.selected);
     this.panel.querySelector(".hb-anim-effect").value = anim.effect || "";
     this.panel.querySelector(".hb-anim-delay").value = anim.delay || "";
@@ -2610,8 +2623,11 @@ export default class HerobuilderCanvas {
     if (!this.panel || !this.selected) {
       return;
     }
-    const locked = !!this.panel.querySelector(".hb-class-chip.active[data-background]");
-    this.panel.querySelector(".hb-overlay").disabled = locked;
+    // Only a text layer's darkening is its background; an image's sits on top (::after).
+    const locked = this.selected.type === "text" && !!this.panel.querySelector(".hb-class-chip.active[data-background]");
+    this.panel.querySelectorAll(".hb-overlay, .hb-overlay-color, .hb-overlay-own").forEach((input) => {
+      input.disabled = locked;
+    });
     this.panel.querySelector(".hb-overlay-locked").hidden = !locked;
   }
 
@@ -2761,22 +2777,115 @@ export default class HerobuilderCanvas {
     this.save();
   }
 
-  setOverlay(value) {
-    if (!this.selected) {
+  /**
+   * Darkening in effect at `bp` — mirror of Composition::effectiveOverlay(): the layer's own value
+   * (`overlay`, `overlayColor`) is the base for every breakpoint, `overlays[bp]` changes it from
+   * that breakpoint upwards; the nearest one at or below `bp` wins. `source` = that breakpoint,
+   * or null for the base.
+   */
+  effectiveOverlay(layer, bp = this.activeBp) {
+    const baseColor = normalizeColor(layer.overlayColor) || OVERLAY_COLOR_DEFAULT;
+    const own = asObject(layer.overlays);
+    for (let i = this.breakpoints.indexOf(bp); i >= 0; i--) {
+      const entry = own[this.breakpoints[i]];
+      if (entry && typeof entry === "object") {
+        return {
+          strength: Math.min(100, Math.max(0, parseInt(entry.strength, 10) || 0)),
+          color: normalizeColor(entry.color) || baseColor,
+          source: this.breakpoints[i],
+        };
+      }
+    }
+    return { strength: Math.min(100, Math.max(0, parseInt(layer.overlay, 10) || 0)), color: baseColor, source: null };
+  }
+
+  /**
+   * Change strength (`value`) and/or colour of the darkening. It goes where the active breakpoint
+   * takes its darkening from: its own entry, else the base — and when it inherits another
+   * breakpoint's entry, it gets an entry of its own first (like a position).
+   */
+  setOverlay(value, color = null) {
+    const layer = this.selected;
+    if (!layer) {
       return;
     }
-    const v = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
-    this.selected.overlay = v;
-    const valEl = this.panel && this.panel.querySelector(".hb-overlay-val");
-    if (valEl) {
-      valEl.textContent = v + "%";
+    const eff = this.effectiveOverlay(layer);
+    let target = layer;
+    if (eff.source !== null) {
+      layer.overlays = asObject(layer.overlays);
+      if (eff.source !== this.activeBp) {
+        layer.overlays[this.activeBp] = { strength: eff.strength, color: eff.color };
+      }
+      target = layer.overlays[this.activeBp];
     }
-    const el = this.selected._el;
-    if (el && this.selected.type === "text") {
-      el.style.backgroundColor = v > 0 ? "rgba(0,0,0," + v / 100 + ")" : "";
-      el.style.padding = v > 0 ? ".35em .6em" : "";
+    const strengthKey = target === layer ? "overlay" : "strength";
+    const colorKey = target === layer ? "overlayColor" : "color";
+    if (value !== null && value !== undefined) {
+      target[strengthKey] = Math.min(100, Math.max(0, parseInt(value, 10) || 0));
     }
+    if (color !== null && normalizeColor(color)) {
+      target[colorKey] = normalizeColor(color);
+    }
+    this.applyOverlayToElement(layer);
+    this.updateOverlayFields();
     this.save();
+  }
+
+  /** "From <bp> on its own darkening": give the active breakpoint an entry, or drop it again. */
+  setOverlayOwn(own) {
+    const layer = this.selected;
+    if (!layer) {
+      return;
+    }
+    const eff = this.effectiveOverlay(layer);
+    layer.overlays = asObject(layer.overlays);
+    if (own) {
+      layer.overlays[this.activeBp] = { strength: eff.strength, color: eff.color };
+    } else {
+      delete layer.overlays[this.activeBp];
+    }
+    if (!Object.keys(layer.overlays).length) {
+      delete layer.overlays;
+    }
+    this.applyOverlayToElement(layer);
+    this.updateOverlayFields();
+    this.save();
+  }
+
+  /** Slider, colour, "own from …" and where the value comes from, for the active breakpoint. */
+  updateOverlayFields() {
+    const layer = this.selected;
+    if (!this.panel || !layer) {
+      return;
+    }
+    const eff = this.effectiveOverlay(layer);
+    const bpName = this.activeBp.toUpperCase();
+    const own = eff.source === this.activeBp;
+    this.panel.querySelector(".hb-overlay-label").textContent = layer.type === "image"
+      ? this.t("panel.overlayImage", "Darkening over the image (%)")
+      : this.t("panel.overlay", "Darkening behind text (%)");
+    this.panel.querySelector(".hb-overlay").value = eff.strength;
+    this.panel.querySelector(".hb-overlay-val").textContent = eff.strength + "%";
+    this.panel.querySelector(".hb-overlay-color").value = eff.color;
+    this.panel.querySelector(".hb-overlay-own").checked = own;
+    this.panel.querySelector(".hb-overlay-own-text").textContent =
+      this.t("overlay.own", "Own darkening from %s on").replace("%s", bpName);
+    this.panel.querySelector(".hb-overlay-source-text").textContent = own
+      ? ""
+      : eff.source
+        ? this.t("overlay.inherited", "Inherited from %s").replace("%s", eff.source.toUpperCase())
+        : this.t("overlay.base", "Applies to all breakpoints");
+  }
+
+  /** Text layers show their darkening on the editor element too (images get it from the stage). */
+  applyOverlayToElement(layer) {
+    const el = layer._el;
+    if (!el || layer.type !== "text") {
+      return;
+    }
+    const eff = this.effectiveOverlay(layer);
+    el.style.backgroundColor = eff.strength > 0 ? overlayRgba(eff) : "";
+    el.style.padding = eff.strength > 0 ? ".35em .6em" : "";
   }
 
   setClasses() {
@@ -3282,6 +3391,10 @@ export default class HerobuilderCanvas {
       focusX: l.focusX ?? 50,
       focusY: l.focusY ?? 50,
       overlay: l.overlay ?? 0,
+      // Black is the default; only another colour is stored.
+      overlayColor: normalizeColor(l.overlayColor) && normalizeColor(l.overlayColor) !== OVERLAY_COLOR_DEFAULT
+        ? normalizeColor(l.overlayColor) : undefined,
+      overlays: this.cleanOverlays(l.overlays),
       // Only text layers carry an element; undefined drops out of the JSON for the others.
       tag: l.type === "text" && TEXT_TAGS.includes(l.tag) && l.tag !== "div" ? l.tag : undefined,
       locked: !!l.locked,
@@ -3291,6 +3404,20 @@ export default class HerobuilderCanvas {
       anim: asObject(l.anim),
       placements: this.cleanPlacements(l.placements),
     };
+  }
+
+  /** Per-breakpoint darkening entries: known breakpoints only, clamped, valid colours; none → undefined. */
+  cleanOverlays(overlays) {
+    const out = {};
+    Object.entries(asObject(overlays)).forEach(([bp, o]) => {
+      if (this.breakpoints.includes(bp) && o && typeof o === "object") {
+        out[bp] = { strength: Math.min(100, Math.max(0, parseInt(o.strength, 10) || 0)) };
+        if (normalizeColor(o.color)) {
+          out[bp].color = normalizeColor(o.color);
+        }
+      }
+    });
+    return Object.keys(out).length ? out : undefined;
   }
 
   cleanPlacements(placements) {

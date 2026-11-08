@@ -676,3 +676,9 @@
     font-size: .8rem;
     background: var(--typo3-component-hover-bg, rgba(0, 0, 0, .06));
 }
+
+/* Darkening: strength slider + colour, and "own from <bp> on" / where the value comes from. */
+.hb-overlay-ctl .hb-overlay-color { flex: 0 0 auto; width: 2.25rem; min-width: 0; height: 1.75rem; padding: .1rem; } /* core .form-control has min-width:120px */
+.hb-overlay-source { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .5rem; margin-top: .35rem; font-size: .8rem; }
+.hb-overlay-own-label { display: inline-flex; align-items: center; gap: .35rem; font-weight: normal; margin: 0; }
+.hb-overlay-source-text { color: var(--typo3-text-color-variant, #666); }
