@@ -3,8 +3,8 @@
  * script so a strict backend CSP `script-src 'self'` does not block it — no inline JS).
  *
  * - Initialises AOS so entrance animations play on load.
- * - Replays them when the editor posts `hb-replay` (once:false + clearing `.aos-animate`
- *   and re-firing the scroll handler so in-view elements animate again).
+ * - Replays them when the editor posts `hb-replay` — all layers, or a single layer by its
+ *   composition index (see replay()).
  */
 (function () {
   "use strict";
@@ -34,15 +34,60 @@
     window.AOS.init({ once: false, duration: 600, easing: "ease-out-cubic" });
   }
 
-  window.addEventListener("message", function (e) {
-    if (e.data !== "hb-replay") {
+  /** Set elements to a state without animating there (transition off, commit, transition back). */
+  function jump(nodes, animated) {
+    nodes.forEach(function (el) {
+      el.style.transition = "none";
+      el.classList.toggle("aos-animate", animated);
+    });
+    void document.body.offsetWidth;
+    nodes.forEach(function (el) {
+      el.style.transition = "";
+    });
+  }
+
+  /**
+   * Replay entrance animations. `layer` = index of the layer in the composition (its element
+   * carries the class `<scope>-l<index>`, see CompositionProcessor) — then only that layer
+   * plays and the others are shown at rest; -1 / missing = all layers.
+   *
+   * The class is re-added two frames later by us — not via AOS's scroll handler, which re-added
+   * it in the same tick so the transition reversed before anything was visible.
+   */
+  function replay(layer) {
+    var all = Array.prototype.slice.call(document.querySelectorAll('[data-aos]:not([data-aos=""])'));
+    var targets = all;
+    if (typeof layer === "number" && layer >= 0) {
+      var slide = document.querySelector(".herobuilder-slide");
+      var scope = slide && Array.prototype.find.call(slide.classList, function (c) {
+        return /^hb-\d+$/.test(c);
+      });
+      var own = scope ? document.querySelector("." + scope + "-l" + layer) : null;
+      targets = own && all.indexOf(own) !== -1 ? [own] : [];
+      jump(all.filter(function (el) { return targets.indexOf(el) === -1; }), true);
+    }
+    if (!targets.length) {
       return;
     }
-    document.querySelectorAll("[data-aos]").forEach(function (el) {
-      el.classList.remove("aos-animate");
+    jump(targets, false);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        targets.forEach(function (el) {
+          el.classList.add("aos-animate");
+        });
+      });
     });
-    // Force reflow, then re-fire AOS's scroll handler to re-trigger in-view elements.
-    void document.body.offsetWidth;
-    window.dispatchEvent(new Event("scroll"));
+  }
+
+  window.addEventListener("message", function (e) {
+    // Same-origin editor only (the preview is a srcdoc frame of the backend page).
+    if (e.source !== window.parent) {
+      return;
+    }
+    if (e.data === "hb-replay") {
+      replay(-1);
+    } else if (e.data && e.data.type === "hb-replay") {
+      replay(e.data.layer);
+    }
   });
 })();

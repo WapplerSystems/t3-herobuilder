@@ -87,8 +87,10 @@ final class PreviewController
         foreach ($this->cssFiles($pid, $canvas) as $href) {
             $links .= '<link rel="stylesheet" href="' . htmlspecialchars($href) . '">';
         }
-        $aos = htmlspecialchars($this->webPath('EXT:herobuilder/Resources/Public/JavaScript/Vendor/aos.js'));
-        $frameJs = htmlspecialchars($this->webPath('EXT:herobuilder/Resources/Public/JavaScript/preview-frame.js'));
+        // Versioned like the CSS: without it the browser kept running a cached preview-frame.js
+        // after an update (the editor's replay messages then went to the old handler).
+        $aos = htmlspecialchars($this->versioned('EXT:herobuilder/Resources/Public/JavaScript/Vendor/aos.js'));
+        $frameJs = htmlspecialchars($this->versioned('EXT:herobuilder/Resources/Public/JavaScript/preview-frame.js'));
         // JSON_HEX_TAG prevents a "</script>" in the CSS from breaking out of the data island.
         $cssData = json_encode($css, JSON_HEX_TAG | JSON_HEX_AMP | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 

@@ -1557,10 +1557,38 @@ export default class HerobuilderCanvas {
     }
   }
 
-  replayPreview() {
-    if (this.previewOpen && this.previewFrame && this.previewFrame.contentWindow) {
-      this.previewFrame.contentWindow.postMessage("hb-replay", "*");
+  /**
+   * Replay the entrance animations in the live preview — the stage itself never animates.
+   * `layerOnly`: just the selected layer (Animation tab), the others are shown at rest;
+   * otherwise all layers (preview bar).
+   *
+   * A closed preview is opened first: its fresh load plays all animations by itself, so only a
+   * single-layer replay is sent after the load. A preview that has not caught up with the
+   * latest edit (e.g. a duration typed a moment ago, debounced refresh pending) is re-rendered
+   * first, so the replay uses the current values.
+   */
+  replayPreview(layerOnly = false) {
+    if (!this.previewFrame) {
+      return;
     }
+    const index = layerOnly && this.selected ? this.layers.indexOf(this.selected) : -1;
+    const message = { type: "hb-replay", layer: index };
+    const post = () => this.previewFrame.contentWindow?.postMessage(message, "*");
+    const afterLoad = (send) => {
+      this.previewFrame.addEventListener("load", () => send && post(), { once: true });
+    };
+
+    if (!this.previewOpen) {
+      afterLoad(index >= 0);
+      this.togglePreview();
+    } else if (this.previewRendered !== this.input.value) {
+      window.clearTimeout(this._previewTimer);
+      afterLoad(index >= 0);
+      this.refreshPreview();
+    } else {
+      post();
+    }
+    this.previewWrap.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }
 
   togglePreview() {
@@ -1796,6 +1824,8 @@ export default class HerobuilderCanvas {
     if (!this.previewOpen || !this.previewFrame || !this.previewUrl) {
       return;
     }
+    // What the preview shows — replayPreview() re-renders first when the input moved on.
+    this.previewRendered = this.input.value;
     try {
       const response = await new AjaxRequest(this.previewUrl).post({
         composition: this.input.value || "{}",
@@ -2255,7 +2285,7 @@ export default class HerobuilderCanvas {
     panel.querySelector(".hb-art-bp").addEventListener("change", (e) => this.setArtDirection(e.target.checked));
     panel.querySelector(".hb-autotrim").addEventListener("click", () => this.autoTrimSelected());
     panel.querySelector(".hb-crop-reset").addEventListener("click", () => this.resetCrop());
-    panel.querySelector(".hb-anim-replay").addEventListener("click", () => this.replayPreview());
+    panel.querySelector(".hb-anim-replay").addEventListener("click", () => this.replayPreview(true));
     panel.querySelector(".hb-link-choose").addEventListener("click", () => this.openLinkBrowser());
     panel.querySelector(".hb-link-clear").addEventListener("click", () => this.setLink(""));
     panel.querySelector(".hb-visible").addEventListener("change", () => this.selected && this.toggleVisibility(this.selected));
