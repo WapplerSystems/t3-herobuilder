@@ -10,6 +10,7 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\HiddenRestriction;
+use TYPO3\CMS\Core\Page\PageRenderer;
 use TYPO3\CMS\Core\Resource\ResourceFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use WapplerSystems\Herobuilder\Domain\Composition;
@@ -22,6 +23,12 @@ final class HeroBuilderPreviewRenderer extends StandardContentPreviewRenderer
 {
     public function renderPageModulePreviewContent(GridColumnItem $item): string
     {
+        // Edit triggers of this element open the full edit form instead of the narrow
+        // contextual side panel (the canvas editor needs the width). The module finds the
+        // element via the .herobuilder-be-preview marker below — keep it on every branch.
+        GeneralUtility::makeInstance(PageRenderer::class)
+            ->loadJavaScriptModule('@wapplersystems/herobuilder/Backend/page-layout-full-edit.js');
+
         // TYPO3 v14: GridColumnItem::getRecord() returns a RecordInterface object,
         // not an array — use getUid() instead of array access.
         $collages = $this->fetchCollages($item->getRecord()->getUid());
