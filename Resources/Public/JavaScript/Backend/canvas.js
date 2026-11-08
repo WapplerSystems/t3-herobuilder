@@ -3169,31 +3169,42 @@ export default class HerobuilderCanvas {
     if (this.slidePanel || !this.panelEmpty) {
       return;
     }
-    const opt = (v, key, fb) => '<option value="' + v + '">' + escapeHtml(this.t(key, fb)) + "</option>";
+    const t = (key, fb) => escapeHtml(this.t(key, fb));
+    const typeBtn = (type, key, fb, hintKey, hintFb) =>
+      '<button type="button" class="btn btn-default hb-bg-typebtn" data-type="' + type + '"' +
+      (hintKey ? ' title="' + escapeAttr(this.t(hintKey, hintFb)) + '"' : "") + ">" + t(key, fb) + "</button>";
+    const colour = (cls) =>
+      '<div class="hb-bg-color"><input type="color" class="hb-bg-' + cls + '" aria-label="' + escapeAttr(cls) + '">' +
+      '<input type="text" class="form-control form-control-sm hb-bg-' + cls + '-hex" maxlength="7" spellcheck="false"></div>';
+    // Directions in CSS degrees: 0 = up, 90 = right, 180 = down.
+    const dirs = [[0, "↑"], [45, "↗"], [90, "→"], [135, "↘"], [180, "↓"]]
+      .map(([deg, arrow]) => '<button type="button" class="btn btn-default hb-bg-dir" data-angle="' + deg + '" title="' + deg + '°">' + arrow + "</button>")
+      .join("");
     const box = document.createElement("div");
     box.className = "hb-slide-panel";
     box.innerHTML =
-      '<div class="hb-slide-title">' + escapeHtml(this.t("slide.title", "Slide")) + "</div>" +
-      '<label class="form-label">' + escapeHtml(this.t("bg.label", "Background")) + "</label>" +
-      '<select class="form-select form-select-sm hb-bg-type">' +
-      opt("", "bg.none", "None") + opt("color", "bg.color", "Colour") +
-      opt("linear", "bg.linear", "Linear gradient") + opt("radial", "bg.radial", "Radial gradient") + "</select>" +
-      '<div class="hb-bg-colors">' +
-      '<label class="hb-bg-from-wrap"><span class="hb-bg-from-label"></span>' +
-      '<input type="color" class="form-control form-control-color hb-bg-from"></label>' +
-      '<label class="hb-bg-to-wrap"><span>' + escapeHtml(this.t("bg.to", "to")) + "</span>" +
-      '<input type="color" class="form-control form-control-color hb-bg-to"></label>' +
-      "</div>" +
-      '<div class="hb-bg-angle-row"><label>' + escapeHtml(this.t("bg.angle", "Angle")) + "</label>" +
-      '<input type="range" class="hb-bg-angle" min="0" max="360" step="15">' +
-      '<input type="number" class="form-control form-control-sm hb-bg-angle-num" min="0" max="360" step="1"></div>' +
+      '<div class="hb-slide-head">' + t("slide.title", "Slide") + "</div>" +
+      '<div class="herobuilder-panel-row"><label>' + t("bg.label", "Background") + "</label>" +
+      '<div class="btn-group btn-group-sm hb-bg-types" role="group">' +
+      typeBtn("", "bg.none", "None") + typeBtn("color", "bg.color", "Colour") +
+      typeBtn("linear", "bg.linearShort", "Linear", "bg.linear", "Linear gradient") +
+      typeBtn("radial", "bg.radialShort", "Radial", "bg.radial", "Radial gradient") + "</div></div>" +
+      '<div class="herobuilder-panel-row hb-bg-from-row"><label class="hb-bg-from-label"></label>' + colour("from") + "</div>" +
+      '<div class="hb-bg-swap-row"><button type="button" class="btn btn-default btn-sm hb-bg-swap">⇅ ' + t("bg.swap", "Swap") + "</button></div>" +
+      '<div class="herobuilder-panel-row hb-bg-to-row"><label>' + t("bg.to", "to") + "</label>" + colour("to") + "</div>" +
+      '<div class="herobuilder-panel-row hb-bg-angle-row"><label>' + t("bg.angle", "Angle") + "</label>" +
+      '<div class="hb-bg-angle-ctl"><input type="range" class="form-range hb-bg-angle" min="0" max="360" step="15">' +
+      '<div class="input-group input-group-sm"><input type="number" class="form-control hb-bg-angle-num" min="0" max="360" step="1">' +
+      '<span class="input-group-text">°</span></div></div>' +
+      '<div class="btn-group btn-group-sm hb-bg-dirs" role="group">' + dirs + "</div></div>" +
       '<div class="hb-bg-swatch" aria-hidden="true"></div>';
     this.panelEmpty.parentNode.insertBefore(box, this.panelEmpty.nextSibling);
     this.slidePanel = box;
     const q = (sel) => box.querySelector(sel);
+    this._bgType = "";
     // Read the inputs into a background; `commit` = a finished change (undo step) vs. live input.
     const apply = (commit) => {
-      const type = q(".hb-bg-type").value;
+      const type = this._bgType;
       this.background = normalizeBackground(type === "color"
         ? { type, color: q(".hb-bg-from").value }
         : { type, from: q(".hb-bg-from").value, to: q(".hb-bg-to").value, angle: q(".hb-bg-angle-num").value });
@@ -3204,10 +3215,34 @@ export default class HerobuilderCanvas {
         this.writeInput();
       }
     };
-    q(".hb-bg-type").addEventListener("change", () => apply(true));
-    ["hb-bg-from", "hb-bg-to"].forEach((c) => {
-      q("." + c).addEventListener("input", () => apply(false));
-      q("." + c).addEventListener("change", () => apply(true));
+    box.querySelectorAll(".hb-bg-typebtn").forEach((b) => b.addEventListener("click", () => {
+      this._bgType = b.dataset.type;
+      apply(true);
+    }));
+    ["from", "to"].forEach((c) => {
+      const picker = q(".hb-bg-" + c);
+      const hex = q(".hb-bg-" + c + "-hex");
+      picker.addEventListener("input", () => {
+        hex.value = picker.value;
+        apply(false);
+      });
+      picker.addEventListener("change", () => apply(true));
+      // Typed / pasted hex: taken over when valid, else the field shows the colour in use again.
+      hex.addEventListener("change", () => {
+        const v = normalizeColor(hex.value.trim().startsWith("#") ? hex.value.trim() : "#" + hex.value.trim());
+        if (v) {
+          picker.value = v;
+          apply(true);
+        } else {
+          hex.value = picker.value;
+        }
+      });
+    });
+    q(".hb-bg-swap").addEventListener("click", () => {
+      const from = q(".hb-bg-from").value;
+      q(".hb-bg-from").value = q(".hb-bg-to").value;
+      q(".hb-bg-to").value = from;
+      apply(true);
     });
     q(".hb-bg-angle").addEventListener("input", () => {
       q(".hb-bg-angle-num").value = q(".hb-bg-angle").value;
@@ -3215,6 +3250,11 @@ export default class HerobuilderCanvas {
     });
     q(".hb-bg-angle").addEventListener("change", () => apply(true));
     q(".hb-bg-angle-num").addEventListener("change", () => apply(true));
+    box.querySelectorAll(".hb-bg-dir").forEach((b) => b.addEventListener("click", () => {
+      q(".hb-bg-angle").value = b.dataset.angle;
+      q(".hb-bg-angle-num").value = b.dataset.angle;
+      apply(true);
+    }));
     // Start values for a first colour / gradient; a set background overwrites them.
     q(".hb-bg-from").value = "#1b2b4a";
     q(".hb-bg-to").value = "#000000";
@@ -3232,7 +3272,7 @@ export default class HerobuilderCanvas {
     const bg = this.background;
     const q = (sel) => box.querySelector(sel);
     const type = bg ? bg.type : "";
-    q(".hb-bg-type").value = type;
+    this._bgType = type;
     // The inputs keep the last picked values when switching type (or to none and back).
     if (bg) {
       q(".hb-bg-from").value = bg.type === "color" ? bg.color : bg.from;
@@ -3244,12 +3284,24 @@ export default class HerobuilderCanvas {
         q(".hb-bg-angle-num").value = String(bg.angle);
       }
     }
-    q(".hb-bg-colors").hidden = type === "";
-    q(".hb-bg-to-wrap").hidden = type === "color" || type === "";
+    q(".hb-bg-from-hex").value = q(".hb-bg-from").value;
+    q(".hb-bg-to-hex").value = q(".hb-bg-to").value;
+    box.querySelectorAll(".hb-bg-typebtn").forEach((b) => {
+      const on = b.dataset.type === type;
+      b.classList.toggle("active", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    const angle = q(".hb-bg-angle-num").value;
+    box.querySelectorAll(".hb-bg-dir").forEach((b) => b.classList.toggle("active", b.dataset.angle === angle));
+    const gradient = type === "linear" || type === "radial";
+    q(".hb-bg-from-row").hidden = type === "";
     q(".hb-bg-from-label").textContent = type === "color" ? this.t("bg.color", "Colour") : this.t("bg.from", "from");
+    q(".hb-bg-swap-row").hidden = !gradient;
+    q(".hb-bg-to-row").hidden = !gradient;
     q(".hb-bg-angle-row").hidden = type !== "linear";
-    q(".hb-bg-swatch").hidden = type === "";
-    q(".hb-bg-swatch").style.background = backgroundCssValue(bg);
+    const swatch = q(".hb-bg-swatch");
+    swatch.classList.toggle("is-none", !bg);
+    swatch.style.background = backgroundCssValue(bg);
   }
 
   /** Slider, colour, "own from …" and where the value comes from, for the active breakpoint. */

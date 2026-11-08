@@ -98,6 +98,9 @@
             <trans-unit id="bg.from"><source>from</source></trans-unit>
             <trans-unit id="bg.to"><source>to</source></trans-unit>
             <trans-unit id="bg.angle"><source>Angle</source></trans-unit>
+            <trans-unit id="bg.linearShort"><source>Linear</source></trans-unit>
+            <trans-unit id="bg.radialShort"><source>Radial</source></trans-unit>
+            <trans-unit id="bg.swap"><source>Swap</source></trans-unit>
             <trans-unit id="layer.newText"><source>New text</source></trans-unit>
             <trans-unit id="layer.newButton"><source>Learn more</source></trans-unit>
             <trans-unit id="copySuffix"><source>(copy %s)</source></trans-unit>
