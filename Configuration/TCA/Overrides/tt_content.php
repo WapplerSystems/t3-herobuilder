@@ -70,14 +70,21 @@ $newColumns = [
     'slider_autoplay' => [
         'exclude' => 1,
         'label' => $ll . 'tt_content.slider_autoplay',
-        // Interval and pause-on-hover only matter with autoplay; the form reloads to show them.
-        'onChange' => 'reload',
-        'config' => ['type' => 'check', 'renderType' => 'checkboxToggle', 'default' => 0],
+        // On by default: a new hero should move. Interval and pause-on-hover only matter with
+        // autoplay — the fieldInformation node hides/shows them in the browser (no displayCond:
+        // the former `onChange => reload` asked "Refresh required" and SAVED the record).
+        'config' => [
+            'type' => 'check',
+            'renderType' => 'checkboxToggle',
+            'default' => 1,
+            'fieldInformation' => [
+                'herobuilderAutoplayToggle' => ['renderType' => 'herobuilderAutoplayToggle'],
+            ],
+        ],
     ],
     'slider_interval' => [
         'exclude' => 1,
         'label' => $ll . 'tt_content.slider_interval',
-        'displayCond' => 'FIELD:slider_autoplay:REQ:true',
         'config' => ['type' => 'number', 'default' => 5000, 'range' => ['lower' => 1000, 'upper' => 60000], 'size' => 8],
     ],
     'slider_loop' => [
@@ -98,7 +105,6 @@ $newColumns = [
     'slider_pause_hover' => [
         'exclude' => 1,
         'label' => $ll . 'tt_content.slider_pause_hover',
-        'displayCond' => 'FIELD:slider_autoplay:REQ:true',
         'config' => ['type' => 'check', 'renderType' => 'checkboxToggle', 'default' => 1],
     ],
     'slider_effect' => [
