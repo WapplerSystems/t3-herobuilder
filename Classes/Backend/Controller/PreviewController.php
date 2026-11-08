@@ -57,11 +57,16 @@ final class PreviewController
         // Transparent mode (template thumbnails) lets the card's indicator color show through
         // behind compositions that have no background image layer.
         // Canvas mode: the editor lays this document under its drag handles as the stage itself —
-        // transparent, no scrollbars, and no entrance animations (every edit re-renders it).
+        // no scrollbars and no entrance animations (every edit re-renders it).
+        // Canvas and live preview show what the frontend shows behind a transparent stage: the
+        // page background. White by default, at zero specificity (:where) so a `body` background
+        // from the site's preview CSS wins.
         $canvas = !empty($params['canvas']);
-        $bg = !empty($params['transparent']) || $canvas ? 'transparent' : '#fff';
+        $background = !empty($params['transparent'])
+            ? 'html,body{background:transparent;}'
+            : ':where(html,body){background:#fff;}';
         // Base preview CSS + the scoped composition CSS — delivered as data, injected by JS.
-        $css = 'html,body{margin:0;padding:0;background:' . $bg . ';}'
+        $css = 'html,body{margin:0;padding:0;}' . $background
             // Themes may force a scrollbar (body{overflow-y:scroll}); it would take 15px of width.
             . ($canvas ? 'html,body{overflow:hidden;}' : '')
             . '.herobuilder-carousel .hb-stage{width:100%;}'

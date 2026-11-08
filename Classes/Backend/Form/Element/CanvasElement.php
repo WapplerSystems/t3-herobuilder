@@ -215,7 +215,10 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<div class="herobuilder-zoom"><select class="form-select form-select-sm t3js-herobuilder-zoom" aria-label="'
             . htmlspecialchars($this->getLabel('zoom.label', 'Zoom')) . '"></select></div>';
         $html[] = '<div class="herobuilder-stage-wrap">';
-        $html[] = '<div class="herobuilder-stage t3js-herobuilder-stage" style="position:relative;width:' . $stageW . 'px;height:' . $stageH . 'px;background:#0b0f14 repeating-conic-gradient(#1b2733 0% 25%,transparent 0% 50%) 50% / 24px 24px;overflow:hidden;border:1px solid var(--typo3-component-border-color,#ccc);border-radius:4px;"></div>';
+        // Light checkerboard like the live preview: in the frontend the stage is transparent over
+        // the (usually light) page, so a dark stage would hide dark text that is fine on the site.
+        // It only shows while the server rendering loads — that document paints the page background.
+        $html[] = '<div class="herobuilder-stage t3js-herobuilder-stage" style="position:relative;width:' . $stageW . 'px;height:' . $stageH . 'px;background:#fff repeating-conic-gradient(#eee 0% 25%,transparent 0% 50%) 50% / 20px 20px;overflow:hidden;border:1px solid var(--typo3-component-border-color,#ccc);border-radius:4px;"></div>';
         $html[] = '</div>'; // .herobuilder-stage-wrap
         $html[] = '</div>'; // .herobuilder-canvas
 
