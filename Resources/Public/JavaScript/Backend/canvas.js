@@ -1619,13 +1619,24 @@ export default class HerobuilderCanvas {
     }
   }
 
+  /**
+   * Layers top first, as they are painted: higher z on top; on equal z the later layer (it comes
+   * later in the markup and paints over the earlier one) — the same on the stage, in the live
+   * preview and in the frontend. The layer list and drag-reordering both use it.
+   */
+  stackOrder() {
+    const index = new Map(this.layers.map((l, i) => [l, i]));
+    return [...this.layers].sort(
+      (a, b) => ((this.placementFor(b) || {}).z || 0) - ((this.placementFor(a) || {}).z || 0)
+        || index.get(b) - index.get(a)
+    );
+  }
+
   reorderZ(dragId, targetId) {
     if (dragId === targetId) {
       return;
     }
-    const ordered = [...this.layers].sort(
-      (a, b) => ((this.placementFor(b) || {}).z || 0) - ((this.placementFor(a) || {}).z || 0)
-    );
+    const ordered = this.stackOrder();
     const from = ordered.findIndex((l) => l.id === dragId);
     const to = ordered.findIndex((l) => l.id === targetId);
     if (from < 0 || to < 0) {
@@ -2241,9 +2252,7 @@ export default class HerobuilderCanvas {
     if (!this.layerList) {
       return;
     }
-    const ordered = [...this.layers].sort(
-      (a, b) => ((this.placementFor(b) || {}).z || 0) - ((this.placementFor(a) || {}).z || 0)
-    );
+    const ordered = this.stackOrder();
     if (!ordered.length) {
       this.layerList.innerHTML =
         '<div class="hb-ll-empty">' + escapeHtml(this.t("list.empty", "No elements on this stage")) + "</div>";
@@ -3705,10 +3714,12 @@ export default class HerobuilderCanvas {
     const clone = JSON.parse(JSON.stringify(this.cleanLayer(layer)));
     // Same id prefixes as newly added layers (t = text, b = button, l = image).
     clone.id = ({ text: "t", button: "b" }[clone.type] || "l") + this.layers.length + "_" + Date.now();
+    // Same z as the original, inserted right behind it: on equal z the later layer paints on top
+    // (stage, live preview and frontend alike), so the copy sits exactly one step above the
+    // original. z + 1 collided with the next layer's z and the copy jumped over that layer.
     Object.values(clone.placements).forEach((p) => {
       p.x = round(Math.min(95, (p.x || 0) + 3));
       p.y = round(Math.min(95, (p.y || 0) + 3));
-      p.z = (p.z || 1) + 1;
     });
     const idx = this.layers.indexOf(layer);
     this.layers.splice(idx + 1, 0, clone);
