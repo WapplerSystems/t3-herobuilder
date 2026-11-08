@@ -368,8 +368,14 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
 
    --hb-depth (0 = rearmost) and --hb-depth-rev (0 = front-most) come from the
    composition's z-order; the rearmost layer carries .hb-layer-bg and is exempt.
+
+   Layers with an entrance animation (non-empty data-aos) are exempt too, here and in
+   "parallax": these rules out-rank AOS and replaced its movement, duration and delay with
+   their own quick fade. Such a layer plays its own effect once the slide has arrived
+   (hero.js). With reduced motion AOS strips data-aos, so the reduced-motion rules below
+   cover every layer again.
    --------------------------------------------------------------------------- */
-.herobuilder-carousel.hb-fx-layers .carousel-item .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-layers .carousel-item .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     opacity: 0;
     transition: opacity 260ms ease;
 }
@@ -377,15 +383,15 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
 /* Resting and incoming slide: rearmost layer first, so the composition builds up in depth
    order. The incoming item only gains .active once Bootstrap's 600ms item fade is done,
    which is exactly when the new background has arrived. */
-.herobuilder-carousel.hb-fx-layers .carousel-item.active .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-layers .carousel-item.active .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     opacity: 1;
     transition-delay: calc(var(--hb-depth, 1) * 70ms);
 }
 
 /* Outgoing slide: front-most layer first and quicker than the background cross-fade, so the
    composition comes apart before the background underneath it changes. */
-.herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg),
-.herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])),
+.herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     opacity: 0;
     transition-duration: 180ms;
     transition-delay: calc(var(--hb-depth-rev, 0) * 70ms);
@@ -394,9 +400,9 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
 /* Reduced motion: keep every layer up, no staggering — the slide change itself stays a plain
    cross-fade. Repeating the outgoing selector here keeps it from winning on specificity. */
 @media (prefers-reduced-motion: reduce) {
-    .herobuilder-carousel.hb-fx-layers .carousel-item .hb-layer:not(.hb-layer-bg),
-    .herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg),
-    .herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+    .herobuilder-carousel.hb-fx-layers .carousel-item .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])),
+    .herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])),
+    .herobuilder-carousel.hb-fx-layers .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
         opacity: 1;
         transition: none;
     }
@@ -420,7 +426,7 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
    the stage to over 200% of it (corner clusters), which would scramble the depth order.
    Override --hb-parallax-step per site to dial the travel up or down.
    --------------------------------------------------------------------------- */
-.herobuilder-carousel.hb-fx-parallax .carousel-item .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-parallax .carousel-item .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     --hb-parallax-step: clamp(8px, 1.8vw, 34px);
     --hb-off: calc(var(--hb-depth, 0) * var(--hb-parallax-step));
     opacity: 0;
@@ -430,19 +436,19 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
 
 /* Backward navigation: the incoming slide waits on the other side, so the travel direction
    always matches the direction the user asked for. */
-.herobuilder-carousel.hb-fx-parallax .carousel-item.carousel-item-prev .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-parallax .carousel-item.carousel-item-prev .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     translate: calc(-1 * var(--hb-off)) 0;
 }
 
 /* Resting and incoming slide: settle into place, rearmost layer first. */
-.herobuilder-carousel.hb-fx-parallax .carousel-item.active .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-parallax .carousel-item.active .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     opacity: 1;
     translate: 0 0;
     transition-delay: calc(var(--hb-depth, 1) * 70ms);
 }
 
 /* Outgoing slide, forward: drift on to the left, front-most layer leaving first. */
-.herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     opacity: 0;
     translate: calc(-1 * var(--hb-off)) 0;
     transition-duration: 260ms;
@@ -450,7 +456,7 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
 }
 
 /* Outgoing slide, backward: same, mirrored. */
-.herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+.herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
     opacity: 0;
     translate: var(--hb-off) 0;
     transition-duration: 260ms;
@@ -458,10 +464,10 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .herobuilder-carousel.hb-fx-parallax .carousel-item .hb-layer:not(.hb-layer-bg),
-    .herobuilder-carousel.hb-fx-parallax .carousel-item.carousel-item-prev .hb-layer:not(.hb-layer-bg),
-    .herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg),
-    .herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg) {
+    .herobuilder-carousel.hb-fx-parallax .carousel-item .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])),
+    .herobuilder-carousel.hb-fx-parallax .carousel-item.carousel-item-prev .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])),
+    .herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-start .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])),
+    .herobuilder-carousel.hb-fx-parallax .carousel-item.active.carousel-item-end .hb-layer:not(.hb-layer-bg):not([data-aos]:not([data-aos=""])) {
         opacity: 1;
         translate: 0 0;
         transition: none;
