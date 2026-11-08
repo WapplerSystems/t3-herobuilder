@@ -711,3 +711,30 @@
 .hb-bg-dirs .btn { font-size: 1.05rem; line-height: 1; padding-top: .3rem; padding-bottom: .3rem; }
 .hb-bg-swatch { height: 3rem; border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15); }
 .hb-bg-swatch.is-none { background: repeating-conic-gradient(#e9ecef 0 25%, #fff 0 50%) 50% / 16px 16px !important; }
+
+/* ---- Inline help (U14) ---------------------------------------------------------------------
+   Short grey explanations next to the controls. The help dialog's switch hides them
+   (.hb-help-off on the editor root, remembered per browser); warnings (.hb-hint) stay. */
+.herobuilder .hb-help {
+    margin-top: .3rem;
+    font-size: .75rem;
+    line-height: 1.35;
+    color: var(--typo3-text-color-secondary, #6c757d);
+}
+.herobuilder .hb-help[hidden],
+.herobuilder.hb-help-off .hb-help { display: none; }
+.herobuilder-breakpoints { flex-direction: column; align-items: center; }
+.herobuilder .herobuilder-bp-help { margin-top: .3rem; text-align: center; }
+.hb-slide-panel .hb-help-slide { margin: -.2rem 0 .6rem; }
+.herobuilder-help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border: 1.4px solid currentColor;
+    border-radius: 50%;
+    font-size: .7rem;
+    font-weight: 700;
+    line-height: 1;
+}

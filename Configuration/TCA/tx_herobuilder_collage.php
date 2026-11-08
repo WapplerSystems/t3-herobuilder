@@ -89,6 +89,7 @@ return [
         'assets' => [
             'exclude' => 1,
             'label' => $ll . 'collage.assets',
+            'description' => $ll . 'collage.assets.description',
             'config' => [
                 'type' => 'file',
                 'allowed' => 'common-image-types',

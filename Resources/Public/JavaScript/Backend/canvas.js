@@ -163,6 +163,17 @@ const CROP_CSS = `
 .herobuilder-crop .hb-crop-dims{margin:.55rem 0 0;font-size:.8rem;color:#6c757d;text-align:center;}
 `;
 
+// Help dialog styles, injected into the TYPO3 modal (top document, no field backend.css).
+const HELP_CSS = `
+.herobuilder-help .hb-help-sections{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.9rem 1.5rem;}
+.herobuilder-help h3{margin:0 0 .3rem;font-size:.9rem;font-weight:600;}
+.herobuilder-help p{margin:0;font-size:.85rem;line-height:1.45;}
+.herobuilder-help .hb-help-switch{display:flex;flex-direction:column;gap:.2rem;margin-top:1.1rem;padding-top:.8rem;border-top:1px solid rgba(0,0,0,.12);}
+.herobuilder-help .hb-help-switch .form-check{margin:0;}
+.herobuilder-help .hb-help-switch .form-check-label{font-weight:600;}
+.herobuilder-help .hb-help-switch small{color:#6c757d;}
+`;
+
 // Social / OG export formats (keys must match CompositeImageService::FORMATS).
 const EXPORT_FORMATS = [
   { key: "og", label: "Open Graph · 1200×630" },
@@ -304,6 +315,10 @@ export default class HerobuilderCanvas {
     // Snapping is a working preference, not document data: it belongs to the editor, not to the
     // collage, so it lives in localStorage and applies to every composition this user opens.
     this.magnet = this.loadMagnet();
+    // Inline help texts: on until the editor switches them off in the help dialog (per browser,
+    // like the magnet). Warnings (.hb-hint) are not affected.
+    this.helpOn = this.loadHelp();
+    this.root.classList.toggle("hb-help-off", !this.helpOn);
     // Alt held down suspends snapping for as long as it is held (see bindKeyboard).
     this._altSnapOff = false;
 
@@ -449,6 +464,7 @@ export default class HerobuilderCanvas {
     this.root.querySelector(".t3js-herobuilder-save-template")?.addEventListener("click", () => this.saveTemplate());
     this.root.querySelector(".t3js-herobuilder-export")?.addEventListener("click", () => this.openExport());
     this.root.querySelector(".t3js-herobuilder-preview")?.addEventListener("click", () => this.togglePreview());
+    this.root.querySelector(".t3js-herobuilder-help")?.addEventListener("click", () => this.openHelp());
     // Programmatic writes into the proxy input (change event) still update the layer link.
     if (this.linkProxy) {
       this.linkProxy.addEventListener("change", () => this.setLink(this.linkProxy.value));
@@ -1226,6 +1242,107 @@ export default class HerobuilderCanvas {
         this.patchCanvasGeometry(layer, this.handleGeometry(target));
       })
       .on("renderEnd", () => this.commitGeometry(layer));
+  }
+
+  // ---- Help ---------------------------------------------------------------
+
+  loadHelp() {
+    try {
+      return localStorage.getItem("herobuilder:help") !== "0";
+    } catch (e) {
+      return true;
+    }
+  }
+
+  setHelp(on) {
+    this.helpOn = !!on;
+    this.root.classList.toggle("hb-help-off", !this.helpOn);
+    try {
+      localStorage.setItem("herobuilder:help", this.helpOn ? "1" : "0");
+    } catch (e) {
+      // Storage disabled: the switch still works until the page is reloaded.
+    }
+  }
+
+  /** The help dialog: the editor's concepts in short sections, and the switch for the inline help. */
+  openHelp() {
+    const sections = ["stage", "layers", "images", "position", "design", "anim", "slide", "templates", "keys"];
+    const wrap = document.createElement("div");
+    wrap.className = "herobuilder-help";
+    const style = document.createElement("style");
+    style.textContent = HELP_CSS;
+    wrap.appendChild(style);
+    const grid = document.createElement("div");
+    grid.className = "hb-help-sections";
+    sections.forEach((key) => {
+      const section = document.createElement("section");
+      const h = document.createElement("h3");
+      h.textContent = this.t("help.s." + key + ".title", key);
+      const p = document.createElement("p");
+      p.textContent = this.t("help.s." + key + ".text", "");
+      section.append(h, p);
+      grid.appendChild(section);
+    });
+    wrap.appendChild(grid);
+    const sw = document.createElement("div");
+    sw.className = "hb-help-switch";
+    // TYPO3's switch markup: the backend styles size .form-check-input only inside .form-check
+    // (without it the box collapses to 0 × 0).
+    const check = document.createElement("div");
+    check.className = "form-check form-switch";
+    const box = document.createElement("input");
+    box.type = "checkbox";
+    box.id = "hb-help-toggle-" + Date.now();
+    box.className = "form-check-input hb-help-toggle";
+    // As attribute too: the modal takes the content over into the top document, where the
+    // property alone came out unchecked.
+    box.defaultChecked = this.helpOn;
+    box.checked = this.helpOn;
+    box.addEventListener("change", () => this.setHelp(box.checked));
+    const label = document.createElement("label");
+    label.className = "form-check-label";
+    label.htmlFor = box.id;
+    label.textContent = this.t("help.showHints", "Show help texts in the editor");
+    check.append(box, label);
+    const note = document.createElement("small");
+    note.textContent = this.t("help.showHintsNote", "Warnings stay visible either way. The setting is remembered in this browser.");
+    sw.append(check, note);
+    wrap.appendChild(sw);
+    const modal = Modal.advanced({
+      title: this.t("help.title", "How the Hero Builder works"),
+      type: Modal.types.default,
+      content: wrap,
+      size: Modal.sizes.large,
+      buttons: [{ text: this.t("help.close", "Close"), btnClass: "btn-default", trigger: () => modal.hideModal() }],
+    });
+  }
+
+  /**
+   * "Fill" stretches the image into the box: warn when that visibly distorts it on the active
+   * breakpoint — box and (cropped) image aspect ratios more than 3 % apart. Shown regardless of
+   * the help switch, like the other warnings.
+   */
+  updateFitWarning() {
+    const warn = this.panel && this.panel.querySelector(".hb-hint-distort");
+    if (!warn) {
+      return;
+    }
+    const layer = this.selected;
+    let distorted = false;
+    if (layer && layer.type !== "text" && layer.type !== "button" && (layer.fit || "fill") === "fill") {
+      const info = this.fileInfo[layer.fileUid];
+      const p = this.placementFor(layer) || {};
+      if (info && info.width > 0 && info.height > 0 && p.w > 0 && p.h > 0) {
+        const crop = this.effCrop(layer);
+        const image = (info.width * (crop ? crop.width : 1)) / (info.height * (crop ? crop.height : 1));
+        const boxAspect = (p.w / p.h) * this.stageRatio(this.activeBp);
+        distorted = Math.abs(boxAspect / image - 1) > 0.03;
+      }
+    }
+    warn.hidden = !distorted;
+    if (distorted) {
+      warn.textContent = this.t("hint.fitDistort", "The image is distorted on %s.").replace("%s", this.activeBp.toUpperCase());
+    }
   }
 
   // ---- Snapping ("magnet") -----------------------------------------------
@@ -2565,7 +2682,7 @@ export default class HerobuilderCanvas {
           escapeAttr(this.t("list.toggleVisible", "Show / hide on %s").replace("%s", this.activeBp.toUpperCase())) +
           '">' + (hidden ? ICON.eyeOff : ICON.eye) + "</button>" +
           '<button type="button" class="hb-ll-btn hb-ll-lock" data-act="lock" title="' +
-          escapeAttr(this.t("list.toggleLock", "Lock / unlock")) +
+          escapeAttr(this.t("list.toggleLock", "Lock / unlock") + " — " + this.t("list.lockHint", "Locked: cannot be moved or clicked on the stage.")) +
           '">' + (locked ? ICON.lock : ICON.unlock) + "</button>" +
           '<button type="button" class="hb-ll-btn hb-ll-dup" data-act="duplicate" title="' +
           escapeAttr(this.t("list.duplicate", "Duplicate") + " (Ctrl+D)") + '">' + ICON.duplicate + "</button>" +
@@ -2588,6 +2705,8 @@ export default class HerobuilderCanvas {
     // Filled per selected layer (its type's classes) by renderClassChips().
     const classControl = '<div class="hb-class-chips"></div>';
     const animNone = escapeHtml(this.t("panel.animNone", "— none —"));
+    // Inline help text (hidden with the help switch, see setHelp()).
+    const help = (key, fb, cls = "") => '<div class="hb-help' + (cls ? " " + cls : "") + '">' + escapeHtml(this.t(key, fb)) + "</div>";
     const alignBtn = (mode, icon, label) =>
       '<button type="button" class="hb-align btn btn-sm btn-default" data-align="' + mode + '" title="' + escapeAttr(label) + '">' + icon + "</button>";
 
@@ -2613,7 +2732,8 @@ export default class HerobuilderCanvas {
       '<div class="herobuilder-panel-row hb-row-fit"><label>' + escapeHtml(this.t("panel.fit", "Fit (scaling)")) + "</label>" +
       '<select class="hb-fit form-select form-select-sm">' +
       FIT_MODES.map((f) => '<option value="' + f + '">' + escapeHtml(this.t("fit." + f, f)) + "</option>").join("") +
-      "</select></div>" +
+      "</select>" + help("help.fit", "Fill stretches, Cover crops, Contain shows the whole image.") +
+      '<div class="hb-hint hb-hint-distort alert alert-warning" hidden></div></div>' +
       '<div class="herobuilder-panel-row hb-row-focus"><label>' + escapeHtml(this.t("panel.focus", "Focus point (cover/contain)")) + "</label>" +
       '<div class="hb-focus"><img class="hb-focus-img" alt=""><span class="hb-focus-dot"></span></div></div>' +
       '<div class="herobuilder-panel-row hb-row-alt"><label>' + escapeHtml(this.t("panel.alt", "Alternative text")) + "</label>" +
@@ -2641,6 +2761,7 @@ export default class HerobuilderCanvas {
       escapeHtml(this.t("panel.overlayColor", "Colour")) + '" aria-label="' + escapeHtml(this.t("panel.overlayColor", "Colour")) + '"></div>' +
       '<div class="hb-overlay-source"><label class="hb-overlay-own-label"><input type="checkbox" class="hb-overlay-own"> ' +
       '<span class="hb-overlay-own-text"></span></label><span class="hb-overlay-source-text"></span></div>' +
+      '<div class="hb-help hb-help-overlay"></div>' +
       '<div class="hb-hint hb-overlay-locked alert alert-info" hidden>' +
       escapeHtml(this.t("panel.overlayLocked", "A box class sets the background — darkening is off while it is selected.")) + "</div></div>" +
       "</div>" +
@@ -2654,7 +2775,7 @@ export default class HerobuilderCanvas {
       '<label>H<input type="number" class="hb-geom-h form-control form-control-sm" step="0.01" placeholder="' +
       escapeAttr(this.t("panel.heightAuto", "auto")) + '"></label>' +
       '<label>°<input type="number" class="hb-geom-rot form-control form-control-sm" step="0.01"></label>' +
-      "</div></div>" +
+      "</div>" + help("help.height", "Leave H empty: the height follows the content.", "hb-help-height") + "</div>" +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.align", "Align")) + "</label>" +
       '<div class="hb-align-row">' +
       alignBtn("left", ICON.alignLeft, this.t("ctx.alignLeft", "Left")) +
@@ -2665,7 +2786,8 @@ export default class HerobuilderCanvas {
       alignBtn("bottom", ICON.alignBottom, this.t("ctx.alignBottom", "Bottom")) +
       "</div></div>" +
       '<div class="herobuilder-panel-row hb-row-visible"><label class="hb-visible-label">' +
-      '<input type="checkbox" class="hb-visible"> <span class="hb-visible-text"></span></label></div>' +
+      '<input type="checkbox" class="hb-visible"> <span class="hb-visible-text"></span></label>' +
+      help("help.visible", "Also applies to the larger breakpoints without a position of their own.") + "</div>" +
       '<div class="herobuilder-panel-row hb-row-bpsource"><span class="hb-bpsource-text"></span>' +
       '<button type="button" class="hb-bp-reset btn btn-sm btn-default">' +
       escapeHtml(this.t("bp.reset", "Reset (inherit)")) + "</button></div>" +
@@ -2683,7 +2805,8 @@ export default class HerobuilderCanvas {
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.duration", "Duration (ms)")) +
       '</label><input type="number" class="hb-anim-duration form-control form-control-sm" min="0" step="50"></div>' +
       '<div class="herobuilder-panel-row"><button type="button" class="hb-anim-replay btn btn-sm btn-default">▶ ' +
-      escapeHtml(this.t("preview.replay", "Replay animation")) + "</button></div>" +
+      escapeHtml(this.t("preview.replay", "Replay animation")) + "</button>" +
+      help("help.anim", "Plays on the website when the slide appears.") + "</div>" +
       "</div>";
 
     panel.querySelector(".hb-anim-effect").addEventListener("change", (e) => this.setAnim("effect", e.target.value));
@@ -2843,6 +2966,7 @@ export default class HerobuilderCanvas {
     this.panel.querySelector(".hb-anim-duration").value = anim.duration || "";
     this.panel.querySelector(".hb-fit").value = this.selected.fit || "fill";
     this.updateGeomFields(p);
+    this.panel.querySelector(".hb-help-height").hidden = !isText;
     const bpName = this.activeBp.toUpperCase();
     this.panel.querySelector(".hb-visible").checked = p.visible !== false;
     this.panel.querySelector(".hb-visible-text").textContent =
@@ -2953,6 +3077,7 @@ export default class HerobuilderCanvas {
         el.value = field === "h" && !p.h ? "" : p[field] ?? (field === "rot" ? 0 : "");
       }
     });
+    this.updateFitWarning();
   }
 
   setGeom(field, value) {
@@ -2978,6 +3103,7 @@ export default class HerobuilderCanvas {
       }
       this.renderLayerList();
     }
+    this.updateFitWarning();
     this.save();
   }
 
@@ -3184,6 +3310,7 @@ export default class HerobuilderCanvas {
     box.className = "hb-slide-panel";
     box.innerHTML =
       '<div class="hb-slide-head">' + t("slide.title", "Slide") + "</div>" +
+      '<div class="hb-help hb-help-slide">' + t("help.slide", "These settings apply to the whole slide.") + "</div>" +
       '<div class="herobuilder-panel-row"><label>' + t("bg.label", "Background") + "</label>" +
       '<div class="btn-group btn-group-sm hb-bg-types" role="group">' +
       typeBtn("", "bg.none", "None") + typeBtn("color", "bg.color", "Colour") +
@@ -3322,6 +3449,8 @@ export default class HerobuilderCanvas {
     this.panel.querySelector(".hb-overlay-own").checked = own;
     this.panel.querySelector(".hb-overlay-own-text").textContent =
       this.t("overlay.own", "Own darkening from %s on").replace("%s", bpName);
+    this.panel.querySelector(".hb-help-overlay").textContent =
+      this.t("help.overlay", "Ticked, this value applies from %s upwards.").replace("%s", bpName);
     this.panel.querySelector(".hb-overlay-source-text").textContent = own
       ? ""
       : eff.source

@@ -187,6 +187,11 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-save-template">' . htmlspecialchars($this->getLabel('button.saveTemplate', 'Save as template')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-export">' . htmlspecialchars($this->getLabel('button.export', 'Export image')) . '</button>';
         $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-preview">' . htmlspecialchars($this->getLabel('button.preview', 'Live preview')) . '</button>';
+        // Help: a dialog with the concepts, plus the switch for the inline help texts (canvas.js).
+        $html[] = '<button type="button" class="btn btn-sm btn-default t3js-herobuilder-help" title="'
+            . htmlspecialchars($this->getLabel('help.title', 'How the Hero Builder works')) . '">'
+            . '<span class="herobuilder-help-icon" aria-hidden="true">?</span> '
+            . htmlspecialchars($this->getLabel('help.button', 'Help')) . '</button>';
         $html[] = '</div>';
         $html[] = '</div>';
 
@@ -195,6 +200,9 @@ class CanvasElement extends AbstractFormElement
         $html[] = '<div class="herobuilder-bpbar" role="group" aria-label="'
             . htmlspecialchars($this->getLabel('breakpoints.label', 'Breakpoint')) . '">'
             . implode('', $bpButtons) . '</div>';
+        // Inline help (hidden with the editor's "help texts" switch, see canvas.js).
+        $html[] = '<div class="hb-help herobuilder-bp-help">'
+            . htmlspecialchars($this->getLabel('help.bp', 'Mobile first: a breakpoint without settings of its own takes those of the next smaller one.')) . '</div>';
         $html[] = '</div>';
 
         // ---- 3-column grid --------------------------------------------------
@@ -403,6 +411,14 @@ class CanvasElement extends AbstractFormElement
             'crop.hint', 'crop.cancel', 'crop.reset', 'crop.apply',
             'sidebar.collapse', 'sidebar.expand',
             'button.magnet', 'magnet.hint', 'magnet.on', 'magnet.off', 'magnet.suspended', 'magnet.altHint',
+            'help.button', 'help.title', 'help.showHints', 'help.showHintsNote', 'help.close',
+            'help.fit', 'hint.fitDistort', 'help.height', 'help.visible', 'help.overlay', 'help.anim', 'help.slide',
+            'list.lockHint',
+            'help.s.stage.title', 'help.s.stage.text', 'help.s.layers.title', 'help.s.layers.text',
+            'help.s.images.title', 'help.s.images.text', 'help.s.position.title', 'help.s.position.text',
+            'help.s.design.title', 'help.s.design.text', 'help.s.anim.title', 'help.s.anim.text',
+            'help.s.slide.title', 'help.s.slide.text', 'help.s.templates.title', 'help.s.templates.text',
+            'help.s.keys.title', 'help.s.keys.text',
         ];
         $labels = [];
         foreach ($keys as $key) {

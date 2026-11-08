@@ -202,6 +202,39 @@
             <trans-unit id="zoom.fit"><source>Fit to width</source></trans-unit>
             <trans-unit id="zoom.label"><source>Zoom</source></trans-unit>
             <trans-unit id="zoom.min"><source>min</source></trans-unit>
+            <trans-unit id="help.button"><source>Help</source></trans-unit>
+            <trans-unit id="help.title"><source>How the Hero Builder works</source></trans-unit>
+            <trans-unit id="help.showHints"><source>Show help texts in the editor</source></trans-unit>
+            <trans-unit id="help.showHintsNote"><source>Warnings stay visible either way. The setting is remembered in this browser.</source></trans-unit>
+            <trans-unit id="help.close"><source>Close</source></trans-unit>
+            <trans-unit id="help.bp"><source>Mobile first: a breakpoint without settings of its own takes those of the next smaller one. A dot marks own values of the selected layer.</source></trans-unit>
+            <trans-unit id="help.fit"><source>“Fill” stretches the image to the box. “Cover” fills the box and crops around the focus point. “Contain” shows the whole image.</source></trans-unit>
+            <trans-unit id="hint.fitDistort"><source>The image is distorted on %s: the box has a different aspect ratio than the image. For photos choose “Cover” or “Contain”.</source></trans-unit>
+            <trans-unit id="help.height"><source>Leave H empty: the height follows the content (recommended for text and buttons).</source></trans-unit>
+            <trans-unit id="help.visible"><source>Like the position: also applies to the larger breakpoints without a position of their own.</source></trans-unit>
+            <trans-unit id="help.overlay"><source>Unticked, the inherited value applies. Ticked, this value applies from %s upwards until a larger breakpoint has its own.</source></trans-unit>
+            <trans-unit id="help.anim"><source>Plays on the website when the slide appears. Watch it with “Replay animation” in the live preview.</source></trans-unit>
+            <trans-unit id="help.slide"><source>These settings apply to the whole slide. They show when no layer is selected.</source></trans-unit>
+            <trans-unit id="list.lockHint"><source>Locked: cannot be moved or clicked on the stage, clicks go to the layer below. Still selectable here in the list. Meant for backgrounds.</source></trans-unit>
+            <trans-unit id="help.s.stage.title"><source>Stage and breakpoints</source></trans-unit>
+            <trans-unit id="help.s.stage.text"><source>The bar above the stage picks the breakpoint, from XS (smartphone) to XL (large screen). You build from small to large: what is set on XS also applies to every larger breakpoint until one gets values of its own. A dot on a breakpoint shows where the selected layer has its own values; “Reset (inherit)” on the Position tab removes them again.</source></trans-unit>
+            <trans-unit id="help.s.layers.title"><source>Layers</source></trans-unit>
+            <trans-unit id="help.s.layers.text"><source>The list on the left shows every layer, the top one is in front. Drag the grip to reorder. Eye: show or hide on this breakpoint. Lock: the layer can no longer be moved or clicked on the stage and clicks go to the layer below — meant for backgrounds; it stays selectable in the list. Right-click on the stage for more commands.</source></trans-unit>
+            <trans-unit id="help.s.images.title"><source>Images and the pool</source></trans-unit>
+            <trans-unit id="help.s.images.text"><source>“Add image” puts a file into the slide's pool (the field “Image assets (pool)” below the editor) and places it on the stage as a layer. Deleting a layer leaves the file in the pool. Fit: “Fill” stretches the image to the box and distorts it when the aspect ratio differs; “Cover” fills the box and crops around the focus point; “Contain” shows the whole image.</source></trans-unit>
+            <trans-unit id="help.s.position.title"><source>Position and size</source></trans-unit>
+            <trans-unit id="help.s.position.text"><source>Drag a layer and its handles on the stage, or type values on the Position tab (percent of the stage). Leave H empty and the height follows the content. Snap: layers snap to the stage edges, the centre and other layers; hold Alt to place freely. Arrow keys move the selected layer, with Shift in bigger steps.</source></trans-unit>
+            <trans-unit id="help.s.design.title"><source>Design</source></trans-unit>
+            <trans-unit id="help.s.design.text"><source>Classes on the Design tab apply font, colour and button style from the website's design. Darkening puts a colour over an image or behind a text so the writing stays readable; it can change from a breakpoint upwards.</source></trans-unit>
+            <trans-unit id="help.s.anim.title"><source>Animation and preview</source></trans-unit>
+            <trans-unit id="help.s.anim.text"><source>An animation plays on the website when the slide appears. “Live preview” shows the slide as the website renders it; “Replay animation” plays it there again.</source></trans-unit>
+            <trans-unit id="help.s.slide.title"><source>Slide and background</source></trans-unit>
+            <trans-unit id="help.s.slide.text"><source>With no layer selected, the right column shows the slide's settings: a background colour or gradient. To deselect, click a free spot on the stage.</source></trans-unit>
+            <trans-unit id="help.s.templates.title"><source>Templates</source></trans-unit>
+            <trans-unit id="help.s.templates.text"><source>“Templates” puts a finished design on the slide and replaces its layers. “Save as template” keeps the current slide for later. Shipped templates can be duplicated and the copy changed.</source></trans-unit>
+            <trans-unit id="help.s.keys.title"><source>Keyboard</source></trans-unit>
+            <trans-unit id="help.s.keys.text"><source>Ctrl+Z / Ctrl+Y undo / redo · Ctrl+D duplicate · Del delete · arrow keys move · Ctrl+plus / minus / 0 zoom · hold Space and drag to pan the view.</source></trans-unit>
+            <trans-unit id="collage.assets.description"><source>Images uploaded for this slide. An image layer shows one file from here. Deleting a layer leaves its file in the pool.</source></trans-unit>
         </body>
     </file>
 </xliff>
