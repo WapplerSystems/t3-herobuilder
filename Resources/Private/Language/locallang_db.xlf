@@ -87,8 +87,22 @@
             <trans-unit id="template.savePrompt"><source>Template name</source></trans-unit>
             <trans-unit id="template.saved"><source>Template saved</source></trans-unit>
             <trans-unit id="template.saveError"><source>Could not save template</source></trans-unit>
-            <trans-unit id="template.applyHint"><source>Selecting a template replaces the current collage's layers.</source></trans-unit>
+            <trans-unit id="template.applyHint"><source>Applying replaces the layers of the current slide.</source></trans-unit>
             <trans-unit id="template.empty"><source>No templates yet — save one from a composition.</source></trans-unit>
+            <trans-unit id="copySuffix"><source>(copy %s)</source></trans-unit>
+            <trans-unit id="template.duplicate"><source>Duplicate</source></trans-unit>
+            <trans-unit id="template.duplicated"><source>Template duplicated</source></trans-unit>
+            <trans-unit id="template.rename"><source>Rename</source></trans-unit>
+            <trans-unit id="template.renamed"><source>Template renamed</source></trans-unit>
+            <trans-unit id="template.delete"><source>Delete</source></trans-unit>
+            <trans-unit id="template.deleteConfirm"><source>Delete the template "%s"? It can be restored from the recycler.</source></trans-unit>
+            <trans-unit id="template.deleted"><source>Template deleted</source></trans-unit>
+            <trans-unit id="template.actionError"><source>The template could not be changed.</source></trans-unit>
+            <trans-unit id="template.preset"><source>shipped</source></trans-unit>
+            <trans-unit id="template.presetHint"><source>Shipped with the extension — duplicate it to get an editable copy.</source></trans-unit>
+            <trans-unit id="template.cancel"><source>Cancel</source></trans-unit>
+            <trans-unit id="template.save"><source>Save</source></trans-unit>
+            <trans-unit id="pages.module.herobuilder"><source>Hero Builder templates</source></trans-unit>
             <trans-unit id="preview.replay"><source>Replay animation</source></trans-unit>
 
             <trans-unit id="panel.text"><source>Text</source></trans-unit>

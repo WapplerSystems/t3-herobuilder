@@ -13,6 +13,9 @@ return [
         'crdate' => 'crdate',
         'delete' => 'deleted',
         'default_sortby' => 'title ASC',
+        // "Duplicate" in the template gallery copies with DataHandler: the copy is named "… (copy 1)".
+        // Own label: the core one stays English without the German core language pack.
+        'prependAtCopy' => $ll . 'copySuffix',
         'enablecolumns' => ['disabled' => 'hidden'],
         'typeicon_classes' => ['default' => 'content-herobuilder'],
         // Allow "Save as template" to store templates on any page doktype

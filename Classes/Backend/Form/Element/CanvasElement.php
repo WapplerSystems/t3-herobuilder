@@ -16,6 +16,7 @@ use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Core\Utility\PathUtility;
 use TYPO3\CMS\Core\Utility\StringUtility;
 use WapplerSystems\Herobuilder\Domain\Composition;
+use WapplerSystems\Herobuilder\Service\TemplateStorage;
 
 /**
  * Custom FormEngine node: renders the drag & drop hero canvas for one collage's `composition` field.
@@ -149,7 +150,7 @@ class CanvasElement extends AbstractFormElement
             'pid' => (int)($this->data['databaseRow']['pid'] ?? ($this->data['effectivePid'] ?? 0)),
             'linkWizardUrl' => $linkWizardUrl,
             'linkProxyName' => $linkProxyName,
-            'templatePid' => (int)($this->data['pageTsConfig']['tx_herobuilder.']['templatePid'] ?? ($this->data['databaseRow']['pid'] ?? 0)),
+            'templatePid' => GeneralUtility::makeInstance(TemplateStorage::class)->pidFor((int)($this->data['effectivePid'] ?? $this->data['databaseRow']['pid'] ?? 0)),
             'value' => $itemValue,
             'moveableUrl' => PathUtility::getPublicResourceWebPath(
                 'EXT:herobuilder/Resources/Public/JavaScript/Vendor/moveable.min.js'
@@ -389,6 +390,9 @@ class CanvasElement extends AbstractFormElement
             'panel.empty', 'panel.visibleOn', 'panel.classesOther', 'panel.overlayLocked', 'list.delete', 'list.typeText', 'list.typeButton',
             'template.title', 'template.apply', 'template.applyBtn', 'template.savePrompt', 'template.saved',
             'template.applyHint', 'template.empty', 'template.saveError',
+            'button.templates', 'button.saveTemplate', 'template.duplicate', 'template.duplicated', 'template.rename',
+            'template.renamed', 'template.delete', 'template.deleteConfirm', 'template.deleted', 'template.actionError',
+            'template.preset', 'template.presetHint', 'template.cancel', 'template.save',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
             'draft.available', 'draft.restore', 'draft.discard',
             'panel.imageEdit', 'panel.flipH', 'panel.flipV', 'panel.crop', 'panel.cropReset',

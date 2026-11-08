@@ -28,4 +28,16 @@ return [
         'path' => '/herobuilder/template/save',
         'target' => TemplateController::class . '::save',
     ],
+    'herobuilder_template_duplicate' => [
+        'path' => '/herobuilder/template/duplicate',
+        'target' => TemplateController::class . '::duplicate',
+    ],
+    'herobuilder_template_rename' => [
+        'path' => '/herobuilder/template/rename',
+        'target' => TemplateController::class . '::rename',
+    ],
+    'herobuilder_template_delete' => [
+        'path' => '/herobuilder/template/delete',
+        'target' => TemplateController::class . '::delete',
+    ],
 ];

@@ -107,6 +107,11 @@ const GALLERY_CSS = `
 .herobuilder-tpl-gallery .hb-tpl-name{font-size:.78rem;font-weight:600;line-height:1.2;}
 .herobuilder-tpl-gallery .hb-tpl-empty{grid-column:1/-1;color:#6c757d;}
 .herobuilder-tpl-gallery .hb-tpl-hint{grid-column:1/-1;margin:.5rem 0 0;font-size:.8rem;color:#6c757d;}
+.herobuilder-tpl-gallery .hb-tpl-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.25rem;}
+.herobuilder-tpl-gallery .hb-tpl-act{border:1px solid #ccc;border-radius:4px;background:#fff;color:#333;padding:0 .4rem;font-size:.72rem;line-height:1.5;cursor:pointer;}
+.herobuilder-tpl-gallery .hb-tpl-act:hover,.herobuilder-tpl-gallery .hb-tpl-act:focus-visible{border-color:#0b64c6;color:#0b64c6;}
+.herobuilder-tpl-gallery .hb-tpl-act.hb-tpl-del:hover,.herobuilder-tpl-gallery .hb-tpl-act.hb-tpl-del:focus-visible{border-color:#c83c3c;color:#c83c3c;}
+.herobuilder-tpl-gallery .hb-tpl-badge{font-size:.7rem;color:#6c757d;border:1px dashed #bbb;border-radius:4px;padding:0 .35rem;line-height:1.5;}
 `;
 
 // Crop editor styles, injected into the TYPO3 modal (top document, no field backend.css).
@@ -1996,83 +2001,265 @@ export default class HerobuilderCanvas {
 
   // ---- Templates ---------------------------------------------------------
 
+  /** Templates for the gallery (presets switched off for this page via TSconfig are left out). */
+  async fetchTemplates() {
+    const res = await new AjaxRequest(this.templateListUrl).withQueryArguments({ pid: String(this.pid) }).get();
+    return (await res.resolve()).templates || [];
+  }
+
+  /**
+   * POST to a template endpoint; resolves to {ok, data, error}. A refused write answers 4xx with
+   * the DataHandler message (e.g. missing permission) — shown to the editor instead of nothing.
+   */
+  async templateAction(route, params) {
+    const url = window.TYPO3?.settings?.ajaxUrls?.[route];
+    if (!url) {
+      return { ok: false, error: "" };
+    }
+    let data = null;
+    try {
+      data = await (await new AjaxRequest(url).post(params)).resolve();
+    } catch (e) {
+      try {
+        data = await e.resolve();
+      } catch (e2) {
+        data = null;
+      }
+    }
+    return data && data.success ? { ok: true, data } : { ok: false, error: (data && data.error) || "" };
+  }
+
+  /** Small modal with one text field (rename); resolves to the trimmed value or null. */
+  promptText(title, label, value) {
+    return new Promise((resolve) => {
+      const box = document.createElement("div");
+      const lab = document.createElement("label");
+      lab.className = "form-label";
+      lab.textContent = label;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "form-control";
+      input.value = value || "";
+      box.append(lab, input);
+      let done = false;
+      const finish = (v) => {
+        if (!done) {
+          done = true;
+          resolve(v);
+        }
+      };
+      const modal = Modal.advanced({
+        title,
+        type: Modal.types.default,
+        content: box,
+        size: Modal.sizes.small,
+        buttons: [
+          { text: this.t("template.cancel", "Cancel"), btnClass: "btn-default", trigger: () => modal.hideModal() },
+          {
+            text: this.t("template.save", "Save"),
+            btnClass: "btn-primary",
+            trigger: () => {
+              finish(input.value.trim() || null);
+              modal.hideModal();
+            },
+          },
+        ],
+      });
+      modal.addEventListener("typo3-modal-shown", () => {
+        input.focus();
+        input.select();
+      });
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          finish(input.value.trim() || null);
+          modal.hideModal();
+        }
+      });
+      modal.addEventListener("typo3-modal-hidden", () => finish(null));
+    });
+  }
+
+  /** Yes/no modal (delete); resolves to true when confirmed. */
+  confirmAction(title, text, confirmLabel) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (v) => {
+        if (!done) {
+          done = true;
+          resolve(v);
+        }
+      };
+      const modal = Modal.advanced({
+        title,
+        content: text,
+        size: Modal.sizes.small,
+        severity: 1,
+        buttons: [
+          { text: this.t("template.cancel", "Cancel"), btnClass: "btn-default", trigger: () => modal.hideModal() },
+          {
+            text: confirmLabel,
+            btnClass: "btn-warning",
+            trigger: () => {
+              finish(true);
+              modal.hideModal();
+            },
+          },
+        ],
+      });
+      modal.addEventListener("typo3-modal-hidden", () => finish(false));
+    });
+  }
+
+  /**
+   * Template gallery: pick a template and apply it to this slide. Every card can be duplicated
+   * (a shipped preset becomes an own, editable template); own templates can also be renamed and
+   * deleted (to the recycler). After an action the gallery reloads in place.
+   */
   async openTemplates() {
     if (!this.templateListUrl) {
       return;
     }
     let templates = [];
     try {
-      const res = await new AjaxRequest(this.templateListUrl).get();
-      templates = (await res.resolve()).templates || [];
+      templates = await this.fetchTemplates();
     } catch (e) {
       Notification.error("Hero Builder", this.t("template.empty", "No templates available"));
       return;
     }
-
     const wrap = document.createElement("div");
     wrap.className = "herobuilder-tpl-gallery";
     // The TYPO3 modal renders in the TOP document, where the field's backend.css is not
     // loaded — ship the gallery styles with the content so the grid/thumbs render correctly.
     const style = document.createElement("style");
     style.textContent = GALLERY_CSS;
-    wrap.appendChild(style);
-    if (!templates.length) {
-      const p = document.createElement("p");
-      p.className = "hb-tpl-empty";
-      p.textContent = this.t("template.empty", "No templates yet");
-      wrap.appendChild(p);
-    }
-
     let modal;
     let selected = null;
-    const cards = [];
+    const applyButton = () => modal && modal.querySelector(".modal-footer .btn-primary");
     const apply = () => {
       if (selected) {
         this.applyTemplate(selected.composition);
         modal.hideModal();
       }
     };
-    templates.forEach((tpl) => {
-      const card = document.createElement("div");
-      card.className = "hb-tpl-card";
-      card.setAttribute("role", "button");
-      card.tabIndex = 0;
-      const thumb = document.createElement("span");
-      thumb.className = "hb-tpl-thumb";
-      thumb.style.background = tpl.color || "#dddddd";
-      if (tpl.thumbUrl) {
-        const img = document.createElement("img");
-        img.className = "hb-tpl-img";
-        img.src = tpl.thumbUrl;
-        img.alt = "";
-        img.loading = "lazy";
-        thumb.appendChild(img);
-      }
-      const name = document.createElement("span");
-      name.className = "hb-tpl-name";
-      name.textContent = tpl.title || "";
-      card.append(thumb, name);
-      card._tpl = tpl;
-      card.addEventListener("click", () => {
-        selected = tpl;
-        cards.forEach((c) => c.classList.toggle("active", c === card));
-        const btn = modal && modal.querySelector(".modal-footer .btn-primary");
-        if (btn) {
-          btn.disabled = false;
+    const run = async (route, params, okKey, okFallback) => {
+      const result = await this.templateAction(route, params);
+      if (result.ok) {
+        Notification.success("Hero Builder", this.t(okKey, okFallback));
+        try {
+          render(await this.fetchTemplates());
+        } catch (e) {
+          // keep the current cards
         }
+      } else {
+        Notification.error(
+          "Hero Builder",
+          this.t("template.actionError", "The template could not be changed.") + (result.error ? " " + result.error : "")
+        );
+      }
+    };
+    const actionButton = (label, cls, onClick) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "hb-tpl-act " + cls;
+      b.textContent = label;
+      // An action must not select the card (or, by double click, apply it).
+      b.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onClick();
       });
-      card.addEventListener("dblclick", () => {
-        selected = tpl;
-        apply();
+      b.addEventListener("dblclick", (e) => e.stopPropagation());
+      b.addEventListener("keydown", (e) => e.stopPropagation());
+      return b;
+    };
+    const render = (list) => {
+      wrap.replaceChildren(style);
+      selected = null;
+      if (applyButton()) {
+        applyButton().disabled = true;
+      }
+      const cards = [];
+      if (!list.length) {
+        const p = document.createElement("p");
+        p.className = "hb-tpl-empty";
+        p.textContent = this.t("template.empty", "No templates yet");
+        wrap.appendChild(p);
+      }
+      list.forEach((tpl) => {
+        const card = document.createElement("div");
+        card.className = "hb-tpl-card";
+        card.setAttribute("role", "button");
+        card.tabIndex = 0;
+        const thumb = document.createElement("span");
+        thumb.className = "hb-tpl-thumb";
+        thumb.style.background = tpl.color || "#dddddd";
+        if (tpl.thumbUrl) {
+          const img = document.createElement("img");
+          img.className = "hb-tpl-img";
+          img.src = tpl.thumbUrl;
+          img.alt = "";
+          img.loading = "lazy";
+          thumb.appendChild(img);
+        }
+        const name = document.createElement("span");
+        name.className = "hb-tpl-name";
+        name.textContent = tpl.title || "";
+        const actions = document.createElement("span");
+        actions.className = "hb-tpl-actions";
+        actions.appendChild(actionButton(this.t("template.duplicate", "Duplicate"), "hb-tpl-dup", () =>
+          run("herobuilder_template_duplicate", { key: tpl.key, pid: String(this.pid) }, "template.duplicated", "Template duplicated")
+        ));
+        if (tpl.readonly) {
+          const badge = document.createElement("span");
+          badge.className = "hb-tpl-badge";
+          badge.textContent = this.t("template.preset", "shipped");
+          badge.title = this.t("template.presetHint", "Shipped with the extension — duplicate it to get an editable copy.");
+          actions.appendChild(badge);
+        } else {
+          actions.appendChild(actionButton(this.t("template.rename", "Rename"), "hb-tpl-ren", async () => {
+            const title = await this.promptText(this.t("template.rename", "Rename"), this.t("template.savePrompt", "Template name"), tpl.title);
+            if (title && title !== tpl.title) {
+              run("herobuilder_template_rename", { uid: String(tpl.uid), title }, "template.renamed", "Template renamed");
+            }
+          }));
+          actions.appendChild(actionButton(this.t("template.delete", "Delete"), "hb-tpl-del", async () => {
+            const ok = await this.confirmAction(
+              this.t("template.delete", "Delete"),
+              this.t("template.deleteConfirm", "Delete the template \"%s\"? It can be restored from the recycler.").replace("%s", tpl.title || ""),
+              this.t("template.delete", "Delete")
+            );
+            if (ok) {
+              run("herobuilder_template_delete", { uid: String(tpl.uid) }, "template.deleted", "Template deleted");
+            }
+          }));
+        }
+        card.append(thumb, name, actions);
+        card.addEventListener("click", () => {
+          selected = tpl;
+          cards.forEach((c) => c.classList.toggle("active", c === card));
+          if (applyButton()) {
+            applyButton().disabled = false;
+          }
+        });
+        card.addEventListener("dblclick", () => {
+          selected = tpl;
+          apply();
+        });
+        card.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            card.click();
+          }
+        });
+        wrap.appendChild(card);
+        cards.push(card);
       });
-      wrap.appendChild(card);
-      cards.push(card);
-    });
-    const hint = document.createElement("p");
-    hint.className = "hb-tpl-hint";
-    hint.textContent = this.t("template.applyHint", "Applying replaces the current collage's layers.");
-    wrap.appendChild(hint);
-
+      const hint = document.createElement("p");
+      hint.className = "hb-tpl-hint";
+      hint.textContent = this.t("template.applyHint", "Applying replaces the layers of the current slide.");
+      wrap.appendChild(hint);
+    };
+    render(templates);
     modal = Modal.advanced({
       title: this.t("button.templates", "Templates"),
       type: Modal.types.default,
@@ -2083,9 +2270,8 @@ export default class HerobuilderCanvas {
       ],
     });
     modal.addEventListener("typo3-modal-shown", () => {
-      const btn = modal.querySelector(".modal-footer .btn-primary");
-      if (btn) {
-        btn.disabled = true;
+      if (applyButton()) {
+        applyButton().disabled = !selected;
       }
     });
   }
@@ -2197,20 +2383,15 @@ export default class HerobuilderCanvas {
     if (!title) {
       return;
     }
-    try {
-      const res = await new AjaxRequest(this.templateSaveUrl).post({
-        title: title,
-        composition: this.input.value || "{}",
-        pid: String(this.templatePid),
-      });
-      const data = await res.resolve();
-      if (data && data.success) {
-        Notification.success("Hero Builder", this.t("template.saved", "Template saved"));
-      } else {
-        Notification.error("Hero Builder", this.t("template.saveError", "Could not save template"));
-      }
-    } catch (e) {
-      Notification.error("Hero Builder", this.t("template.saveError", "Could not save template"));
+    const result = await this.templateAction("herobuilder_template_save", {
+      title: title,
+      composition: this.input.value || "{}",
+      pid: String(this.templatePid),
+    });
+    if (result.ok) {
+      Notification.success("Hero Builder", this.t("template.saved", "Template saved"));
+    } else {
+      Notification.error("Hero Builder", this.t("template.saveError", "Could not save template") + (result.error ? " " + result.error : ""));
     }
   }
 

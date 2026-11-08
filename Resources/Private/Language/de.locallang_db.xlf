@@ -84,11 +84,25 @@
             <trans-unit id="template.color"><source>Indicator color</source><target>Indikatorfarbe</target></trans-unit>
             <trans-unit id="template.apply"><source>Template applied</source><target>Vorlage übernommen</target></trans-unit>
             <trans-unit id="template.applyBtn"><source>Apply template</source><target>Vorlage übernehmen</target></trans-unit>
-            <trans-unit id="template.savePrompt"><source>Template name</source><target>Vorlagen-Name</target></trans-unit>
+            <trans-unit id="template.savePrompt"><source>Template name</source><target>Name der Vorlage</target></trans-unit>
             <trans-unit id="template.saved"><source>Template saved</source><target>Vorlage gespeichert</target></trans-unit>
             <trans-unit id="template.saveError"><source>Could not save template</source><target>Vorlage konnte nicht gespeichert werden</target></trans-unit>
-            <trans-unit id="template.applyHint"><source>Selecting a template replaces the current collage's layers.</source><target>Auswahl übernimmt die Layer-Struktur in die aktuelle Collage.</target></trans-unit>
+            <trans-unit id="template.applyHint"><source>Applying replaces the layers of the current slide.</source><target>Übernehmen ersetzt die Ebenen der aktuellen Folie.</target></trans-unit>
             <trans-unit id="template.empty"><source>No templates yet — save one from a composition.</source><target>Noch keine Vorlagen — speichere eine aus einer Komposition.</target></trans-unit>
+            <trans-unit id="copySuffix"><source>(copy %s)</source><target>(Kopie %s)</target></trans-unit>
+            <trans-unit id="template.duplicate"><source>Duplicate</source><target>Duplizieren</target></trans-unit>
+            <trans-unit id="template.duplicated"><source>Template duplicated</source><target>Vorlage dupliziert</target></trans-unit>
+            <trans-unit id="template.rename"><source>Rename</source><target>Umbenennen</target></trans-unit>
+            <trans-unit id="template.renamed"><source>Template renamed</source><target>Vorlage umbenannt</target></trans-unit>
+            <trans-unit id="template.delete"><source>Delete</source><target>Löschen</target></trans-unit>
+            <trans-unit id="template.deleteConfirm"><source>Delete the template "%s"? It can be restored from the recycler.</source><target>Vorlage „%s“ löschen? Sie lässt sich aus dem Papierkorb wiederherstellen.</target></trans-unit>
+            <trans-unit id="template.deleted"><source>Template deleted</source><target>Vorlage gelöscht</target></trans-unit>
+            <trans-unit id="template.actionError"><source>The template could not be changed.</source><target>Die Vorlage konnte nicht geändert werden.</target></trans-unit>
+            <trans-unit id="template.preset"><source>shipped</source><target>mitgeliefert</target></trans-unit>
+            <trans-unit id="template.presetHint"><source>Shipped with the extension — duplicate it to get an editable copy.</source><target>Mit der Extension ausgeliefert — duplizieren ergibt eine eigene, bearbeitbare Kopie.</target></trans-unit>
+            <trans-unit id="template.cancel"><source>Cancel</source><target>Abbrechen</target></trans-unit>
+            <trans-unit id="template.save"><source>Save</source><target>Speichern</target></trans-unit>
+            <trans-unit id="pages.module.herobuilder"><source>Hero Builder templates</source><target>Hero-Builder-Vorlagen</target></trans-unit>
             <trans-unit id="preview.replay"><source>Replay animation</source><target>Animation erneut abspielen</target></trans-unit>
 
             <trans-unit id="panel.text"><source>Text</source><target>Text</target></trans-unit>
