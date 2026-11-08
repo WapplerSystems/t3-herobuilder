@@ -23,6 +23,12 @@ final class CompositeImageService
 {
     private const OUT_DIR = 'typo3temp/assets/herobuilder/';
 
+    /**
+     * Part of the cache key: raise it whenever the drawing changes, so images rendered by an older
+     * version are not served again (files are cached by composition only). 2 = auto-height text.
+     */
+    private const RENDER_VERSION = 2;
+
     public function __construct(
         private readonly ResourceFactory $resourceFactory,
     ) {}
@@ -68,7 +74,7 @@ final class CompositeImageService
             return null;
         }
 
-        $hash = substr(sha1($compositionJson . '|' . $breakpoint . '|' . $width . 'x' . $height), 0, 24);
+        $hash = substr(sha1(self::RENDER_VERSION . '|' . $compositionJson . '|' . $breakpoint . '|' . $width . 'x' . $height), 0, 24);
         $relFile = self::OUT_DIR . 'tpl_' . $hash . '.png';
         $absFile = Environment::getPublicPath() . '/' . $relFile;
         if (is_file($absFile)) {
@@ -89,7 +95,9 @@ final class CompositeImageService
             $type = $layer['type'] ?? 'image';
 
             if ($type === 'text' || $type === 'button') {
-                $this->appendTextLayer($args, $layer, $lx, $ly, $lw, $lh, $width);
+                // h = 0 means "auto" (the frontend box grows with its text) — not a 1px box.
+                $autoHeight = (float)($p['h'] ?? 0) <= 0;
+                $this->appendTextLayer($args, $layer, $lx, $ly, $lw, $autoHeight ? 0 : $lh, $width);
             } else {
                 $this->appendImageLayer($args, $layer, $lx, $ly, $lw, $lh);
             }
@@ -103,7 +111,7 @@ final class CompositeImageService
     }
 
     /**
-     * Layers with a placement for the breakpoint (fallback: first placement), sorted by z.
+     * Layers with a placement for the breakpoint (fallback: lg, else the first one), sorted by z.
      *
      * @param array<int, array<string, mixed>> $layers
      * @return array<int, array<string, mixed>>
@@ -113,7 +121,9 @@ final class CompositeImageService
         $out = [];
         foreach ($layers as $layer) {
             $placements = (array)($layer['placements'] ?? []);
-            $p = $placements[$breakpoint] ?? (reset($placements) ?: null);
+            // Same cascade as the frontend: a breakpoint without its own placement uses the
+            // primary one (lg, else the first defined).
+            $p = $placements[$breakpoint] ?? $placements['lg'] ?? (reset($placements) ?: null);
             if (!is_array($p) || ($p['visible'] ?? true) === false) {
                 continue;
             }
@@ -164,17 +174,23 @@ final class CompositeImageService
         $classes = (string)($layer['cssClass'] ?? '');
         $isButton = ($layer['type'] ?? '') === 'button';
         $color = $this->textColor($classes, $isButton);
-        // Font size follows the CSS class relative to canvas width (like rem), capped so a
-        // single line still fits the box height — independent of the target aspect ratio.
-        $pointsize = max(8, min($this->classFontSize($classes, $canvasWidth, $isButton), (int)round($lh * 0.85)));
+        // Font size follows the CSS class relative to canvas width (like rem). A fixed box caps it
+        // so a single line still fits the box height; an auto-height box ($lh = 0) lets ImageMagick
+        // size the caption from the text instead (-size Wx), as the frontend box grows with it.
+        $fontSize = $this->classFontSize($classes, $canvasWidth, $isButton);
+        $pointsize = $lh > 0 ? max(8, min($fontSize, (int)round($lh * 0.85))) : $fontSize;
         $gravity = str_contains($classes, 'text-start') ? 'West'
             : (str_contains($classes, 'text-end') ? 'East' : 'Center');
+        $background = $isButton ? $this->buttonBg($classes) : 'none';
+        // An auto-height button gets padding around its caption, like a .btn.
+        $padX = $lh > 0 || !$isButton ? 0 : (int)round($pointsize * 0.75);
+        $padY = $lh > 0 || !$isButton ? 0 : (int)round($pointsize * 0.4);
 
         $args[] = '(';
         $args[] = '-size';
-        $args[] = $lw . 'x' . $lh;
+        $args[] = max(1, $lw - 2 * $padX) . 'x' . ($lh > 0 ? $lh : '');
         $args[] = '-background';
-        $args[] = $isButton ? $this->buttonBg($classes) : 'none';
+        $args[] = $background;
         $args[] = '-fill';
         $args[] = $color;
         $args[] = '-gravity';
@@ -182,6 +198,9 @@ final class CompositeImageService
         $args[] = '-pointsize';
         $args[] = (string)$pointsize;
         $args[] = 'caption:' . $text;
+        if ($padX > 0) {
+            array_push($args, '-bordercolor', $background, '-border', $padX . 'x' . $padY);
+        }
         $args[] = ')';
         array_push($args, '-gravity', 'NorthWest', '-geometry', '+' . $lx . '+' . $ly, '-composite');
     }
