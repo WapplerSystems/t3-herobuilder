@@ -3,8 +3,8 @@
  * script so a strict backend CSP `script-src 'self'` does not block it — no inline JS).
  *
  * - Initialises AOS so entrance animations play on load.
- * - Replays them when the editor posts `hb-replay` — all layers, or a single layer by its
- *   composition index (see replay()).
+ * - Replays them when the editor posts `hb-replay` — all layers, or a single layer by its index
+ *   among the rendered layers (see replay()).
  */
 (function () {
   "use strict";
@@ -47,8 +47,9 @@
   }
 
   /**
-   * Replay entrance animations. `layer` = index of the layer in the composition (its element
-   * carries the class `<scope>-l<index>`, see CompositionProcessor) — then only that layer
+   * Replay entrance animations. `layer` = index of the layer among the rendered layers (its
+   * element carries the class `<scope>-l<index>`, see CompositionProcessor; canvas.js
+   * renderedLayerIndex()) — then only that layer
    * plays and the others are shown at rest; -1 / missing = all layers.
    *
    * The class is re-added two frames later by us — not via AOS's scroll handler, which re-added

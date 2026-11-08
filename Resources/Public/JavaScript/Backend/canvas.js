@@ -1668,11 +1668,27 @@ export default class HerobuilderCanvas {
    * latest edit (e.g. a duration typed a moment ago, debounced refresh pending) is re-rendered
    * first, so the replay uses the current values.
    */
+  /**
+   * Index of the layer among the layers the preview actually renders, or -1. The class
+   * `<scope>-l<index>` counts after Composition::fromJson() has dropped image layers without a
+   * file (template placeholders #0) — the composition index would point at the wrong layer as
+   * soon as such a layer comes first.
+   */
+  renderedLayerIndex(layer) {
+    const rendered = (l) => l.type === "text" || l.type === "button" || (parseInt(l.fileUid, 10) || 0) > 0;
+    return rendered(layer) ? this.layers.filter(rendered).indexOf(layer) : -1;
+  }
+
   replayPreview(layerOnly = false) {
     if (!this.previewFrame) {
       return;
     }
-    const index = layerOnly && this.selected ? this.layers.indexOf(this.selected) : -1;
+    const index = layerOnly && this.selected ? this.renderedLayerIndex(this.selected) : -1;
+    if (layerOnly && index < 0) {
+      // The selected layer renders nothing (image without file, e.g. a template placeholder):
+      // nothing to play — and "all" would be the wrong answer to "this layer".
+      return;
+    }
     const message = { type: "hb-replay", layer: index };
     const post = () => this.previewFrame.contentWindow?.postMessage(message, "*");
     const afterLoad = (send) => {
