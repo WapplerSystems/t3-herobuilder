@@ -113,9 +113,14 @@ final readonly class Composition
      */
     public const REM_PX = 16;
 
-    /** @param array<int, array<string, mixed>> $layers */
+    /**
+     * @param array<int, array<string, mixed>> $layers
+     * @param array{type: string, color?: string, from?: string, to?: string, angle?: int}|null $background
+     *        slide background, see normalizeBackground()
+     */
     public function __construct(
         public array $layers = [],
+        public ?array $background = null,
     ) {}
 
     public static function fromJson(string $json): self
@@ -143,7 +148,54 @@ final readonly class Composition
                 $layers[] = $layer;
             }
         }
-        return new self($layers);
+        return new self($layers, self::normalizeBackground($data['background'] ?? null));
+    }
+
+    /**
+     * Slide background (one per slide, all breakpoints): a colour, or a linear / radial gradient
+     * between two colours. Colours must be #rrggbb, the angle is clamped to 0–360 — anything else
+     * means no background, so nothing unchecked reaches the CSS or ImageMagick.
+     *
+     *   {type: "color", color: "#rrggbb"}
+     *   {type: "linear", from: "#rrggbb", to: "#rrggbb", angle: 0–360}  (CSS convention: 0 = up)
+     *   {type: "radial", from: "#rrggbb", to: "#rrggbb"}                 (from = centre)
+     *
+     * @return array{type: string, color?: string, from?: string, to?: string, angle?: int}|null
+     */
+    public static function normalizeBackground(mixed $background): ?array
+    {
+        if (!is_array($background)) {
+            return null;
+        }
+        $type = $background['type'] ?? '';
+        if ($type === 'color') {
+            $color = self::normalizeColor($background['color'] ?? null);
+            return $color === null ? null : ['type' => 'color', 'color' => $color];
+        }
+        if ($type === 'linear' || $type === 'radial') {
+            $from = self::normalizeColor($background['from'] ?? null);
+            $to = self::normalizeColor($background['to'] ?? null);
+            if ($from === null || $to === null) {
+                return null;
+            }
+            $out = ['type' => $type, 'from' => $from, 'to' => $to];
+            if ($type === 'linear') {
+                $out['angle'] = max(0, min(360, (int)round((float)($background['angle'] ?? 180))));
+            }
+            return $out;
+        }
+        return null;
+    }
+
+    /** CSS declarations for a normalized background, '' for none. */
+    public static function backgroundCss(?array $background): string
+    {
+        return match ($background['type'] ?? '') {
+            'color' => 'background-color:' . $background['color'] . ';',
+            'linear' => 'background-image:linear-gradient(' . $background['angle'] . 'deg,' . $background['from'] . ',' . $background['to'] . ');',
+            'radial' => 'background-image:radial-gradient(' . $background['from'] . ',' . $background['to'] . ');',
+            default => '',
+        };
     }
 
     /**

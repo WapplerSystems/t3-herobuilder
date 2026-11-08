@@ -107,6 +107,11 @@ final class CompositionProcessor implements DataProcessorInterface
 
         $layers = [];
         $css = $this->stageCss($scope, $stages);
+        // Slide background (colour or gradient) behind all layers; none → nothing emitted.
+        $backgroundCss = Composition::backgroundCss($composition->background);
+        if ($backgroundCss !== '') {
+            $css .= '.' . $scope . ' .hb-stage{' . $backgroundCss . '}';
+        }
         $allowedClasses = $this->allowedClasses((int)($row['pid'] ?? 0));
         $imageFormat = $this->imageFormat($pid);
 

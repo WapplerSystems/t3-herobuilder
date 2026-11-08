@@ -685,3 +685,15 @@
 .hb-overlay-source { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .5rem; margin-top: .35rem; font-size: .8rem; }
 .hb-overlay-own-label { display: inline-flex; align-items: center; gap: .35rem; font-weight: normal; margin: 0; }
 .hb-overlay-source-text { color: var(--typo3-text-color-variant, #666); }
+
+/* "Slide" settings in the panel while no layer is selected: the slide background. */
+.hb-slide-panel { display: flex; flex-direction: column; gap: .45rem; margin-top: .75rem; font-size: .85rem; }
+.hb-slide-panel .hb-slide-title { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: .75rem; color: var(--typo3-text-color-variant, #666); }
+.hb-slide-panel .form-label { margin: 0; font-weight: 600; }
+.hb-slide-panel .hb-bg-colors { display: flex; flex-wrap: wrap; gap: .75rem; }
+.hb-slide-panel .hb-bg-colors label { display: inline-flex; align-items: center; gap: .4rem; margin: 0; }
+.hb-slide-panel .form-control-color { width: 2.25rem; min-width: 0; height: 1.75rem; padding: .1rem; }
+.hb-slide-panel .hb-bg-angle-row { display: flex; align-items: center; gap: .5rem; }
+.hb-slide-panel .hb-bg-angle { flex: 1; }
+.hb-slide-panel .hb-bg-angle-num { width: 4.5rem; min-width: 0; }
+.hb-slide-panel .hb-bg-swatch { height: 2.5rem; border-radius: 4px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15); }

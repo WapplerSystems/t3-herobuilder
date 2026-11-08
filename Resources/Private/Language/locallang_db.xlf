@@ -89,6 +89,15 @@
             <trans-unit id="template.saveError"><source>Could not save template</source></trans-unit>
             <trans-unit id="template.applyHint"><source>Applying replaces the layers of the current slide.</source></trans-unit>
             <trans-unit id="template.empty"><source>No templates yet — save one from a composition.</source></trans-unit>
+            <trans-unit id="slide.title"><source>Slide</source></trans-unit>
+            <trans-unit id="bg.label"><source>Background</source></trans-unit>
+            <trans-unit id="bg.none"><source>None</source></trans-unit>
+            <trans-unit id="bg.color"><source>Colour</source></trans-unit>
+            <trans-unit id="bg.linear"><source>Linear gradient</source></trans-unit>
+            <trans-unit id="bg.radial"><source>Radial gradient</source></trans-unit>
+            <trans-unit id="bg.from"><source>from</source></trans-unit>
+            <trans-unit id="bg.to"><source>to</source></trans-unit>
+            <trans-unit id="bg.angle"><source>Angle</source></trans-unit>
             <trans-unit id="layer.newText"><source>New text</source></trans-unit>
             <trans-unit id="layer.newButton"><source>Learn more</source></trans-unit>
             <trans-unit id="copySuffix"><source>(copy %s)</source></trans-unit>

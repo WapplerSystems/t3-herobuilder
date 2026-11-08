@@ -26,9 +26,10 @@ final class CompositeImageService
     /**
      * Part of the cache key: raise it whenever the drawing changes, so images rendered by an older
      * version are not served again (files are cached by composition only). 2 = auto-height text,
-     * 3 = mobile-first placement cascade, 4 = single-line buttons at frontend scale.
+     * 3 = mobile-first placement cascade, 4 = single-line buttons at frontend scale,
+     * 5/6 = slide background (colour / gradient; 6: radial as the CSS ellipse).
      */
-    private const RENDER_VERSION = 4;
+    private const RENDER_VERSION = 6;
 
     /** Frontend .btn metrics (CSS px): 1rem font, line-height 1.5, padding .375rem .75rem. */
     private const BUTTON_FONT = 16;
@@ -94,7 +95,7 @@ final class CompositeImageService
 
         // Frontend CSS px → image px: the image stands for the breakpoint's stage width.
         $scale = $width / (float)(Composition::DEFAULT_STAGE_WIDTHS[$breakpoint] ?? $width);
-        $args = ['-size', $width . 'x' . $height, 'xc:none'];
+        $args = $this->backgroundArgs($composition->background, $width, $height);
         foreach ($layers as $layer) {
             $p = $layer['_p'];
             $lx = (int)round(($p['x'] ?? 0) / 100 * $width);
@@ -177,6 +178,29 @@ final class CompositeImageService
      * @param array<int, string> $args
      * @param array<string, mixed> $layer
      */
+    /**
+     * Canvas the layers are drawn on: the slide background (Composition::normalizeBackground()),
+     * transparent without one. ImageMagick's gradient:angle follows the CSS convention (0 = from
+     * bottom to top, 90 = left to right); a radial gradient is the ellipse from the centre to the
+     * corners that CSS radial-gradient draws by default.
+     *
+     * @return list<string>
+     */
+    private function backgroundArgs(?array $background, int $width, int $height): array
+    {
+        $size = ['-size', $width . 'x' . $height];
+        return match ($background['type'] ?? '') {
+            'color' => [...$size, 'xc:' . $background['color']],
+            'linear' => ['-define', 'gradient:angle=' . (int)$background['angle'], ...$size,
+                'gradient:' . $background['from'] . '-' . $background['to']],
+            // CSS radial-gradient's default is an ellipse reaching the corners: radii = half the
+            // width / height × √2 (ImageMagick's own extents draw a circle).
+            'radial' => ['-define', sprintf('gradient:radii=%.1f,%.1f', $width / 2 * M_SQRT2, $height / 2 * M_SQRT2), ...$size,
+                'radial-gradient:' . $background['from'] . '-' . $background['to']],
+            default => [...$size, 'xc:none'],
+        };
+    }
+
     /**
      * A button as the frontend draws it: one line (.btn is white-space:nowrap), fixed px font and
      * padding scaled to the image, at least as wide as its box and centred on it — a label longer

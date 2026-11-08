@@ -58,6 +58,45 @@ const overlayRgba = (o) => {
   return "rgba(" + rgb.join(",") + "," + o.strength / 100 + ")";
 };
 
+/**
+ * Slide background — mirror of Composition::normalizeBackground(): a colour, or a linear / radial
+ * gradient between two colours; anything invalid → null (no background).
+ */
+const normalizeBackground = (bg) => {
+  if (!bg || typeof bg !== "object" || Array.isArray(bg)) {
+    return null;
+  }
+  if (bg.type === "color") {
+    const color = normalizeColor(bg.color);
+    return color ? { type: "color", color } : null;
+  }
+  if (bg.type === "linear" || bg.type === "radial") {
+    const from = normalizeColor(bg.from);
+    const to = normalizeColor(bg.to);
+    if (!from || !to) {
+      return null;
+    }
+    const out = { type: bg.type, from, to };
+    if (bg.type === "linear") {
+      out.angle = Math.max(0, Math.min(360, Math.round(parseFloat(bg.angle ?? 180) || 0)));
+    }
+    return out;
+  }
+  return null;
+};
+/** CSS `background` value for a normalized background ("" = none). */
+const backgroundCssValue = (bg) => {
+  if (!bg) {
+    return "";
+  }
+  if (bg.type === "color") {
+    return bg.color;
+  }
+  return bg.type === "linear"
+    ? "linear-gradient(" + bg.angle + "deg, " + bg.from + ", " + bg.to + ")"
+    : "radial-gradient(" + bg.from + ", " + bg.to + ")";
+};
+
 // A plain object, or a fresh {} — stored JSON may carry an empty object as [] (PHP round trip),
 // and named properties set on an array are dropped by JSON.stringify.
 const asObject = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
@@ -279,6 +318,7 @@ export default class HerobuilderCanvas {
       value = {};
     }
     this.layers = Array.isArray(value.layers) ? value.layers : [];
+    this.background = normalizeBackground(value.background);
 
     // Raw JSON as persisted in the record (DB), used to decide whether a localStorage
     // draft is newer/unsaved and therefore worth offering for recovery.
@@ -2183,7 +2223,7 @@ export default class HerobuilderCanvas {
     const applyButton = () => modal && modal.querySelector(".modal-footer .btn-primary");
     const apply = () => {
       if (selected) {
-        this.applyTemplate(selected.composition);
+        this.applyTemplate(selected.composition, selected);
         modal.hideModal();
       }
     };
@@ -2384,7 +2424,11 @@ export default class HerobuilderCanvas {
     }
   }
 
-  applyTemplate(composition) {
+  /**
+   * Replace the slide with a template: its layers and its background — the template's saved
+   * background, else its colour (shipped presets: the colour their thumbnail shows), else none.
+   */
+  applyTemplate(composition, tpl = null) {
     let parsed;
     try {
       parsed = JSON.parse(composition || "{}");
@@ -2392,6 +2436,9 @@ export default class HerobuilderCanvas {
       return;
     }
     this.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
+    const color = tpl && normalizeColor(tpl.color);
+    this.background = normalizeBackground(parsed.background) || (color ? { type: "color", color } : null);
+    this.updateSlidePanel();
     this.deselect();
     this.render();
     this.save();
@@ -2435,10 +2482,13 @@ export default class HerobuilderCanvas {
     if (!title) {
       return;
     }
+    const bg = this.background;
     const result = await this.templateAction("herobuilder_template_save", {
       title: title,
       composition: this.input.value || "{}",
       pid: String(this.templatePid),
+      // Gallery card colour: the slide's colour, or a gradient's start colour.
+      color: bg ? (bg.type === "color" ? bg.color : bg.from) : "",
     });
     if (result.ok) {
       Notification.success("Hero Builder", this.t("template.saved", "Template saved"));
@@ -2762,6 +2812,8 @@ export default class HerobuilderCanvas {
       this.panel.parentNode.insertBefore(this.panelEmpty, this.panel);
     }
     this.panelEmpty.hidden = !!this.selected;
+    this.buildSlidePanel();
+    this.slidePanel.hidden = !!this.selected;
     if (tabs) {
       tabs.hidden = !this.selected;
     }
@@ -3107,6 +3159,97 @@ export default class HerobuilderCanvas {
     this.applyOverlayToElement(layer);
     this.updateOverlayFields();
     this.save();
+  }
+
+  /**
+   * "Slide" settings, shown in the panel while no layer is selected: the slide background —
+   * none, a colour, or a linear / radial gradient (two colours, an angle for linear).
+   */
+  buildSlidePanel() {
+    if (this.slidePanel || !this.panelEmpty) {
+      return;
+    }
+    const opt = (v, key, fb) => '<option value="' + v + '">' + escapeHtml(this.t(key, fb)) + "</option>";
+    const box = document.createElement("div");
+    box.className = "hb-slide-panel";
+    box.innerHTML =
+      '<div class="hb-slide-title">' + escapeHtml(this.t("slide.title", "Slide")) + "</div>" +
+      '<label class="form-label">' + escapeHtml(this.t("bg.label", "Background")) + "</label>" +
+      '<select class="form-select form-select-sm hb-bg-type">' +
+      opt("", "bg.none", "None") + opt("color", "bg.color", "Colour") +
+      opt("linear", "bg.linear", "Linear gradient") + opt("radial", "bg.radial", "Radial gradient") + "</select>" +
+      '<div class="hb-bg-colors">' +
+      '<label class="hb-bg-from-wrap"><span class="hb-bg-from-label"></span>' +
+      '<input type="color" class="form-control form-control-color hb-bg-from"></label>' +
+      '<label class="hb-bg-to-wrap"><span>' + escapeHtml(this.t("bg.to", "to")) + "</span>" +
+      '<input type="color" class="form-control form-control-color hb-bg-to"></label>' +
+      "</div>" +
+      '<div class="hb-bg-angle-row"><label>' + escapeHtml(this.t("bg.angle", "Angle")) + "</label>" +
+      '<input type="range" class="hb-bg-angle" min="0" max="360" step="15">' +
+      '<input type="number" class="form-control form-control-sm hb-bg-angle-num" min="0" max="360" step="1"></div>' +
+      '<div class="hb-bg-swatch" aria-hidden="true"></div>';
+    this.panelEmpty.parentNode.insertBefore(box, this.panelEmpty.nextSibling);
+    this.slidePanel = box;
+    const q = (sel) => box.querySelector(sel);
+    // Read the inputs into a background; `commit` = a finished change (undo step) vs. live input.
+    const apply = (commit) => {
+      const type = q(".hb-bg-type").value;
+      this.background = normalizeBackground(type === "color"
+        ? { type, color: q(".hb-bg-from").value }
+        : { type, from: q(".hb-bg-from").value, to: q(".hb-bg-to").value, angle: q(".hb-bg-angle-num").value });
+      this.updateSlidePanel();
+      if (commit) {
+        this.save();
+      } else {
+        this.writeInput();
+      }
+    };
+    q(".hb-bg-type").addEventListener("change", () => apply(true));
+    ["hb-bg-from", "hb-bg-to"].forEach((c) => {
+      q("." + c).addEventListener("input", () => apply(false));
+      q("." + c).addEventListener("change", () => apply(true));
+    });
+    q(".hb-bg-angle").addEventListener("input", () => {
+      q(".hb-bg-angle-num").value = q(".hb-bg-angle").value;
+      apply(false);
+    });
+    q(".hb-bg-angle").addEventListener("change", () => apply(true));
+    q(".hb-bg-angle-num").addEventListener("change", () => apply(true));
+    // Start values for a first colour / gradient; a set background overwrites them.
+    q(".hb-bg-from").value = "#1b2b4a";
+    q(".hb-bg-to").value = "#000000";
+    q(".hb-bg-angle").value = "180";
+    q(".hb-bg-angle-num").value = "180";
+    this.updateSlidePanel();
+  }
+
+  /** Show the current slide background in the "Slide" panel (rows for the chosen type only). */
+  updateSlidePanel() {
+    const box = this.slidePanel;
+    if (!box) {
+      return;
+    }
+    const bg = this.background;
+    const q = (sel) => box.querySelector(sel);
+    const type = bg ? bg.type : "";
+    q(".hb-bg-type").value = type;
+    // The inputs keep the last picked values when switching type (or to none and back).
+    if (bg) {
+      q(".hb-bg-from").value = bg.type === "color" ? bg.color : bg.from;
+      if (bg.to) {
+        q(".hb-bg-to").value = bg.to;
+      }
+      if (bg.type === "linear") {
+        q(".hb-bg-angle").value = String(bg.angle);
+        q(".hb-bg-angle-num").value = String(bg.angle);
+      }
+    }
+    q(".hb-bg-colors").hidden = type === "";
+    q(".hb-bg-to-wrap").hidden = type === "color" || type === "";
+    q(".hb-bg-from-label").textContent = type === "color" ? this.t("bg.color", "Colour") : this.t("bg.from", "from");
+    q(".hb-bg-angle-row").hidden = type !== "linear";
+    q(".hb-bg-swatch").hidden = type === "";
+    q(".hb-bg-swatch").style.background = backgroundCssValue(bg);
   }
 
   /** Slider, colour, "own from …" and where the value comes from, for the active breakpoint. */
@@ -3712,7 +3855,12 @@ export default class HerobuilderCanvas {
 
   /** The composition as stored: format version + cleaned layers. */
   serialize() {
-    return JSON.stringify({ version: COMPOSITION_VERSION, layers: this.cleanLayers() });
+    const data = { version: COMPOSITION_VERSION, layers: this.cleanLayers() };
+    // Only when set: compositions without one stay byte-identical to before.
+    if (this.background) {
+      data.background = this.background;
+    }
+    return JSON.stringify(data);
   }
 
   cleanLayers() {
@@ -3927,6 +4075,8 @@ export default class HerobuilderCanvas {
     }
     this._restoring = true;
     this.layers = Array.isArray(parsed.layers) ? parsed.layers : [];
+    this.background = normalizeBackground(parsed.background);
+    this.updateSlidePanel();
     this.selected = null;
     if (this.moveable) {
       this.moveable.destroy();

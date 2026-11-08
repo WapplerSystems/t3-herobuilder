@@ -64,7 +64,9 @@ final class TemplateController
                 'key' => 'db:' . (int)$row['uid'],
                 'uid' => (int)$row['uid'],
                 'title' => (string)$row['title'],
-                'color' => (string)($row['color'] ?: '#dddddd'),
+                // Raw value: the gallery falls back to grey for the card itself, but an empty colour
+                // must not become the slide background when the template is applied.
+                'color' => (string)$row['color'],
                 'composition' => (string)($row['composition'] ?? ''),
                 'thumbUrl' => $imageService->render((string)($row['composition'] ?? '')),
                 'readonly' => false,
