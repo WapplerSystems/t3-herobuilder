@@ -49,6 +49,10 @@ const placementSource = (placements, bp, order) => {
   return null;
 };
 
+// A plain object, or a fresh {} — stored JSON may carry an empty object as [] (PHP round trip),
+// and named properties set on an array are dropped by JSON.stringify.
+const asObject = (v) => (v && typeof v === "object" && !Array.isArray(v) ? v : {});
+
 // Unsaved-changes drafts older than this are dropped silently on open.
 const DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -3222,7 +3226,7 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    this.selected.anim = this.selected.anim || {};
+    this.selected.anim = asObject(this.selected.anim);
     if (value === "" || value === null) {
       delete this.selected.anim[key];
     } else {
@@ -3284,7 +3288,7 @@ export default class HerobuilderCanvas {
       flipH: !!l.flipH,
       flipV: !!l.flipV,
       crop: this.cleanCrop(l.crop),
-      anim: l.anim || {},
+      anim: asObject(l.anim),
       placements: this.cleanPlacements(l.placements),
     };
   }

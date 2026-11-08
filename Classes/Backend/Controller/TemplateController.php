@@ -29,13 +29,18 @@ final class TemplateController
         // Shipped presets (read-only).
         $dir = GeneralUtility::getFileAbsFileName(self::PRESET_DIR);
         foreach (glob(rtrim($dir, '/') . '/*.json') ?: [] as $file) {
-            $data = json_decode((string)file_get_contents($file), true);
+            $raw = (string)file_get_contents($file);
+            $data = json_decode($raw, true);
             if (!is_array($data)) {
                 continue;
             }
-            $composition = isset($data['composition'])
-                ? (is_string($data['composition']) ? $data['composition'] : json_encode($data['composition']))
-                : json_encode(['layers' => $data['layers'] ?? []]);
+            // Re-encode from OBJECTS, not associative arrays: an empty `{}` (e.g. "anim":{}) would
+            // come back as `[]`, and an effect set on such a layer in the editor was then lost on
+            // save (JSON.stringify drops named properties of arrays).
+            $objects = json_decode($raw, false);
+            $composition = isset($objects->composition)
+                ? (is_string($objects->composition) ? $objects->composition : json_encode($objects->composition))
+                : json_encode(['layers' => $objects->layers ?? []]);
             $templates[] = [
                 'key' => 'preset:' . pathinfo($file, PATHINFO_FILENAME),
                 'title' => (string)($data['title'] ?? pathinfo($file, PATHINFO_FILENAME)),
