@@ -362,9 +362,9 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
    fading out front-most first, and building back up rearmost-first on the incoming
    slide, staggered by depth.
 
-   Only `opacity` is animated on purpose. The generated per-slide CSS owns `transform`
-   on .hb-layer (layer rotation) and on .hb-layer-img (flip), so a transform here would
-   silently drop those.
+   Only `opacity` is animated on purpose. `transform` on .hb-layer belongs to the AOS
+   entrance effects (layer rotation uses the individual `rotate` property) and on
+   .hb-layer-img to the image flip, so a transform here would silently drop those.
 
    --hb-depth (0 = rearmost) and --hb-depth-rev (0 = front-most) come from the
    composition's z-order; the rearmost layer carries .hb-layer-bg and is exempt.
@@ -410,9 +410,10 @@ html .hero :where(.hb-stage) :is(h1, h2, h3, h4, h5, h6, p) {
    background layer never moves: it only cross-fades with the slide, which keeps the
    stage covered at all times.
 
-   Movement uses the individual `translate` property, not `transform`: the generated
-   per-slide CSS already puts `transform:rotate()` on .hb-layer, and individual transform
-   properties compose (translate → rotate → scale) instead of replacing it.
+   Movement uses the individual `translate` property, not `transform`: `transform` on
+   .hb-layer belongs to the AOS entrance effects and the layer rotation is the individual
+   `rotate` property — individual transform properties compose (translate → rotate → scale
+   → transform) instead of replacing each other.
 
    The offset is a viewport-relative length, not a percentage: `translate` percentages
    resolve against the element's own box, and layer boxes here range from a few percent of

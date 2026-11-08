@@ -571,7 +571,11 @@ final class CompositionProcessor implements DataProcessorInterface
         if ($h > 0) {
             $d .= 'height:' . $h . '%;';
         }
-        $d .= 'transform:rotate(' . $rot . 'deg);z-index:' . $z . ';';
+        // The individual `rotate` property, NOT `transform:rotate()`: AOS entrance effects animate
+        // `transform` on the same element. This rule came later with equal specificity, so it beat
+        // AOS's start state (no movement at all; flip/slide showed nothing) and its end state
+        // replaced a layer's rotation. `rotate` composes with `transform` instead.
+        $d .= 'rotate:' . $rot . 'deg;z-index:' . $z . ';';
         return $d;
     }
 
