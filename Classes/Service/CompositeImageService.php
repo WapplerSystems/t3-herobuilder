@@ -26,9 +26,15 @@ final class CompositeImageService
     /**
      * Part of the cache key: raise it whenever the drawing changes, so images rendered by an older
      * version are not served again (files are cached by composition only). 2 = auto-height text,
-     * 3 = mobile-first placement cascade.
+     * 3 = mobile-first placement cascade, 4 = single-line buttons at frontend scale.
      */
-    private const RENDER_VERSION = 3;
+    private const RENDER_VERSION = 4;
+
+    /** Frontend .btn metrics (CSS px): 1rem font, line-height 1.5, padding .375rem .75rem. */
+    private const BUTTON_FONT = 16;
+    private const BUTTON_LINE = 24;
+    private const BUTTON_PAD_X = 12;
+    private const BUTTON_PAD_Y = 6;
 
     public function __construct(
         private readonly ResourceFactory $resourceFactory,
@@ -86,6 +92,8 @@ final class CompositeImageService
         $composition = Composition::fromJson($compositionJson);
         $layers = $this->orderedLayers($composition->layers, $breakpoint);
 
+        // Frontend CSS px → image px: the image stands for the breakpoint's stage width.
+        $scale = $width / (float)(Composition::DEFAULT_STAGE_WIDTHS[$breakpoint] ?? $width);
         $args = ['-size', $width . 'x' . $height, 'xc:none'];
         foreach ($layers as $layer) {
             $p = $layer['_p'];
@@ -95,7 +103,10 @@ final class CompositeImageService
             $lh = max(1, (int)round(($p['h'] ?? 0) / 100 * $height));
             $type = $layer['type'] ?? 'image';
 
-            if ($type === 'text' || $type === 'button') {
+            if ($type === 'button') {
+                $autoHeight = (float)($p['h'] ?? 0) <= 0;
+                $this->appendButtonLayer($args, $layer, $lx, $ly, $lw, $autoHeight ? 0 : $lh, $scale, $magick);
+            } elseif ($type === 'text') {
                 // h = 0 means "auto" (the frontend box grows with its text) — not a 1px box.
                 $autoHeight = (float)($p['h'] ?? 0) <= 0;
                 $this->appendTextLayer($args, $layer, $lx, $ly, $lw, $autoHeight ? 0 : $lh, $width);
@@ -166,6 +177,54 @@ final class CompositeImageService
      * @param array<int, string> $args
      * @param array<string, mixed> $layer
      */
+    /**
+     * A button as the frontend draws it: one line (.btn is white-space:nowrap), fixed px font and
+     * padding scaled to the image, at least as wide as its box and centred on it — a label longer
+     * than the box widens the button instead of breaking mid-word ("TiltSt|ation").
+     */
+    private function appendButtonLayer(array &$args, array $layer, int $lx, int $ly, int $lw, int $lh, float $scale, string $magick): void
+    {
+        $text = trim((string)($layer['text'] ?? '')) ?: 'Button';
+        $classes = (string)($layer['cssClass'] ?? '');
+        $pointsize = max(6.0, round(self::BUTTON_FONT * $scale, 1));
+        $padX = self::BUTTON_PAD_X * $scale;
+        $padY = self::BUTTON_PAD_Y * $scale;
+        $textWidth = $this->textWidth($magick, $text, $pointsize);
+        $btnW = max($lw, (int)ceil($textWidth + 2 * $padX));
+        $btnH = $lh > 0 ? $lh : (int)ceil(self::BUTTON_LINE * $scale + 2 * $padY);
+        $x = $lx + (int)round(($lw - $btnW) / 2);
+
+        $args[] = '(';
+        array_push($args, '-size', $btnW . 'x' . $btnH, 'xc:' . $this->buttonBg($classes));
+        array_push($args, '-fill', $this->textColor($classes, true), '-pointsize', (string)$pointsize);
+        array_push($args, '-gravity', 'Center', '-annotate', '+0+0', $this->magickText($text));
+        $args[] = ')';
+        array_push($args, '-gravity', 'NorthWest', '-geometry', '+' . $x . '+' . $ly, '-composite');
+    }
+
+    /** Width (px) ImageMagick needs for one line of $text at $pointsize (default font, as drawn). */
+    private function textWidth(string $magick, string $text, float $pointsize): float
+    {
+        $cmd = escapeshellcmd($magick) . ' ' . implode(' ', array_map('escapeshellarg', [
+            '-pointsize', (string)$pointsize, 'label:' . $this->magickText($text), '-format', '%w', 'info:',
+        ]));
+        $output = [];
+        CommandUtility::exec($cmd, $output);
+        $width = (float)trim((string)($output[0] ?? ''));
+        // Fallback when measuring fails: an average glyph is about 0.55 em wide.
+        return $width > 0 ? $width : mb_strlen($text) * $pointsize * 0.55;
+    }
+
+    /**
+     * Text for ImageMagick label:/caption:/-annotate: a leading "@" would read a file, "%"
+     * starts a format escape and "\" an escape sequence — editor text is shown literally.
+     */
+    private function magickText(string $text): string
+    {
+        $text = str_replace(['\\', '%'], ['\\\\', '%%'], $text);
+        return str_starts_with($text, '@') ? '\\' . $text : $text;
+    }
+
     private function appendTextLayer(array &$args, array $layer, int $lx, int $ly, int $lw, int $lh, int $canvasWidth): void
     {
         $text = trim((string)($layer['text'] ?? ''));
@@ -198,7 +257,7 @@ final class CompositeImageService
         $args[] = $gravity;
         $args[] = '-pointsize';
         $args[] = (string)$pointsize;
-        $args[] = 'caption:' . $text;
+        $args[] = 'caption:' . $this->magickText($text);
         if ($padX > 0) {
             array_push($args, '-bordercolor', $background, '-border', $padX . 'x' . $padY);
         }
