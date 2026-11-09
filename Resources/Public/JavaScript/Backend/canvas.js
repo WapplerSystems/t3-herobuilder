@@ -439,7 +439,10 @@ export default class HerobuilderCanvas {
     } catch (e) {
       last = null;
     }
-    const keep = open.find((rec) => rec.dataset.objectId === last) || open[0];
+    // The slide opened last in this tab; else the newest one — after a save that created several
+    // slides TYPO3 reports all of them open (see Classes/Backend/Hook/KeepNewSlideOpen.php).
+    const keep = open.find((rec) => rec.dataset.objectId === last)
+      || open.reduce((a, b) => (Number(b.dataset.objectUid) > Number(a.dataset.objectUid) ? b : a));
     if (keep === record) {
       remember(record.dataset.objectId);
       return;
