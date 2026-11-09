@@ -750,3 +750,8 @@
 }
 .hb-ll-item.hb-ll-slide.active { border-radius: 6px; }
 .hb-ll-chip.hb-ll-chip-slide.is-none { background: repeating-conic-gradient(#e9ecef 0 25%, #fff 0 50%) 50% / 8px 8px; }
+
+/* "Replay animation" wrapper: carries the tooltip while the button is disabled (Bootstrap gives a
+   disabled .btn pointer-events: none, so the hover reaches the wrapper). */
+.hb-replay-wrap { display: inline-block; }
+.hb-replay-wrap .btn:disabled { pointer-events: none; }

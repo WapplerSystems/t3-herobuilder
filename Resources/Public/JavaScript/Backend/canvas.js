@@ -2084,8 +2084,9 @@ export default class HerobuilderCanvas {
     const bar = document.createElement("div");
     bar.className = "herobuilder-preview-bar";
     bar.innerHTML =
-      '<button type="button" class="btn btn-sm btn-default hb-preview-replay">▶ ' +
-      escapeHtml(this.t("preview.replay", "Replay animation")) + "</button>";
+      // Wrapped: a disabled button shows no tooltip of its own, the wrapper tells why (updateReplayButtons).
+      '<span class="hb-replay-wrap"><button type="button" class="btn btn-sm btn-default hb-preview-replay">▶ ' +
+      escapeHtml(this.t("preview.replay", "Replay animation")) + "</button></span>";
     bar.querySelector(".hb-preview-replay").addEventListener("click", () => this.replayPreview());
     wrap.appendChild(bar);
 
@@ -2132,6 +2133,35 @@ export default class HerobuilderCanvas {
   renderedLayerIndex(layer) {
     const rendered = (l) => l.type === "text" || l.type === "button" || (parseInt(l.fileUid, 10) || 0) > 0;
     return rendered(layer) ? this.layers.filter(rendered).indexOf(layer) : -1;
+  }
+
+  /**
+   * "Replay animation" is only offered when there is something to play: in the Animation tab for
+   * a selected layer with an effect that renders at all, in the preview bar when a layer shown on
+   * the active breakpoint has an effect. A disabled button gets no tooltip of its own, so the
+   * reason goes on its wrapper.
+   */
+  updateReplayButtons() {
+    const set = (btn, reason) => {
+      if (!btn) {
+        return;
+      }
+      btn.disabled = reason !== "";
+      btn.parentNode.title = reason;
+    };
+    const layerReason = (layer) => {
+      if (!layer || !(layer.anim && layer.anim.effect)) {
+        return this.t("preview.replayNoAnim", "This layer has no animation.");
+      }
+      return this.renderedLayerIndex(layer) < 0 ? this.t("preview.replayNoImage", "This layer shows no image yet.") : "";
+    };
+    set(this.panel && this.panel.querySelector(".hb-anim-replay"), layerReason(this.selected));
+    const playable = this.layers.some((layer) => {
+      const p = this.placementFor(layer);
+      return !!p && p.visible !== false && layerReason(layer) === "";
+    });
+    set(this.previewBar && this.previewBar.querySelector(".hb-preview-replay"),
+      playable ? "" : this.t("preview.replayNone", "No layer shown on this breakpoint has an animation."));
   }
 
   replayPreview(layerOnly = false) {
@@ -3029,8 +3059,8 @@ export default class HerobuilderCanvas {
       '</label><input type="number" class="hb-anim-delay form-control form-control-sm" min="0" step="50"></div>' +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.duration", "Duration (ms)")) +
       '</label><input type="number" class="hb-anim-duration form-control form-control-sm" min="0" step="50"></div>' +
-      '<div class="herobuilder-panel-row"><button type="button" class="hb-anim-replay btn btn-sm btn-default">▶ ' +
-      escapeHtml(this.t("preview.replay", "Replay animation")) + "</button>" +
+      '<div class="herobuilder-panel-row"><span class="hb-replay-wrap"><button type="button" class="hb-anim-replay btn btn-sm btn-default">▶ ' +
+      escapeHtml(this.t("preview.replay", "Replay animation")) + "</button></span>" +
       help("help.anim", "Plays on the website when the slide appears.") + "</div>" +
       "</div>";
 
@@ -3150,6 +3180,7 @@ export default class HerobuilderCanvas {
     this.saveView();
     this.renderLayerList();
     this.updateBpMarkers();
+    this.updateReplayButtons();
     if (!this.panel) {
       return;
     }
@@ -4280,6 +4311,7 @@ export default class HerobuilderCanvas {
   }
 
   writeInput() {
+    this.updateReplayButtons();
     this.input.value = this.serialize();
     this.input.dispatchEvent(new Event("change", { bubbles: true }));
     this.schedulePreviewRefresh();

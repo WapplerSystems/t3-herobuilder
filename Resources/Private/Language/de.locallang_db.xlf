@@ -118,6 +118,9 @@
             <trans-unit id="template.save"><source>Save</source><target>Speichern</target></trans-unit>
             <trans-unit id="pages.module.herobuilder"><source>Hero Builder templates</source><target>Hero-Builder-Vorlagen</target></trans-unit>
             <trans-unit id="preview.replay"><source>Replay animation</source><target>Animation erneut abspielen</target></trans-unit>
+            <trans-unit id="preview.replayNoAnim"><source>This layer has no animation.</source><target>Diese Ebene hat keine Animation.</target></trans-unit>
+            <trans-unit id="preview.replayNoImage"><source>This layer shows no image yet.</source><target>Diese Ebene zeigt noch kein Bild.</target></trans-unit>
+            <trans-unit id="preview.replayNone"><source>No layer shown on this breakpoint has an animation.</source><target>Keine Ebene auf diesem Breakpoint hat eine Animation.</target></trans-unit>
 
             <trans-unit id="panel.text"><source>Text</source><target>Text</target></trans-unit>
             <trans-unit id="panel.classes"><source>Classes (multiple selection)</source><target>Klassen (Mehrfachauswahl)</target></trans-unit>

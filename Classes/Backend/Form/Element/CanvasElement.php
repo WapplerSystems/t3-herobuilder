@@ -393,7 +393,7 @@ class CanvasElement extends AbstractFormElement
             'overlay.own', 'overlay.inherited', 'overlay.base', 'panel.align', 'panel.alignV', 'ctx.alignLeft', 'ctx.alignCenterH',
             'ctx.alignRight', 'list.reorder', 'list.toggleVisible', 'list.toggleLock',
             'list.duplicate', 'zoom.in', 'zoom.out', 'zoom.reset', 'zoom.fit', 'zoom.label',
-            'preview.replay',
+            'preview.replay', 'preview.replayNoAnim', 'preview.replayNoImage', 'preview.replayNone',
             'button.matchLarger', 'button.preview', 'panel.link', 'link.choose', 'link.remove',
             'panel.alt', 'panel.altFromFile', 'panel.altNone', 'hint.buttonNoLink', 'hint.imageLinkNoAlt',
             'panel.empty', 'panel.visibleOn', 'panel.classesOther', 'panel.overlayLocked', 'list.delete', 'list.typeText', 'list.typeButton',
