@@ -403,7 +403,7 @@ class CanvasElement extends AbstractFormElement
             'template.renamed', 'template.delete', 'template.deleteConfirm', 'template.deleted', 'template.actionError',
             'template.preset', 'template.presetHint', 'template.cancel', 'template.save',
             'layer.newText', 'layer.newButton',
-            'slide.title', 'bg.label', 'bg.none', 'bg.color', 'bg.linear', 'bg.radial', 'bg.from', 'bg.to', 'bg.angle', 'bg.linearShort', 'bg.radialShort', 'bg.swap',
+            'bg.title', 'bg.type', 'bg.none', 'bg.color', 'bg.linear', 'bg.radial', 'bg.from', 'bg.to', 'bg.angle', 'bg.linearShort', 'bg.radialShort', 'bg.swap',
             'button.export', 'export.title', 'export.hint', 'export.rendering', 'export.error',
             'draft.available', 'draft.restore', 'draft.discard',
             'panel.imageEdit', 'panel.flipH', 'panel.flipV', 'panel.crop', 'panel.cropReset',

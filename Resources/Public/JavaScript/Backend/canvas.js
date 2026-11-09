@@ -1939,9 +1939,9 @@ export default class HerobuilderCanvas {
     slide.className = "hb-ll-item hb-ll-slide";
     slide.innerHTML =
       '<button type="button" class="hb-ll-sel" title="' +
-      escapeAttr(this.t("list.slideHint", "Settings of the whole slide (background). Also: Esc, or a click next to the stage.")) + '">' +
+      escapeAttr(this.t("list.slideHint", "Background of the slide. Also: Esc, or a click next to the stage.")) + '">' +
       '<span class="hb-ll-chip hb-ll-chip-slide"></span>' +
-      '<span class="hb-ll-name">' + escapeHtml(this.t("slide.title", "Slide")) + "</span></button>";
+      '<span class="hb-ll-name">' + escapeHtml(this.t("bg.title", "Background")) + "</span></button>";
     slide.querySelector(".hb-ll-sel").addEventListener("click", () => {
       this.deselect();
       this.stageEl.focus({ preventScroll: true });
@@ -3536,9 +3536,9 @@ export default class HerobuilderCanvas {
     const box = document.createElement("div");
     box.className = "hb-slide-panel";
     box.innerHTML =
-      '<div class="hb-slide-head">' + t("slide.title", "Slide") + "</div>" +
-      '<div class="hb-help hb-help-slide">' + t("help.slide", "These settings apply to the whole slide.") + "</div>" +
-      '<div class="herobuilder-panel-row"><label>' + t("bg.label", "Background") + "</label>" +
+      '<div class="hb-slide-head">' + t("bg.title", "Background") + "</div>" +
+      '<div class="hb-help hb-help-slide">' + t("help.slide", "The background applies to the whole slide.") + "</div>" +
+      '<div class="herobuilder-panel-row"><label>' + t("bg.type", "Type") + "</label>" +
       '<div class="btn-group btn-group-sm hb-bg-types" role="group">' +
       typeBtn("", "bg.none", "None") + typeBtn("color", "bg.color", "Colour") +
       typeBtn("linear", "bg.linearShort", "Linear", "bg.linear", "Linear gradient") +
