@@ -1931,8 +1931,10 @@ export default class HerobuilderCanvas {
     const list = this.root.querySelector(".herobuilder-layerlist");
     this.layerList = list;
 
-    // Fixed "Slide" entry above the layers: selects nothing, so the right column shows the slide
-    // settings. Needed when a layer covers the whole stage and there is no free spot to click.
+    // Fixed "Background" entry below the layers — the list runs from the topmost layer down to the
+    // background, as in an image editor. It selects nothing, so the right column shows the slide's
+    // background settings; needed when a layer covers the whole stage and there is no free spot
+    // to click. It sits outside the list, so no layer can be dragged below it.
     const slide = document.createElement("div");
     slide.className = "hb-ll-item hb-ll-slide";
     slide.innerHTML =
@@ -1944,7 +1946,7 @@ export default class HerobuilderCanvas {
       this.deselect();
       this.stageEl.focus({ preventScroll: true });
     });
-    list.parentNode.insertBefore(slide, list);
+    list.parentNode.insertBefore(slide, list.nextSibling);
     this.slideEntry = slide;
 
     list.addEventListener("click", (e) => {

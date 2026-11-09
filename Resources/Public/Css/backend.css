@@ -739,13 +739,14 @@
     line-height: 1;
 }
 
-/* "Slide" entry above the layer list: the way back to the slide settings (also Esc, or a click
-   next to the stage) — set apart from the layers, which it is not one of. */
+/* "Background" entry below the layer list (the bottom of the stack, as in an image editor): the
+   way to the slide's background settings (also Esc, or a click next to the stage) — set apart
+   from the layers, which it is not one of. */
 .hb-ll-item.hb-ll-slide {
-    margin-bottom: .35rem;
+    margin-top: .35rem;
     padding-left: 1.4rem;
-    border-bottom-color: var(--typo3-component-border-color, #e0e0e0);
-    border-radius: 6px 6px 0 0;
+    border-top-color: var(--typo3-component-border-color, #e0e0e0);
+    border-radius: 0 0 6px 6px;
 }
 .hb-ll-item.hb-ll-slide.active { border-radius: 6px; }
 .hb-ll-chip.hb-ll-chip-slide.is-none { background: repeating-conic-gradient(#e9ecef 0 25%, #fff 0 50%) 50% / 8px 8px; }
