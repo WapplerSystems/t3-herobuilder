@@ -3536,6 +3536,9 @@ export default class HerobuilderCanvas {
       '<div class="hb-bg-swatch" aria-hidden="true"></div>';
     this.panelEmpty.parentNode.insertBefore(box, this.panelEmpty.nextSibling);
     this.slidePanel = box;
+    // Built after buildPanel(): its colour, hex, angle inputs need detaching from the record
+    // form as well, or an invalid value there would abort every save (see detachControlsFromForm).
+    this.detachControlsFromForm();
     const q = (sel) => box.querySelector(sel);
     this._bgType = "";
     // Read the inputs into a background; `commit` = a finished change (undo step) vs. live input.
