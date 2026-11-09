@@ -361,11 +361,30 @@ export default class HerobuilderCanvas {
     this.bindKeyboard();
     this.listenForAssetInserts();
     this.listenForStageMode();
-    // A slide TYPO3 reopened next to the one the editor last worked on is closed again, and
-    // starts only once it is opened: hidden, it would measure its column as 0 px wide.
-    if (this.keepSingleSlideOpen()) {
+    // A slide TYPO3 reopened next to the one the editor last worked on is closed again.
+    this.keepSingleSlideOpen();
+    this.initWhenVisible();
+  }
+
+  /**
+   * Start once the editor is visible. Zoom and stage size come from the column width, and a
+   * hidden editor measures 0 px — then it opened at a tiny zoom. Hidden happens when TYPO3
+   * reopens the slide inside a FormEngine tab that is not the active one, or when
+   * keepSingleSlideOpen() closed it. A ResizeObserver reports the first non-zero width, whether
+   * it comes from switching the tab or opening the slide.
+   */
+  initWhenVisible() {
+    if (this.root.offsetWidth > 0 || !window.ResizeObserver) {
       this.init();
+      return;
     }
+    const observer = new ResizeObserver(() => {
+      if (this.root.offsetWidth > 0) {
+        observer.disconnect();
+        this.init();
+      }
+    });
+    observer.observe(this.root);
   }
 
   /**
@@ -376,13 +395,13 @@ export default class HerobuilderCanvas {
    * (sessionStorage, no race); any other slide that comes back open closes itself and tells
    * TYPO3 once.
    *
-   * @return {boolean} false when this slide closed itself (init() then runs when it is opened)
+   * Starting the editor of a closed slide waits for it to be opened (initWhenVisible()).
    */
   keepSingleSlideOpen() {
     const record = this.root.closest("[data-object-id]");
     const container = record && record.closest("typo3-formengine-container-inline");
     if (!record || !container || container.dataset.expandSingle !== "true") {
-      return true;
+      return;
     }
     const key = "herobuilder:open:" + container.dataset.objectGroup;
     const remember = (id) => {
@@ -412,7 +431,7 @@ export default class HerobuilderCanvas {
       if (open[0] === record) {
         remember(record.dataset.objectId);
       }
-      return true;
+      return;
     }
     let last = null;
     try {
@@ -423,7 +442,7 @@ export default class HerobuilderCanvas {
     const keep = open.find((rec) => rec.dataset.objectId === last) || open[0];
     if (keep === record) {
       remember(record.dataset.objectId);
-      return true;
+      return;
     }
     // Close without Bootstrap's animation and events (those would send core's request again).
     const fields = fieldsOf(record);
@@ -433,11 +452,6 @@ export default class HerobuilderCanvas {
       button.classList.add("collapsed");
       button.setAttribute("aria-expanded", "false");
     }
-    fields.addEventListener("shown.bs.collapse", (e) => {
-      if (e.target === fields) {
-        this.init();
-      }
-    }, { once: true });
     try {
       const dispatcher = new AjaxDispatcher(container.dataset.objectGroup);
       dispatcher.send(
@@ -447,7 +461,6 @@ export default class HerobuilderCanvas {
     } catch (e) {
       // Not stored: it is closed again on the next load.
     }
-    return false;
   }
 
   /** Follow the content element's stage mode field (delegated: inline forms load lazily). */
