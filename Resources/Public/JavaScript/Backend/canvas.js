@@ -111,6 +111,10 @@ const COMPOSITION_VERSION = 1;
 // Height the live preview is fitted into until the editor resizes the panel.
 const PREVIEW_MAX_HEIGHT = 420;
 
+// What an animation without values of its own plays with — AOS.init() in hero.js (website) and
+// preview-frame.js (live preview). Change all three together.
+const ANIM_DEFAULTS = { delay: 0, duration: 600 };
+
 // Duration of the breakpoint morph (stage box + layer geometry). Must stay in sync with the
 // `--hb-bp-anim` transition in backend.css — the reconciling render() runs once it is over.
 const BP_ANIM_MS = 480;
@@ -3056,9 +3060,11 @@ export default class HerobuilderCanvas {
       AOS_EFFECTS.map((e) => '<option value="' + e + '">' + (e || animNone) + "</option>").join("") +
       "</select></div>" +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.delay", "Delay (ms)")) +
-      '</label><input type="number" class="hb-anim-delay form-control form-control-sm" min="0" step="50"></div>' +
+      '</label><input type="number" class="hb-anim-delay form-control form-control-sm" min="0" step="50" placeholder="' +
+      ANIM_DEFAULTS.delay + '"></div>' +
       '<div class="herobuilder-panel-row"><label>' + escapeHtml(this.t("panel.duration", "Duration (ms)")) +
-      '</label><input type="number" class="hb-anim-duration form-control form-control-sm" min="0" step="50"></div>' +
+      '</label><input type="number" class="hb-anim-duration form-control form-control-sm" min="0" step="50" placeholder="' +
+      ANIM_DEFAULTS.duration + '"></div>' +
       '<div class="herobuilder-panel-row"><span class="hb-replay-wrap"><button type="button" class="hb-anim-replay btn btn-sm btn-default">▶ ' +
       escapeHtml(this.t("preview.replay", "Replay animation")) + "</button></span>" +
       help("help.anim", "Plays on the website when the slide appears.") + "</div>" +
@@ -3220,8 +3226,7 @@ export default class HerobuilderCanvas {
     this.updateOverlayFields();
     this.renderClassChips(this.selected);
     this.panel.querySelector(".hb-anim-effect").value = anim.effect || "";
-    this.panel.querySelector(".hb-anim-delay").value = anim.delay || "";
-    this.panel.querySelector(".hb-anim-duration").value = anim.duration || "";
+    this.updateAnimFields();
     this.panel.querySelector(".hb-fit").value = this.selected.fit || "fill";
     this.updateGeomFields(p);
     this.panel.querySelector(".hb-help-height").hidden = !isText;
@@ -4178,13 +4183,43 @@ export default class HerobuilderCanvas {
     if (!this.selected) {
       return;
     }
-    this.selected.anim = asObject(this.selected.anim);
+    const anim = this.selected.anim = asObject(this.selected.anim);
     if (value === "" || value === null) {
-      delete this.selected.anim[key];
+      delete anim[key];
     } else {
-      this.selected.anim[key] = key === "effect" ? value : parseInt(value, 10) || 0;
+      anim[key] = key === "effect" ? value : parseInt(value, 10) || 0;
+    }
+    if (key === "effect") {
+      // A new effect starts with the values it would play with anyway, written into the layer,
+      // so the fields show what the website does. Values set before are kept.
+      if (anim.effect) {
+        Object.keys(ANIM_DEFAULTS).forEach((k) => {
+          if (!Number.isFinite(parseInt(anim[k], 10))) {
+            anim[k] = ANIM_DEFAULTS[k];
+          }
+        });
+      }
+      this.updateAnimFields();
     }
     this.save();
+  }
+
+  /**
+   * Delay and duration of the selected layer. With an effect they show the stored value, or the
+   * default it plays with when there is none (older layers); without an effect they are empty
+   * and disabled. Stored values of a removed effect stay in the layer for when one is chosen again.
+   */
+  updateAnimFields() {
+    if (!this.panel || !this.selected) {
+      return;
+    }
+    const anim = asObject(this.selected.anim);
+    Object.keys(ANIM_DEFAULTS).forEach((k) => {
+      const input = this.panel.querySelector(".hb-anim-" + k);
+      const value = parseInt(anim[k], 10);
+      input.disabled = !anim.effect;
+      input.value = anim.effect ? String(Number.isFinite(value) ? value : ANIM_DEFAULTS[k]) : "";
+    });
   }
 
   setVisible(visible) {
